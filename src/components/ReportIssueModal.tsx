@@ -57,9 +57,15 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        data = null;
+      }
 
-      if (data.success) {
+      if (res.ok && data && data.success) {
         setSubmittedTicket({
           ticketId: data.ticketId,
           telegramDelivered: data.telegramDelivered,
@@ -72,7 +78,12 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
           origin: { y: 0.6 },
         });
       } else {
-        setErrorMessage(data.error || 'Failed to submit issue report');
+        const errorDetail =
+          data?.error ||
+          (!data && res.status === 404
+            ? 'API endpoint not found. Please ensure Vercel Serverless Functions are enabled and TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID are added to your Vercel Project Environment Variables.'
+            : `Failed to submit report (Status ${res.status}): ${responseText || 'No response body'}`);
+        setErrorMessage(errorDetail);
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Network error connecting to backend API');
