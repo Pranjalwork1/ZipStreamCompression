@@ -1,0 +1,6 @@
+{
+  "name": "ZipStream - File Compressor",
+  "description": "A high-performance on-device file compression app supporting PDF, image, audio, and video optimization with batch processing, quick presets, and Telegram issue reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
