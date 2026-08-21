@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { DropZone } from './components/DropZone';
 import { FileList } from './components/FileList';
@@ -375,6 +376,8 @@ export function App() {
       <footer className="w-full border-t border-black/[0.04] dark:border-white/[0.06] py-6 text-center text-xs text-zinc-400">
         <p>ZipStream File Compression • 100% On-Device Web Processing • Privacy Guaranteed</p>
       </footer>
+      
+      <Analytics />
     </div>
   );
 }
