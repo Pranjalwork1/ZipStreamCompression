@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: zipstream-compression
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_TUNNEL
+        value: "false"

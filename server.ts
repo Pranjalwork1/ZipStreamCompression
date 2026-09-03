@@ -64,7 +64,7 @@ setInterval(() => {
 async function startServer() {
   const app = express();
   const httpServer = createHttpServer(app);
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // ─── Ephemeral Room Document Cache (Held in volatile RAM during room lifetime) ───
   interface EphemeralDocument {
@@ -593,8 +593,11 @@ ${browserInfo}
     console.log(`📡  WebRTC signaling active on ws://0.0.0.0:${PORT}`);
     console.log(`🌐  Local Network IP: http://${getLocalIp()}:${PORT}`);
 
-    // Start localtunnel in the background — gives a public HTTPS URL instantly
-    startTunnel(PORT);
+    if (process.env.ENABLE_TUNNEL !== 'false' && process.env.NODE_ENV !== 'production') {
+      startTunnel(PORT);
+    } else {
+      tunnelStatus = 'off';
+    }
   });
 }
 
