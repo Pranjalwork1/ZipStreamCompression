@@ -308,7 +308,13 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       return `${tunnelUrl}/#/room/${roomId}`;
     }
 
-    // 3. LAN IP fallback (works only on same Wi-Fi network)
+    // 3. Preserve the hosted origin when no tunnel is available. Adding port 3000
+    // to a deployed HTTPS domain produces a QR code that cannot be opened.
+    if (!selectedIp && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return `${window.location.origin}/#/room/${roomId}`;
+    }
+
+    // 4. LAN IP fallback (works only on the same Wi-Fi network)
     const hostIp = selectedIp || window.location.hostname;
     const isLocal = hostIp === 'localhost' || hostIp === '127.0.0.1';
     if (isLocal && !selectedIp) {
