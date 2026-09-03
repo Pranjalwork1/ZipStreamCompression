@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ZipStream P2P - Zero-Install PDF Stream & Co-Viewer</title>
+
+  <!-- Tailwind CSS & Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Core Client Libraries -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#09090b] text-[#f4f4f5] min-h-screen flex flex-col font-sans antialiased select-none overflow-x-hidden">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="h-16 border-b border-white/[0.08] bg-[#121215]/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold">
+        <i data-lucide="share-2" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-[15px] tracking-tight text-white">ZipStream P2P</span>
+          <span id="role-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">Host</span>
+        </div>
+        <p class="text-[11px] text-[#71717a] hidden sm:block">Zero-install client-side WebRTC document sync</p>
+      </div>
+    </div>
+
+    <!-- Status & Presence Indicators -->
+    <div class="flex items-center gap-2.5">
+      <div id="status-badge" class="flex items-center gap-2 px-3 py-1 rounded-full text-[12px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="status-text">Waiting for Peer...</span>
+      </div>
+
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[12px] text-[#a1a1aa]">
+        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+        <span id="peer-count">1</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN SPLIT-VIEW DASHBOARD -->
+  <main class="flex-1 flex flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full gap-6">
+
+    <!-- LOBBY & PAIRING STAGE (Visible before document streaming) -->
+    <section id="lobby-stage" class="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto">
+      
+      <!-- QR CODE CARD -->
+      <div class="bg-[#121215] rounded-3xl p-6 sm:p-8 border border-white/[0.08] flex flex-col items-center justify-center text-center space-y-5 shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500"></div>
+
+        <div class="p-3.5 bg-white rounded-2xl shadow-xl flex items-center justify-center">
+          <div id="qrcode" class="w-48 h-48 sm:w-56 sm:h-56"></div>
+        </div>
+
+        <div class="space-y-1 max-w-xs">
+          <h3 class="font-bold text-base text-white flex items-center justify-center gap-2">
+            <i data-lucide="smartphone" class="w-4 h-4 text-blue-400"></i>
+            Instant Camera Connect
+          </h3>
+          <p class="text-xs text-[#a1a1aa] leading-relaxed">
+            Scan via native iPhone/Android camera to join this session directly in-browser.
+          </p>
+        </div>
+
+        <!-- Shareable Link Copy Box -->
+        <div class="w-full flex items-center gap-2 bg-[#18181b] p-1.5 rounded-2xl border border-white/[0.08]">
+          <input id="room-link-input" type="text" readonly class="bg-transparent px-3 text-xs font-mono text-[#a1a1aa] flex-1 outline-none truncate" />
+          <button id="copy-link-btn" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILE UPLOAD DROPZONE -->
+      <div class="bg-[#121215] rounded-3xl p-6 sm:p-8 border border-white/[0.08] flex flex-col justify-between space-y-5 shadow-2xl">
+        <div class="space-y-1.5">
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="file-up" class="w-5 h-5 text-blue-400"></i>
+            Stream Local Document
+          </h2>
+          <p class="text-xs text-[#a1a1aa]">
+            Your PDF is chunked into 32KB binary buffers and streamed peer-to-peer over encrypted WebRTC channels.
+          </p>
+        </div>
+
+        <div id="drop-zone" class="border-2 border-dashed border-white/20 hover:border-blue-500 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-white/[0.02]">
+          <input type="file" id="file-input" accept="application/pdf" class="hidden" />
+          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3">
+            <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+          </div>
+          <p class="font-bold text-sm text-white">Choose or Drag a PDF here</p>
+          <p class="text-xs text-[#71717a] mt-1">Direct memory streaming • Zero server caching</p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex items-start gap-3">
+          <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"></i>
+          <div class="text-xs">
+            <span class="font-bold text-emerald-400 block mb-0.5">100% In-Memory Privacy</span>
+            <p class="text-[#a1a1aa] leading-relaxed">
+              Files are held in volatile RAM ArrayBuffers and never saved to any database or cloud disk.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROGRESS BAR (Active during chunked streaming) -->
+    <div id="progress-container" class="hidden bg-[#121215] p-4 rounded-2xl border border-white/[0.08] shadow-xl space-y-2">
+      <div class="flex justify-between text-xs font-semibold">
+        <span class="text-white flex items-center gap-2">
+          <i data-lucide="activity" class="w-4 h-4 text-blue-400 animate-spin"></i>
+          <span id="transfer-file-name">Streaming document...</span>
+        </span>
+        <span id="transfer-percentage" class="font-mono text-blue-400">0%</span>
+      </div>
+      <div class="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all duration-100" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- SYNCHRONIZED PDF VIEWPORT STAGE -->
+    <section id="viewer-stage" class="hidden flex-1 flex flex-col bg-[#121215] rounded-3xl border border-white/[0.08] overflow-hidden shadow-2xl" style="min-height: 600px;">
+      
+      <!-- TOOLBAR -->
+      <div class="h-14 bg-[#18181b] border-b border-white/[0.08] px-4 flex items-center justify-between flex-wrap gap-2 text-xs">
+        
+        <!-- Host Control vs Free Scroll Switch -->
+        <div class="flex items-center gap-2">
+          <button id="sync-mode-toggle" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 font-semibold cursor-pointer">
+            <i data-lucide="radio" class="w-3.5 h-3.5 animate-pulse"></i>
+            <span id="sync-mode-label">Host Sync Mode (Active)</span>
+          </button>
+        </div>
+
+        <!-- Page Navigation & Zoom Controls -->
+        <div class="flex items-center gap-2">
+          <!-- Page Controls -->
+          <div class="flex items-center bg-[#121215] rounded-xl border border-white/[0.08] p-0.5">
+            <button id="prev-page" class="p-1.5 hover:bg-white/[0.08] rounded-lg disabled:opacity-30 cursor-pointer">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            <span class="px-3 font-mono font-bold text-white text-xs">
+              <span id="current-page">1</span> / <span id="total-pages">1</span>
+            </span>
+            <button id="next-page" class="p-1.5 hover:bg-white/[0.08] rounded-lg disabled:opacity-30 cursor-pointer">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Zoom Controls -->
+          <div class="flex items-center bg-[#121215] rounded-xl border border-white/[0.08] p-0.5">
+            <button id="zoom-out" class="p-1.5 hover:bg-white/[0.08] rounded-lg cursor-pointer">
+              <i data-lucide="zoom-out" class="w-4 h-4"></i>
+            </button>
+            <span id="zoom-level" class="px-2.5 font-mono font-medium text-xs">100%</span>
+            <button id="zoom-in" class="p-1.5 hover:bg-white/[0.08] rounded-lg cursor-pointer">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE CANVAS STAGE -->
+      <div id="canvas-container" class="flex-1 overflow-auto p-4 sm:p-8 flex items-center justify-center bg-[#09090b]">
+        <div class="shadow-2xl rounded-xl overflow-hidden border border-white/[0.08] bg-white">
+          <canvas id="pdf-canvas" class="block max-w-full h-auto"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/pdf-viewer.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
