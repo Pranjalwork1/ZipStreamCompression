@@ -14,6 +14,24 @@ import {
   Command,
   X,
   Check,
+  FileSpreadsheet,
+  Presentation,
+  Image as ImageIcon,
+  Code,
+  Volume2,
+  BookOpen,
+  Lock,
+  Unlock,
+  EyeOff,
+  Shield,
+  Fingerprint,
+  MessageSquare,
+  GitCompare,
+  Wrench,
+  Receipt,
+  QrCode,
+  Share2,
+  PenTool,
 } from 'lucide-react';
 import { ToolMode, FileCategory, SearchToolItem } from '../types';
 
@@ -24,6 +42,7 @@ interface SearchCommandPaletteProps {
 }
 
 export const ALL_TOOLS: SearchToolItem[] = [
+  // Existing Core
   {
     id: 'merge_pdf',
     name: 'Merge PDF',
@@ -102,6 +121,207 @@ export const ALL_TOOLS: SearchToolItem[] = [
     keywords: ['compress audio', 'audio', 'mp3', 'wav', 'sound', 'voice memo', 'podcast'],
     iconName: 'Music',
     targetCategory: 'audio',
+  },
+
+  // Convert -> Other
+  {
+    id: 'pdf_to_word',
+    name: 'PDF to Word',
+    category: 'Convert',
+    description: 'Convert PDF files to editable Microsoft Word (.docx) documents.',
+    badge: 'Popular',
+    keywords: ['pdf to word', 'docx', 'doc', 'convert pdf', 'editable word', 'microsoft word'],
+    iconName: 'FileText',
+  },
+  {
+    id: 'pdf_to_jpg',
+    name: 'PDF to JPG',
+    category: 'Convert',
+    description: 'Extract PDF pages as high-resolution JPEG and PNG images.',
+    keywords: ['pdf to jpg', 'pdf to image', 'jpeg', 'extract pictures', 'photo'],
+    iconName: 'ImageIcon',
+  },
+  {
+    id: 'pdf_to_excel',
+    name: 'PDF to Excel',
+    category: 'Convert',
+    description: 'Detect tabular data in PDFs and export to Excel XLSX/CSV spreadsheets.',
+    keywords: ['pdf to excel', 'xlsx', 'csv', 'tables', 'spreadsheet', 'accounting'],
+    iconName: 'FileSpreadsheet',
+  },
+  {
+    id: 'pdf_to_powerpoint',
+    name: 'PDF to PowerPoint',
+    category: 'Convert',
+    description: 'Turn multi-page PDF documents into editable presentation slides (.pptx).',
+    keywords: ['pdf to powerpoint', 'pptx', 'presentation', 'slides', 'deck'],
+    iconName: 'Presentation',
+  },
+  {
+    id: 'extract_text',
+    name: 'Extract Text',
+    category: 'Convert',
+    description: 'Instant clean plain text and Markdown parser from any PDF.',
+    keywords: ['extract text', 'txt', 'copy text', 'markdown', 'raw text'],
+    iconName: 'FileText',
+  },
+  {
+    id: 'pdf_to_html',
+    name: 'PDF to HTML',
+    category: 'Convert',
+    description: 'Convert PDF pages into modern responsive HTML5 web pages.',
+    keywords: ['pdf to html', 'web page', 'html5', 'responsive'],
+    iconName: 'Code',
+  },
+  {
+    id: 'pdf_to_audio',
+    name: 'PDF to Audio',
+    category: 'Convert',
+    description: 'Listen to PDF documents with natural AI speech voice synthesis.',
+    badge: 'Audio',
+    keywords: ['pdf to audio', 'tts', 'text to speech', 'listen', 'read aloud', 'voice', 'mp3'],
+    iconName: 'Volume2',
+  },
+  {
+    id: 'pdf_to_epub',
+    name: 'PDF to EPUB',
+    category: 'Convert',
+    description: 'Convert documents and articles into digital e-books for e-readers.',
+    keywords: ['pdf to epub', 'ebook', 'kindle', 'ereader', 'books'],
+    iconName: 'BookOpen',
+  },
+
+  // Security & Privacy
+  {
+    id: 'encrypt_pdf',
+    name: 'Encrypt PDF',
+    category: 'Security & Privacy',
+    description: 'Add password protection and granular printing/copying permissions.',
+    keywords: ['encrypt pdf', 'password protect', 'lock pdf', 'secure', 'aes'],
+    iconName: 'Lock',
+  },
+  {
+    id: 'unlock_pdf',
+    name: 'Unlock PDF',
+    category: 'Security & Privacy',
+    description: 'Remove passwords from protected PDFs for unrestricted printing & editing.',
+    keywords: ['unlock pdf', 'remove password', 'decrypt', 'unprotect'],
+    iconName: 'Unlock',
+  },
+  {
+    id: 'auto_redact_pii',
+    name: 'Auto-Redact PII',
+    category: 'Security & Privacy',
+    description: 'Automatically detect and blackout SSNs, credit cards, emails, and phone numbers.',
+    badge: 'AI Shield',
+    keywords: ['auto redact', 'pii', 'redact', 'blackout', 'privacy', 'ssn', 'credit card'],
+    iconName: 'EyeOff',
+  },
+  {
+    id: 'privacy_scanner',
+    name: 'Privacy Scanner',
+    category: 'Security & Privacy',
+    description: 'Audit and strip hidden document metadata, author tags, and GPS coordinates.',
+    keywords: ['privacy scanner', 'strip metadata', 'clean pdf', 'gps', 'author info'],
+    iconName: 'Shield',
+  },
+  {
+    id: 'fingerprint_gen',
+    name: 'Fingerprint Generator',
+    category: 'Security & Privacy',
+    description: 'Calculate cryptographic SHA-256 and SHA-512 integrity verification hashes.',
+    keywords: ['fingerprint', 'sha256', 'hash', 'checksum', 'integrity', 'md5'],
+    iconName: 'Fingerprint',
+  },
+
+  // AI Tools
+  {
+    id: 'chat_pdf',
+    name: 'Chat with PDF',
+    category: 'AI Tools',
+    description: 'Ask questions, extract clauses, and converse with documents using Gemini AI.',
+    badge: 'Gemini AI',
+    keywords: ['chat with pdf', 'ai chat', 'ask pdf', 'gemini', 'questions', 'document ai'],
+    iconName: 'MessageSquare',
+  },
+  {
+    id: 'ai_summarize',
+    name: 'AI Summarizer',
+    category: 'AI Tools',
+    description: 'Generate instant executive briefings, bullet points, and TL;DR summaries.',
+    badge: 'AI',
+    keywords: ['ai summarize', 'summary', 'tldr', 'executive summary', 'bullets', 'notes'],
+    iconName: 'Sparkles',
+  },
+  {
+    id: 'searchable_pdf',
+    name: 'Searchable PDF (OCR)',
+    category: 'AI Tools',
+    description: 'Recognize scanned text layer to make scanned PDFs searchable & selectable.',
+    keywords: ['searchable pdf', 'ocr', 'text recognition', 'scanned pdf'],
+    iconName: 'Search',
+  },
+  {
+    id: 'compare_pdfs',
+    name: 'Compare PDFs',
+    category: 'AI Tools',
+    description: 'Side-by-side visual diff slider and discrepancy highlighting between two versions.',
+    keywords: ['compare pdfs', 'diff', 'compare documents', 'version comparison', 'changes'],
+    iconName: 'GitCompare',
+  },
+  {
+    id: 'repair_pdf',
+    name: 'Repair PDF',
+    category: 'AI Tools',
+    description: 'Rebuild damaged PDF headers, broken xref tables, and corrupted stream objects.',
+    keywords: ['repair pdf', 'fix corrupt pdf', 'corrupted', 'restore', 'recover'],
+    iconName: 'Wrench',
+  },
+
+  // Business
+  {
+    id: 'gst_invoice',
+    name: 'GST Tax Invoice',
+    category: 'Business',
+    description: 'Generate professional Indian GST tax invoices with auto tax breakdown & print.',
+    badge: 'Business',
+    keywords: ['gst invoice', 'tax invoice', 'billing', 'invoice generator', 'cgst', 'sgst', 'igst'],
+    iconName: 'Receipt',
+  },
+  {
+    id: 'pos_billing',
+    name: 'POS Billing Slip',
+    category: 'Business',
+    description: 'Point-of-sale thermal receipt printer with dynamic UPI payment QR code.',
+    keywords: ['pos billing', 'receipt', 'thermal print', 'upi qr', 'counter billing'],
+    iconName: 'QrCode',
+  },
+  {
+    id: 'gst_filing_prep',
+    name: 'GST Filing Prep',
+    category: 'Business',
+    description: 'GSTR-1 and GSTR-3B monthly tax summary sheet aggregator with export.',
+    keywords: ['gst filing prep', 'gstr1', 'gstr3b', 'tax filing', 'accounting'],
+    iconName: 'FileSpreadsheet',
+  },
+
+  // Collaborate & Share
+  {
+    id: 'p2p_share',
+    name: 'P2P File Share',
+    category: 'Collaborate',
+    description: 'Direct browser-to-browser encrypted file streaming via WebRTC with zero cloud.',
+    badge: 'P2P',
+    keywords: ['p2p share', 'peer to peer', 'webrtc', 'file transfer', 'direct share', 'no cloud'],
+    iconName: 'Share2',
+  },
+  {
+    id: 'collab_whiteboard',
+    name: 'Collab Whiteboard',
+    category: 'Collaborate',
+    description: 'Interactive canvas to markup, sketch, highlight, and annotate documents.',
+    keywords: ['whiteboard', 'collab', 'annotate', 'markup', 'draw', 'sketch', 'pen'],
+    iconName: 'PenTool',
   },
 ];
 
@@ -183,6 +403,42 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
         return <Film className="w-4 h-4 text-[#0071e3]" />;
       case 'Music':
         return <Music className="w-4 h-4 text-[#af52de]" />;
+      case 'ImageIcon':
+        return <ImageIcon className="w-4 h-4 text-[#ff2d55]" />;
+      case 'FileSpreadsheet':
+        return <FileSpreadsheet className="w-4 h-4 text-[#34c759]" />;
+      case 'Presentation':
+        return <Presentation className="w-4 h-4 text-[#ff9500]" />;
+      case 'Code':
+        return <Code className="w-4 h-4 text-[#5856d6]" />;
+      case 'Volume2':
+        return <Volume2 className="w-4 h-4 text-[#0071e3]" />;
+      case 'BookOpen':
+        return <BookOpen className="w-4 h-4 text-[#af52de]" />;
+      case 'Lock':
+        return <Lock className="w-4 h-4 text-[#34c759]" />;
+      case 'Unlock':
+        return <Unlock className="w-4 h-4 text-[#ff9500]" />;
+      case 'EyeOff':
+        return <EyeOff className="w-4 h-4 text-[#ff3b30]" />;
+      case 'Shield':
+        return <Shield className="w-4 h-4 text-[#0071e3]" />;
+      case 'Fingerprint':
+        return <Fingerprint className="w-4 h-4 text-[#af52de]" />;
+      case 'MessageSquare':
+        return <MessageSquare className="w-4 h-4 text-[#af52de]" />;
+      case 'GitCompare':
+        return <GitCompare className="w-4 h-4 text-[#0071e3]" />;
+      case 'Wrench':
+        return <Wrench className="w-4 h-4 text-[#ff9500]" />;
+      case 'Receipt':
+        return <Receipt className="w-4 h-4 text-[#34c759]" />;
+      case 'QrCode':
+        return <QrCode className="w-4 h-4 text-[#0071e3]" />;
+      case 'Share2':
+        return <Share2 className="w-4 h-4 text-[#5856d6]" />;
+      case 'PenTool':
+        return <PenTool className="w-4 h-4 text-[#ff2d55]" />;
       case 'Layers':
       default:
         return <Layers className="w-4 h-4 text-[#34c759]" />;
@@ -198,11 +454,13 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
       <div
         id="search-command-palette-modal"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-white dark:bg-[#1c1c1e] rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] border border-black/[0.08] dark:border-white/[0.12] overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-[#0c0e14] rounded-xl shadow-[0_25px_70px_rgba(0,0,0,0.8)] border border-white/[0.14] overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-150 terminal-inlay font-mono-tech"
       >
         {/* Search Input Bar */}
-        <div className="flex items-center px-4 sm:px-5 py-3.5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#fafafc] dark:bg-[#252528]">
-          <Search className="w-5 h-5 text-[#86868b] dark:text-[#a1a1a6] shrink-0 mr-3" />
+        <div className="flex items-center px-4 sm:px-5 py-3.5 border-b border-white/[0.08] bg-[#10131c]">
+          <span className="text-[12px] font-mono-tech font-bold text-[#00ff87] mr-3 shrink-0">
+            SYS_CMD &gt;
+          </span>
           <input
             ref={inputRef}
             type="text"
@@ -212,27 +470,27 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Search tools & features (e.g. Merge, Scan, Compress, Split)..."
-            className="w-full bg-transparent text-[16px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] dark:placeholder:text-[#8e8e93] focus:outline-none"
+            placeholder="Execute module query (e.g. Word, Encrypt, Chat, GST, Audio)..."
+            className="w-full bg-transparent text-[14px] text-white placeholder:text-white/40 focus:outline-none font-mono-tech"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="p-1 rounded-full text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer"
+              className="p-1 rounded text-white/40 hover:text-white hover:bg-white/[0.08] cursor-pointer mr-2"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <span className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium text-[#86868b] dark:text-[#a1a1a6] bg-black/[0.04] dark:bg-white/[0.08] ml-2">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-tech text-white/50 bg-white/[0.06] border border-white/[0.08]">
             ESC
           </span>
         </div>
 
         {/* Tools Results List */}
-        <div className="max-h-[380px] overflow-y-auto p-2 divide-y divide-black/[0.03] dark:divide-white/[0.04]">
+        <div className="max-h-[400px] overflow-y-auto p-2 divide-y divide-white/[0.04]">
           {filteredTools.length === 0 ? (
-            <div className="py-12 text-center text-[#86868b] dark:text-[#8e8e93] text-[14px]">
-              No tools matching &ldquo;{query}&rdquo; found. Try searching for &ldquo;merge&rdquo;, &ldquo;scan&rdquo;, or &ldquo;compress&rdquo;.
+            <div className="py-12 text-center text-white/40 text-[13px] font-mono-tech">
+              NO MODULE MATCHING &ldquo;{query}&rdquo;. TRY &ldquo;WORD&rdquo;, &ldquo;ENCRYPT&rdquo;, OR &ldquo;CHAT&rdquo;.
             </div>
           ) : (
             filteredTools.map((tool, idx) => {
@@ -247,18 +505,18 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
                     onSelectTool(tool.id, tool.targetCategory);
                     onClose();
                   }}
-                  className={`w-full text-left p-3 sm:px-4 sm:py-3 rounded-2xl flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                  className={`w-full text-left p-2.5 sm:px-3.5 sm:py-2.5 rounded-lg flex items-center justify-between gap-3 transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-[#0071e3]/10 dark:bg-[#2997ff]/20 text-[#0071e3] dark:text-[#2997ff]'
-                      : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+                      ? 'bg-[#161a26] text-[#00ff87] border border-[#00ff87]/30'
+                      : 'text-white/80 hover:bg-white/[0.04] border border-transparent'
                   }`}
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                      className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 border ${
                         isSelected
-                          ? 'bg-white dark:bg-[#2c2c2e] border-[#0071e3]/20 dark:border-[#2997ff]/30 shadow-xs'
-                          : 'bg-[#f5f5f7] dark:bg-[#2c2c2e] border-black/[0.04] dark:border-white/[0.06]'
+                          ? 'bg-[#10131c] text-[#00ff87] border-[#00ff87]/40'
+                          : 'bg-[#12151e] text-white/60 border-white/[0.08]'
                       }`}
                     >
                       {renderIcon(tool.iconName)}
@@ -267,32 +525,32 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-[14px] font-semibold truncate ${
-                            isSelected ? 'text-[#0071e3] dark:text-[#2997ff]' : 'text-[#1d1d1f] dark:text-[#f5f5f7]'
+                          className={`text-[13px] font-mono-tech font-bold truncate ${
+                            isSelected ? 'text-[#00ff87]' : 'text-white'
                           }`}
                         >
                           {tool.name}
                         </span>
                         {tool.badge && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0071e3]/15 dark:bg-[#2997ff]/25 text-[#0071e3] dark:text-[#2997ff]">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono-tech uppercase bg-[#00ff87]/15 text-[#00ff87] border border-[#00ff87]/20">
                             {tool.badge}
                           </span>
                         )}
-                        <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93] font-medium hidden sm:inline-block">
-                          • {tool.category}
+                        <span className="text-[10px] text-white/30 font-mono-tech hidden sm:inline-block">
+                          // {tool.category}
                         </span>
                       </div>
-                      <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] truncate mt-0.5">
+                      <p className="text-[11.5px] text-white/40 truncate mt-0.5 font-sans">
                         {tool.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[#86868b] dark:text-[#8e8e93] shrink-0">
+                  <div className="flex items-center gap-1 text-white/40 shrink-0 font-mono-tech">
                     {isSelected && (
-                      <span className="hidden sm:inline-flex items-center text-[12px] text-[#0071e3] dark:text-[#2997ff] font-medium gap-1">
-                        <span>Open</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline-flex items-center text-[11px] text-[#00ff87] gap-1">
+                        <span>[EXEC]</span>
+                        <ArrowRight className="w-3 h-3" />
                       </span>
                     )}
                   </div>
@@ -302,19 +560,20 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
           )}
         </div>
 
-        {/* Footer shortcuts hint */}
-        <div className="px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#252528] border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between text-[11px] text-[#86868b] dark:text-[#8e8e93]">
+        {/* Footer */}
+        <div className="px-4 py-2.5 bg-[#10131c] border-t border-white/[0.08] flex items-center justify-between text-[11px] font-mono-tech text-white/40">
           <div className="flex items-center gap-3">
             <span>
-              Use <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">↑</strong> <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">↓</strong> to navigate
+              <strong className="text-white/70">↑↓</strong> NAVIGATE
             </span>
-            <span>•</span>
+            <span>//</span>
             <span>
-              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">ENTER</strong> to select
+              <strong className="text-white/70">ENTER</strong> EXECUTE
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <span>ZipStream Tool Suite</span>
+          <div className="flex items-center gap-1.5 text-[#00ff87]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff87] animate-pulse"></span>
+            <span>TERMINAL_SYS_V3</span>
           </div>
         </div>
       </div>

@@ -46,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }[] = [
     {
       id: 'all',
-      label: 'All',
+      label: 'All Files',
       icon: <Layers className="w-3.5 h-3.5" />,
     },
     {
@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'image',
-      label: 'Images',
+      label: 'Photos',
       icon: <ImageIcon className="w-3.5 h-3.5" />,
     },
     {
@@ -76,56 +76,56 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navbar"
-      className="sticky top-0 z-50 w-full backdrop-blur-xl bg-white/95 dark:bg-[#18181b]/95 border-b border-black/[0.06] dark:border-white/[0.08] transition-colors"
+      className="sticky top-0 z-50 w-full backdrop-blur-md bg-[#FAF7F2]/90 dark:bg-[#0B132B]/90 border-b border-[#0C162C]/8 dark:border-white/10 transition-colors"
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-2.5 sm:gap-3">
-        {/* Left: macOS Window Traffic Lights & App Brand */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-15 sm:h-16 flex items-center justify-between gap-3">
+        {/* Left: Apple Dots & Brandmark */}
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-          {/* macOS 3 Color Traffic Lights */}
-          <div
-            id="macos-traffic-lights"
-            className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/[0.03] dark:bg-white/[0.05] border border-black/[0.04] dark:border-white/[0.06] shadow-2xs"
-          >
-            <span
-              title="Close window"
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff4238] border border-[#e0443e]/60 transition-transform hover:scale-115 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] cursor-pointer"
-            />
-            <span
-              title="Minimize window"
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ffbd2e] hover:bg-[#e5a522] border border-[#dea123]/60 transition-transform hover:scale-115 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] cursor-pointer"
-            />
-            <span
-              title="Zoom window"
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#27c93f] hover:bg-[#1eb033] border border-[#1aab29]/60 transition-transform hover:scale-115 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] cursor-pointer"
-            />
+          {/* Apple-style 3 Window Dots */}
+          <div className="flex items-center gap-1.5 mr-1 shrink-0 select-none" aria-label="Window controls">
+            <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]/40 shadow-xs inline-block transition-transform hover:scale-110 cursor-pointer" title="Close"></span>
+            <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]/40 shadow-xs inline-block transition-transform hover:scale-110 cursor-pointer" title="Minimize"></span>
+            <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#27c93f] border border-[#1aab29]/40 shadow-xs inline-block transition-transform hover:scale-110 cursor-pointer" title="Zoom"></span>
           </div>
 
-          {/* Brand Logo & Name */}
           <button
             id="brand-logo-btn"
             onClick={onReset}
-            className="flex items-center gap-2 text-left focus:outline-none rounded-xl group cursor-pointer"
+            className="flex items-center gap-2.5 text-left focus:outline-none group cursor-pointer"
           >
-            <div className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-[8px] sm:rounded-[9px] bg-[#1d1d1f] dark:bg-[#2c2c2e] text-white shadow-xs flex items-center justify-center transition-transform group-hover:scale-105 border border-black/5 dark:border-white/10">
-              <span className="text-[13px] font-bold">⇲</span>
+            {/* Previous Logo Icon beside left of zipstream */}
+            <div className="relative w-8.5 h-8.5 rounded-lg bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center transition-all duration-200 group-hover:border-[#00ff87]/60 group-hover:shadow-[0_0_15px_rgba(0,255,135,0.25)] shadow-xs shrink-0">
+              <span className="text-[13px] font-mono font-bold text-[#00ff87]">⇲</span>
+              {/* Corner crosshairs */}
+              <span className="absolute -top-0.5 -left-0.5 text-[7px] text-white/30 font-mono">+</span>
+              <span className="absolute -bottom-0.5 -right-0.5 text-[7px] text-white/30 font-mono">+</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[14px] sm:text-[15px] font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                ZipStream
-              </span>
-              <span className="hidden lg:inline text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] bg-[#0071e3]/10 dark:bg-[#2997ff]/20 text-[#0071e3] dark:text-[#2997ff]">
-                Studio
-              </span>
+            <div className="flex flex-col justify-center">
+              <div className="flex items-center gap-1">
+                <span className="text-base sm:text-lg font-black tracking-tight text-[#0C162C] dark:text-white">
+                  zipstream<span className="text-[#FF5722]">.</span>
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-[#FF5722]/10 text-[#FF5722]">
+                  STUDIO
+                </span>
+              </div>
             </div>
           </button>
         </div>
 
-        {/* Center: Segmented Formats */}
-        <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
-          {activeTool === 'compress' ? (
+        {/* Center: Nomu Pill Format Navigation */}
+        <div className="hidden md:flex items-center gap-2">
+          {activeTool !== 'compress' ? (
+            <button
+              onClick={onReset}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[13px] font-semibold text-[#0C162C] dark:text-white transition-colors cursor-pointer"
+            >
+              <span>← All Tools & Files</span>
+            </button>
+          ) : (
             <nav
               aria-label="Format filter"
-              className="p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.04] dark:border-white/[0.06] flex items-center gap-0.5 shadow-2xs"
+              className="p-1 rounded-full bg-[#0C162C]/5 dark:bg-white/5 flex items-center gap-1"
             >
               {categories.map((item) => {
                 const isActive = activeCategory === item.id;
@@ -136,85 +136,84 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => onSelectCategory(item.id)}
                     onMouseEnter={() => onHoverCategory && onHoverCategory(item.id)}
                     onMouseLeave={() => onHoverCategory && onHoverCategory(null)}
-                    className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1 rounded-[7px] text-[12px] font-medium transition-all duration-150 select-none cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 select-none cursor-pointer ${
                       isActive
-                        ? 'bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-xs'
-                        : 'text-[#6e6e73] dark:text-[#a1a1a6] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]'
+                        ? 'bg-[#0C162C] dark:bg-white text-white dark:text-[#0C162C] shadow-sm'
+                        : 'text-[#0C162C]/70 dark:text-white/70 hover:text-[#0C162C] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                   >
-                    <span className={isActive ? 'text-[#0071e3] dark:text-[#2997ff]' : 'text-[#86868b] dark:text-[#8e8e93]'}>
-                      {item.icon}
-                    </span>
+                    <span>{item.icon}</span>
                     <span>{item.label}</span>
                   </button>
                 );
               })}
             </nav>
-          ) : (
-            <button
-              onClick={() => onSelectTool('compress')}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer"
-            >
-              <span>← Back to Compressor</span>
-            </button>
           )}
+
+          {/* Quick All Tools Pill */}
+          <button
+            onClick={onOpenSearch}
+            className="flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold text-[#FF5722] bg-[#FF5722]/10 hover:bg-[#FF5722]/20 transition-all cursor-pointer"
+          >
+            <span>25+ Tools</span>
+          </button>
         </div>
 
-        {/* Right: Adjusted Smaller Search Bar, Dark Mode Toggle, Privacy Indicator & Feedback */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 md:flex-initial justify-end">
-          {/* Sleek & Compact Search Bar */}
+        {/* Right: Search, Theme, Security Badge & Feedback */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-1 md:flex-initial justify-end">
+          {/* Nomu Pill Search Bar */}
           <button
             id="nav-search-trigger-btn"
             type="button"
             onClick={onOpenSearch}
-            className="flex items-center justify-between gap-2 w-full sm:w-40 md:w-44 lg:w-48 xl:w-52 h-8.5 px-2.5 sm:px-3 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.07] dark:hover:bg-white/[0.1] border border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.12] dark:hover:border-white/[0.15] text-[#1d1d1f] dark:text-[#f5f5f7] transition-all group cursor-pointer shadow-2xs"
-            title="Search tools, formats, and actions (Press ⌘K or Ctrl+K)"
+            className="flex items-center justify-between gap-2 w-full sm:w-44 md:w-48 lg:w-52 h-9 px-3.5 rounded-full bg-white dark:bg-[#131E3A] hover:bg-white/90 border border-[#0C162C]/10 dark:border-white/10 hover:border-[#FF5722]/50 text-[#0C162C]/70 dark:text-white/70 transition-all group cursor-pointer shadow-sm"
+            title="Search tools and actions (Press ⌘K or Ctrl+K)"
           >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Search className="w-3.5 h-3.5 shrink-0 text-[#86868b] dark:text-[#8e8e93] group-hover:text-[#0071e3] dark:group-hover:text-[#2997ff] transition-colors" />
-              <span className="text-[12px] text-[#6e6e73] dark:text-[#a1a1a6] group-hover:text-[#1d1d1f] dark:group-hover:text-[#f5f5f7] truncate font-normal">
+            <div className="flex items-center gap-2 min-w-0">
+              <Search className="w-3.5 h-3.5 shrink-0 text-[#0C162C]/40 dark:text-white/40 group-hover:text-[#FF5722] transition-colors" />
+              <span className="text-xs font-medium text-[#5C6479] dark:text-white/50 group-hover:text-[#0C162C] dark:group-hover:text-white truncate">
                 Search tools...
               </span>
             </div>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white dark:bg-[#2c2c2e] text-[10px] font-mono text-[#86868b] dark:text-[#a1a1a6] border border-black/[0.08] dark:border-white/[0.1] shadow-2xs shrink-0">
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#0C162C]/5 dark:bg-white/10 text-[10px] font-semibold text-[#0C162C]/70 dark:text-white/70 shrink-0">
               <span>⌘</span>K
             </kbd>
           </button>
 
-          {/* Light / Dark Mode Toggle */}
+          {/* Theme Toggle Button */}
           {onToggleTheme && (
             <button
               id="nav-theme-toggle-btn"
               type="button"
               onClick={onToggleTheme}
-              className="flex items-center justify-center w-8.5 h-8.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] border border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] transition-all cursor-pointer shadow-2xs shrink-0 group"
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-[#131E3A] border border-[#0C162C]/10 dark:border-white/10 text-[#0C162C] dark:text-white hover:border-[#FF5722]/50 transition-all cursor-pointer shrink-0 shadow-sm"
               title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
               aria-label={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
             >
               {isDark ? (
-                <Sun className="w-3.5 h-3.5 text-[#ffbd2e] group-hover:rotate-45 transition-transform duration-300" />
+                <Sun className="w-4 h-4 text-[#FFCB70]" />
               ) : (
-                <Moon className="w-3.5 h-3.5 text-[#5856d6] group-hover:-rotate-12 transition-transform duration-300" />
+                <Moon className="w-4 h-4 text-[#0C162C]" />
               )}
             </button>
           )}
 
-          {/* Privacy badge */}
-          <div className="hidden xl:flex items-center gap-1 text-[11.5px] text-[#6e6e73] dark:text-[#a1a1a6] font-medium px-1 shrink-0">
-            <Lock className="w-3 h-3 text-[#34c759]" />
-            <span>Private</span>
+          {/* Security Badge Pill */}
+          <div className="hidden xl:flex items-center gap-1.5 text-xs font-semibold text-[#0C162C] dark:text-white px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+            <Lock className="w-3 h-3" />
+            <span>100% Private</span>
           </div>
 
-          {/* Report Issue / Feedback modal button */}
+          {/* Feedback button */}
           <button
             id="nav-report-issue-btn"
             type="button"
             onClick={onOpenReportIssue}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 h-8.5 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[#86868b] dark:text-[#a1a1a6] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] text-[12px] font-medium transition-colors cursor-pointer shrink-0 border border-transparent hover:border-black/[0.04] dark:hover:border-white/[0.06]"
-            title="Report an issue or send feedback"
+            className="flex items-center gap-1 px-3 h-9 rounded-full bg-white dark:bg-[#131E3A] hover:bg-black/5 dark:hover:bg-white/10 text-[#5C6479] dark:text-white/70 hover:text-[#0C162C] dark:hover:text-white text-xs font-medium transition-colors cursor-pointer shrink-0 border border-[#0C162C]/10 dark:border-white/10 shadow-sm"
+            title="Feedback & Support"
           >
-            <AlertCircle className="w-3.5 h-3.5 text-[#ff3b30]" />
-            <span className="hidden sm:inline">Feedback</span>
+            <AlertCircle className="w-3.5 h-3.5 text-[#FF5722]" />
+            <span className="hidden sm:inline">Help</span>
           </button>
         </div>
       </div>

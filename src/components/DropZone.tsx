@@ -180,45 +180,50 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
-      {/* Apple Mac Drop Target Card */}
+      {/* Nomu Storefront Inspired Drop Target */}
       <div
         id="file-dropzone-container"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleBrowseClick}
-        className={`relative w-full rounded-[28px] p-8 sm:p-12 md:p-14 text-center cursor-pointer transition-all duration-200 bg-white dark:bg-[#1c1c1e] border ${
+        className={`relative w-full rounded-[28px] p-8 sm:p-12 md:p-14 text-center cursor-pointer transition-all duration-200 bg-white dark:bg-[#111C38] border-2 border-dashed ${
           isDragOver
-            ? 'border-[#0071e3] dark:border-[#2997ff] ring-4 ring-[#0071e3]/10 dark:ring-[#2997ff]/20 bg-[#fbfdff] dark:bg-[#202024] scale-[1.008]'
-            : 'border-black/[0.08] dark:border-white/[0.08] hover:border-black/[0.16] dark:hover:border-white/[0.16] shadow-[0_4px_20px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.02)]'
+            ? 'border-[#FF5722] ring-4 ring-[#FF5722]/20 bg-[#FFF9F6] dark:bg-[#FF5722]/10 shadow-[0_16px_40px_rgba(255,87,34,0.15)] scale-[1.01]'
+            : 'border-[#0C162C]/15 dark:border-white/15 hover:border-[#FF5722] shadow-[0_10px_35px_rgba(12,22,44,0.05)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.4)]'
         }`}
       >
-        {/* Subtle Category Badge */}
-        <div className="flex justify-center mb-6">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[12px] font-medium text-[#6e6e73] dark:text-[#a1a1a6]">
+        {/* Top Badges Inside DropZone */}
+        <div className="flex items-center justify-between mb-6 pb-3 border-b border-[#0C162C]/8 dark:border-white/8 text-xs font-semibold text-[#5C6479] dark:text-white/60">
+          <span className="flex items-center gap-1.5 text-[#FF5722]">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#FF5722] animate-pulse"></span>
+            Instant Processing
+          </span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[#0C162C]/5 dark:bg-white/10 text-[11px] font-bold text-[#0C162C] dark:text-white">
             {currentDetails.badge}
           </span>
+          <span className="text-[#0C162C]/70 dark:text-white/70 font-medium">100% Private</span>
         </div>
 
-        {/* Mac Document Icon Container */}
-        <div className="mx-auto mb-5 w-18 h-18 rounded-[20px] bg-[#f5f5f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-center transition-transform group-hover:scale-105">
+        {/* Centerpiece Icon */}
+        <div className="mx-auto mb-5 w-20 h-20 rounded-3xl bg-[#FFF4EE] dark:bg-[#FF5722]/15 border border-[#FF5722]/20 flex items-center justify-center transition-all duration-300 group-hover:scale-105 shadow-sm">
           {currentDetails.icon}
         </div>
 
-        {/* Title and Subtitle in Apple Typography */}
-        <div className="max-w-md mx-auto mb-7 space-y-1.5">
+        {/* Title and Subtitle with Nomu Typography */}
+        <div className="max-w-md mx-auto mb-7 space-y-2">
           <h2
             id="dropzone-title"
-            className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]"
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0C162C] dark:text-white"
           >
             {currentDetails.title}
           </h2>
-          <p className="text-[14px] text-[#86868b] dark:text-[#8e8e93] leading-relaxed font-normal">
+          <p className="text-sm text-[#5C6479] dark:text-white/60 leading-relaxed font-normal">
             {currentDetails.subtitle}
           </p>
         </div>
 
-        {/* Apple Primary Action Button */}
+        {/* Primary Action Button - Nomu Signature Orange Pill */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             type="button"
@@ -227,30 +232,28 @@ export const DropZone: React.FC<DropZoneProps> = ({
               e.stopPropagation();
               handleBrowseClick();
             }}
-            className="w-full sm:w-auto px-7 py-3 rounded-full bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0062c4] text-white text-[14px] font-medium shadow-sm transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071e3]"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#FF5722] hover:bg-[#FF6838] text-white font-bold text-sm tracking-wide shadow-[0_4px_16px_rgba(255,87,34,0.35)] hover:shadow-[0_6px_22px_rgba(255,87,34,0.45)] transition-all active:scale-[0.98] cursor-pointer"
           >
-            Choose Files (Single or Batch)…
+            Choose files from device
           </button>
         </div>
 
-        {/* Supported Formats info row */}
-        <div className="mt-8 pt-6 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-wrap items-center justify-center gap-1.5 text-[12px] text-[#86868b] dark:text-[#8e8e93]">
-          <span>Supported:</span>
+        {/* Formats Pills */}
+        <div className="mt-8 pt-5 border-t border-[#0C162C]/8 dark:border-white/8 flex flex-wrap items-center justify-center gap-2 text-xs text-[#5C6479] dark:text-white/60">
+          <span className="font-semibold text-[#0C162C] dark:text-white">Supported formats:</span>
           {currentDetails.extensions.map((ext) => (
             <span
               key={ext}
-              className="px-1.5 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] font-mono text-[11px]"
+              className="px-2.5 py-0.5 rounded-full bg-[#0C162C]/5 dark:bg-white/10 text-[#0C162C] dark:text-white/90 font-medium text-[11px]"
             >
-              {ext}
+              {ext.toUpperCase()}
             </span>
           ))}
-          <span className="text-[#d2d2d7] dark:text-[#3a3a3c] mx-1">•</span>
-          <span>Batch mode supported</span>
-          <span className="text-[#d2d2d7] dark:text-[#3a3a3c] mx-1">•</span>
-          <span>Up to 500 MB</span>
+          <span className="text-black/20 dark:text-white/20 mx-1">•</span>
+          <span className="font-semibold text-[#FF5722]">Batch upload supported</span>
         </div>
 
-        {/* Hidden Native File Input (supports multiple) */}
+        {/* Hidden Native File Input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -266,41 +269,42 @@ export const DropZone: React.FC<DropZoneProps> = ({
       {errorMessage && (
         <div
           id="upload-error-banner"
-          className="w-full mt-4 p-4 rounded-2xl bg-[#fff2f2] dark:bg-[#2c1515] border border-[#ff3b30]/20 dark:border-[#ff3b30]/30 text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] flex items-start gap-3 animate-in fade-in"
+          className="w-full mt-4 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-200 text-sm flex items-start gap-3 animate-in fade-in shadow-sm"
         >
-          <AlertCircle className="w-4 h-4 text-[#ff3b30] shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-[#FF5722] shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-[#ff3b30]">Unable to open file</p>
-            <p className="text-[12px] text-[#6e6e73] dark:text-[#a1a1a6] mt-0.5">{errorMessage}</p>
+            <p className="font-bold">File Unsupported</p>
+            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">{errorMessage}</p>
           </div>
           <button
             onClick={() => setErrorMessage(null)}
-            className="text-[12px] text-[#86868b] dark:text-[#a1a1a6] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] font-medium px-2 py-0.5 cursor-pointer"
+            className="text-xs font-semibold hover:underline cursor-pointer"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Instant Test Samples Quick Bar */}
-      <div className="w-full mt-6 p-4 rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+      {/* Instant Test Samples Quick Bar - Nomu Card Style */}
+      <div className="w-full mt-5 p-4 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/10 dark:border-white/10 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="text-[13px] text-[#6e6e73] dark:text-[#a1a1a6]">
-            <span>Try with genuine sample files:</span>
+          <div className="text-xs font-medium text-[#5C6479] dark:text-white/60 flex items-center gap-2">
+            <span className="font-bold text-[#0C162C] dark:text-white">Quick test:</span>
+            <span>Try with a sample file instantly</span>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               id="test-sample-pdf-btn"
               onClick={() => handleLoadSample('pdf')}
-              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#e8e8ed] dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium border border-black/[0.04] dark:border-white/[0.06] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full bg-[#FAF7F2] dark:bg-[#1A2645] hover:bg-[#F2EDE4] dark:hover:bg-[#202E54] text-[#0C162C] dark:text-white text-xs font-semibold border border-[#0C162C]/10 dark:border-white/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <FileText className="w-3.5 h-3.5 text-[#ff3b30]" />
+              <FileText className="w-3.5 h-3.5 text-[#FF5722]" />
               <span>Sample PDF</span>
             </button>
             <button
               id="test-sample-image-btn"
               onClick={() => handleLoadSample('image')}
-              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#e8e8ed] dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium border border-black/[0.04] dark:border-white/[0.06] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full bg-[#FAF7F2] dark:bg-[#1A2645] hover:bg-[#F2EDE4] dark:hover:bg-[#202E54] text-[#0C162C] dark:text-white text-xs font-semibold border border-[#0C162C]/10 dark:border-white/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <ImageIcon className="w-3.5 h-3.5 text-[#34c759]" />
               <span>Sample Photo</span>
@@ -308,15 +312,15 @@ export const DropZone: React.FC<DropZoneProps> = ({
             <button
               id="test-sample-video-btn"
               onClick={() => handleLoadSample('video')}
-              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#e8e8ed] dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium border border-black/[0.04] dark:border-white/[0.06] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full bg-[#FAF7F2] dark:bg-[#1A2645] hover:bg-[#F2EDE4] dark:hover:bg-[#202E54] text-[#0C162C] dark:text-white text-xs font-semibold border border-[#0C162C]/10 dark:border-white/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <Film className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#2997ff]" />
+              <Film className="w-3.5 h-3.5 text-[#0071e3]" />
               <span>Sample Video</span>
             </button>
             <button
               id="test-sample-audio-btn"
               onClick={() => handleLoadSample('audio')}
-              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#e8e8ed] dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium border border-black/[0.04] dark:border-white/[0.06] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full bg-[#FAF7F2] dark:bg-[#1A2645] hover:bg-[#F2EDE4] dark:hover:bg-[#202E54] text-[#0C162C] dark:text-white text-xs font-semibold border border-[#0C162C]/10 dark:border-white/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Music className="w-3.5 h-3.5 text-[#af52de]" />
               <span>Sample Audio</span>
@@ -325,40 +329,45 @@ export const DropZone: React.FC<DropZoneProps> = ({
         </div>
       </div>
 
-      {/* Feature Highlights */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full mt-6 text-left">
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.08] flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] text-[#0071e3] dark:text-[#2997ff] shrink-0">
-            <Cpu className="w-4 h-4" />
+      {/* 3 Core Value Props - Nomu Style Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full mt-4 text-left">
+        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-xl bg-orange-500/10 flex items-center justify-center">
+              <Cpu className="w-4 h-4 text-[#FF5722]" />
+            </div>
+            <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">Fast & Local</span>
           </div>
-          <div>
-            <h4 className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Fast On-Device</h4>
-            <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5 leading-normal">
-              Processed locally using your device’s hardware with zero server delays.
-            </p>
-          </div>
+          <h4 className="text-sm font-bold text-[#0C162C] dark:text-white">WebAssembly Engine</h4>
+          <p className="text-xs text-[#5C6479] dark:text-white/60 mt-1 leading-relaxed">
+            Direct on-device processing via native multi-threaded browser workers. Zero queue waiting.
+          </p>
         </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.08] flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] text-[#34c759] shrink-0">
-            <Lock className="w-4 h-4" />
+
+        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Privacy First</span>
           </div>
-          <div>
-            <h4 className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Completely Private</h4>
-            <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5 leading-normal">
-              Your documents and media never leave your browser or computer.
-            </p>
-          </div>
+          <h4 className="text-sm font-bold text-[#0C162C] dark:text-white">Zero Cloud Uploads</h4>
+          <p className="text-xs text-[#5C6479] dark:text-white/60 mt-1 leading-relaxed">
+            Your confidential files never touch remote servers or databases. 100% air-gapped security.
+          </p>
         </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.08] flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] text-[#af52de] shrink-0">
-            <Eye className="w-4 h-4" />
+
+        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <Eye className="w-4 h-4 text-[#FFCB70]" />
+            </div>
+            <span className="text-xs font-bold text-[#FF9500] uppercase tracking-wider">Studio Quality</span>
           </div>
-          <div>
-            <h4 className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Retains Clarity</h4>
-            <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5 leading-normal">
-              Preserves sharp text, valid container catalogs, and clean outlines.
-            </p>
-          </div>
+          <h4 className="text-sm font-bold text-[#0C162C] dark:text-white">Lossless Fidelity</h4>
+          <p className="text-xs text-[#5C6479] dark:text-white/60 mt-1 leading-relaxed">
+            Preserves font vectors, form fields, high-res graphics, and color balance with precision.
+          </p>
         </div>
       </div>
     </div>

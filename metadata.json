@@ -1,6 +1,6 @@
 {
   "name": "ZipStream - File Compressor & PDF Studio",
-  "description": "A high-performance on-device PDF studio and media compressor supporting Merge PDF, Document Scanner, Compress, Split, Images-to-PDF, and Watermark with instant offline processing.",
+  "description": "Comprehensive client-side PDF suite and media compressor with 25+ tools: Convert to Word/Excel/PPT/Audio/EPUB, Merge, Split, Scan, Sign, Encrypt, Auto-Redact, AI Chat, GST Billing, and P2P Share.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

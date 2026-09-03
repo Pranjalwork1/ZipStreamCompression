@@ -1,12 +1,48 @@
 export type FileCategory = 'all' | 'pdf' | 'image' | 'video' | 'audio';
 
+export type ToolCategory =
+  | 'compression'
+  | 'convert'
+  | 'security'
+  | 'ai'
+  | 'business'
+  | 'collab';
+
 export type ToolMode =
   | 'compress'
   | 'merge_pdf'
   | 'scan_document'
   | 'images_to_pdf'
   | 'split_pdf'
-  | 'watermark_pdf';
+  | 'watermark_pdf'
+  // Convert -> Other
+  | 'pdf_to_word'
+  | 'pdf_to_jpg'
+  | 'pdf_to_excel'
+  | 'pdf_to_powerpoint'
+  | 'extract_text'
+  | 'pdf_to_html'
+  | 'pdf_to_audio'
+  | 'pdf_to_epub'
+  // Security & Privacy
+  | 'encrypt_pdf'
+  | 'unlock_pdf'
+  | 'auto_redact_pii'
+  | 'privacy_scanner'
+  | 'fingerprint_gen'
+  // AI Tools
+  | 'chat_pdf'
+  | 'ai_summarize'
+  | 'searchable_pdf'
+  | 'compare_pdfs'
+  | 'repair_pdf'
+  // Business
+  | 'gst_invoice'
+  | 'pos_billing'
+  | 'gst_filing_prep'
+  // Collaborate & Share
+  | 'p2p_share'
+  | 'collab_whiteboard';
 
 export type CompressionLevel = 'low' | 'medium' | 'high';
 
@@ -144,7 +180,7 @@ export interface WatermarkPdfSettings {
 export interface SearchToolItem {
   id: ToolMode;
   name: string;
-  category: 'PDF Tools' | 'Compression' | 'Scanning & Conversion';
+  category: string;
   description: string;
   badge?: string;
   keywords: string[];

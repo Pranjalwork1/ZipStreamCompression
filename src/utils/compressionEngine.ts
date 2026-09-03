@@ -398,7 +398,7 @@ async function compressPdfReal(
     if (onPageProgress) onPageProgress(0, 1, 'Parsing PDF object tree & font catalogs...', 15);
 
     const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(arrayBuffer),
+      data: new Uint8Array(arrayBuffer.slice(0)),
       useSystemFonts: true,
       stopAtErrors: false,
     });

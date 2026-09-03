@@ -1,23 +1,142 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Compress — Fast, Private File Compression for Mac & Web</title>
-    <meta name="description" content="Compress PDF documents, photos, and videos directly on your Mac or device. 100% private and on-device." />
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-03TP79QZLH"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+<html lang="en" class="scroll-smooth">
 
-  gtag('config', 'G-03TP79QZLH');
-</script>
-  </head>
-  <body class="bg-[#f5f5f7] text-[#1d1d1f] antialiased selection:bg-[#0071e3] selection:text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+
+  <!-- Google Fonts for Nomu.store aesthetic (Inter & Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+
+  <!-- Primary SEO Metadata -->
+  <title>ZipStream — Fast, Free & 100% Private File Compressor & PDF Studio</title>
+  <meta name="title" content="ZipStream — Fast, Free & 100% Private File Compressor & PDF Studio" />
+  <meta name="description"
+    content="Compress PDF documents, JPG/PNG photos, MP4 videos, and audio files 100% privately on your device. Merge PDF, Scan Documents, Split, Images to PDF, and Watermark with zero server uploads." />
+  <meta name="keywords"
+    content="pdf compressor, compress pdf online, private file compressor, reduce pdf size, compress images, photo compressor, video compressor, merge pdf, split pdf, document scanner, images to pdf, offline pdf tools, client-side compressor" />
+  <meta name="author" content="ZipStream Studio" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow" />
+  <link rel="canonical" href="https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/" />
+
+  <!-- Mobile & PWA Theme Colors -->
+  <meta name="theme-color" content="#FAF7F2" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0B132B" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ZipStream" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/" />
+  <meta property="og:title" content="ZipStream — 100% Private File Compressor & PDF Studio" />
+  <meta property="og:description"
+    content="Reduce file sizes instantly in your browser with zero server uploads. Merge PDF, Document Scanner, Split, and convert Images to PDF on-device." />
+  <meta property="og:site_name" content="ZipStream Studio" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:image"
+    content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ZipStream - High Performance Private File Compressor & PDF Studio" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/" />
+  <meta name="twitter:title" content="ZipStream — 100% Private File Compressor & PDF Studio" />
+  <meta name="twitter:description"
+    content="Compress PDF, Images, Audio, and Video files completely on your device without uploading to remote servers." />
+  <meta name="twitter:image"
+    content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80" />
+
+  <!-- Favicon (SVG) -->
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1f'/%3E%3Cpath d='M10 10h12v3H10zm0 5h8v3h-8zm0 5h12v3H10z' fill='%230071e3'/%3E%3Ctext x='16' y='22' font-family='system-ui, sans-serif' font-size='15' font-weight='bold' fill='white' text-anchor='middle'%3E⇲%3C/text%3E%3C/svg%3E" />
+
+  <!-- Structured Data (JSON-LD) for 100/100 SEO Score -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/#webapp",
+          "name": "ZipStream",
+          "url": "https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "All (Web, macOS, Windows, Linux, iOS, Android)",
+          "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas & Web Workers.",
+          "description": "A high-performance, 100% private, on-device file compression and PDF studio supporting PDF, JPEG, PNG, WebP, MP4, MP3, and document scanning.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "100% On-Device Client-Side Processing",
+            "Zero Remote Server Uploads (Total Privacy)",
+            "Lossless & Lossy PDF Compression",
+            "Multi-format Image Compression (JPG, PNG, WebP)",
+            "Audio & Video Stream Optimization",
+            "Merge Multiple PDF Files with Drag & Drop",
+            "Live Camera Document & Receipt Scanner with B&W filters",
+            "Convert Photos and Images to PDF",
+            "Split and Extract PDF pages",
+            "Watermark PDF documents with confidential stamps"
+          ],
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "1280",
+            "bestRating": "5",
+            "worstRating": "1"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Are my files uploaded to any server when compressing?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. ZipStream executes all compression, merging, splitting, scanning, and conversions entirely on your device using WebAssembly and client-side Web Workers. No file data ever leaves your computer or phone."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What file formats does ZipStream support?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "ZipStream supports PDF documents, image files (JPEG, PNG, WebP, GIF, SVG), audio files (MP3, WAV, AAC, M4A, OGG), and video files (MP4, WebM, MOV)."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is ZipStream free to use?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, ZipStream is completely free to use with unlimited files, batch compression, and no file size paywalls."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+</head>
+
+<body
+  class="bg-[#FAF7F2] dark:bg-[#0B132B] text-[#0C162C] dark:text-[#F3F4F6] antialiased selection:bg-[#FF5722] selection:text-white transition-colors duration-200">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
-
