@@ -350,6 +350,10 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
   const peerSocketId = useRef<string>('');
   const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
   const incomingFileRef = useRef<{ fileName: string; fileSize: number; chunks: ArrayBuffer[]; receivedBytes: number } | null>(null);
+  const rtcConfigRef = useRef<RTCConfiguration>({ iceServers: RTC_CONFIG.iceServers });
+  const reconnectOfferRef = useRef<((targetId: string) => void) | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectingRef = useRef(false);
   const hasCelebratedConnectionRef = useRef<boolean>(false);
   // Tracks the last file name that triggered a celebration — prevents zoom/sync re-renders from re-firing
   const lastCelebratedFileRef = useRef<string>('');
@@ -565,7 +569,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       try { pcRef.current.close(); } catch (_) {}
     }
 
-    const pc = new RTCPeerConnection(RTC_CONFIG);
+    const pc = new RTCPeerConnection(rtcConfigRef.current);
     pcRef.current = pc;
 
     pc.onicecandidate = (event) => {
@@ -577,6 +581,9 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
       if (state === 'connected') {
+        if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+        reconnectingRef.current = false;
         setConnectionStatus('connected');
         setStatusMessage('Direct P2P Encrypted');
         celebrateConnectionOnce();
@@ -585,13 +592,31 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
         setStatusMessage('Negotiating P2P Tunnel…');
       } else if (state === 'failed' || state === 'disconnected') {
         setConnectionStatus('error');
-        setStatusMessage('P2P Disconnected');
+        setStatusMessage('Reconnecting P2P…');
         hasCelebratedConnectionRef.current = false;
+        if (isHost && targetId && !reconnectingRef.current) {
+          reconnectingRef.current = true;
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectingRef.current = false;
+            reconnectOfferRef.current?.(targetId);
+          }, state === 'failed' ? 500 : 2000);
+        }
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (isHost && pc.iceConnectionState === 'failed' && !reconnectingRef.current) {
+        reconnectingRef.current = true;
+        pc.restartIce();
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectingRef.current = false;
+          reconnectOfferRef.current?.(targetId);
+        }, 1000);
       }
     };
 
     return pc;
-  }, []);
+  }, [isHost]);
 
   // Initiate WebRTC Offer
   const initiateOffer = useCallback(async (targetSocketId: string) => {
@@ -609,6 +634,8 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     socketRef.current.emit('signal-offer', { targetPeerId: targetSocketId, sdp: offer });
   }, [createPeerConnection, setupDataChannel]);
 
+  reconnectOfferRef.current = initiateOffer;
+
   // Connect to Signaling Server
   const initSignaling = useCallback(() => {
     if (socketRef.current?.connected) return;
@@ -616,8 +643,20 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     const socket = ioConnect(window.location.origin, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
     });
     socketRef.current = socket;
+
+    fetch('/api/webrtc-config')
+      .then(response => response.ok ? response.json() : null)
+      .then(config => {
+        if (config?.iceServers?.length) rtcConfigRef.current = { iceServers: config.iceServers };
+      })
+      .catch(() => undefined);
 
     socket.on('connect', () => {
       socket.emit('join-room', { roomId, role: isHost ? 'host' : 'peer', isHost });
@@ -714,8 +753,18 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
 
     socket.on('disconnect', () => {
       setConnectionStatus('error');
-      setStatusMessage('Signaling Disconnected');
+      setStatusMessage('Reconnecting session…');
       hasCelebratedConnectionRef.current = false;
+    });
+
+    socket.on('connect_error', () => {
+      setConnectionStatus('error');
+      setStatusMessage('Retrying session connection…');
+    });
+
+    socket.on('room-full', () => {
+      setConnectionStatus('error');
+      setStatusMessage('Room is full');
     });
   }, [roomId, isHost, initiateOffer, createPeerConnection, setupDataChannel, applyViewportSync, fetchRoomDocumentFromServer]);
 
@@ -724,6 +773,9 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       initSignaling();
     }
     return () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+      reconnectingRef.current = false;
       socketRef.current?.disconnect();
       pcRef.current?.close();
     };

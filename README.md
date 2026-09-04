@@ -35,4 +35,6 @@ Optional variables:
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
+For the most reliable P2P connections across restrictive mobile networks, optionally configure a TURN provider with `TURN_SERVER_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL`. STUN-only connections remain supported when these are blank.
+
 Railway provides `PORT` automatically. Do not set it manually. The health check endpoint is `/api/health`.

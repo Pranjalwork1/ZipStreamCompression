@@ -117,9 +117,13 @@ async function startServer() {
   io.on('connection', (socket) => {
     // Join room as host or peer
     socket.on('join-room', ({ roomId, role }: { roomId: string; role: 'host' | 'peer' }) => {
-      if (!roomId) return;
+      if (!roomId || !/^[a-zA-Z0-9_-]{4,64}$/.test(roomId)) return;
       socket.join(roomId);
-      const existing = rooms.get(roomId) || [];
+      const existing = (rooms.get(roomId) || []).filter(member => member.socketId !== socket.id);
+      if (existing.length >= 8) {
+        socket.emit('room-full');
+        return;
+      }
       const member: RoomMember = { socketId: socket.id, role, joinedAt: Date.now() };
       existing.push(member);
       rooms.set(roomId, existing);
@@ -217,6 +221,21 @@ async function startServer() {
   // Health check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
+  });
+
+  app.get('/api/webrtc-config', (_req, res) => {
+    const iceServers: Array<{ urls: string | string[]; username?: string; credential?: string }> = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+    ];
+    const turnUrl = process.env.TURN_SERVER_URL;
+    const turnUsername = process.env.TURN_USERNAME;
+    const turnCredential = process.env.TURN_CREDENTIAL;
+    if (turnUrl && turnUsername && turnCredential) {
+      iceServers.push({ urls: turnUrl, username: turnUsername, credential: turnCredential });
+    }
+    res.json({ iceServers });
   });
 
   // Room info endpoint
