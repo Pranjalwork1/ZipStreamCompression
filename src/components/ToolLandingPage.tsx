@@ -1,5 +1,14 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Lock, ShieldCheck, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  Lock,
+  ShieldCheck,
+  Zap,
+  Home,
+  ChevronRight,
+} from 'lucide-react';
 import type { ToolMode } from '../types';
 
 export interface ToolPageDefinition {
@@ -121,56 +130,232 @@ export const TOOL_PAGES: ToolPageDefinition[] = [
   },
 ];
 
+const ADDITIONAL_TOOL_PAGES: ToolPageDefinition[] = [
+  ['extract-text', 'extract_text', 'Extract Text from PDF', 'Extract selectable text from PDF documents online.'],
+  ['pdf-to-html', 'pdf_to_html', 'PDF to HTML Converter', 'Convert PDF content into responsive HTML for web publishing.'],
+  ['pdf-to-audio', 'pdf_to_audio', 'PDF to Audio Reader', 'Listen to PDF text with browser speech tools.'],
+  ['pdf-to-epub', 'pdf_to_epub', 'PDF to EPUB Converter', 'Prepare supported PDF content for ebook readers.'],
+  ['protect-pdf', 'encrypt_pdf', 'Protect PDF with a Password', 'Add password protection to supported PDF documents.'],
+  ['unlock-pdf', 'unlock_pdf', 'Unlock PDF Online', 'Remove protection from PDFs when you have authorization.'],
+  ['redact-pdf', 'auto_redact_pii', 'Redact Sensitive PDF Information', 'Find and cover sensitive information before sharing a PDF.'],
+  ['privacy-scanner', 'privacy_scanner', 'Scan PDF Privacy Metadata', 'Inspect and remove supported PDF metadata before sharing.'],
+  ['file-fingerprint', 'fingerprint_gen', 'Generate a File Fingerprint', 'Create a SHA integrity fingerprint for a document.'],
+  ['chat-pdf', 'chat_pdf', 'Chat with a PDF', 'Ask questions about a PDF using the ZipStream document assistant.'],
+  ['summarize-pdf', 'ai_summarize', 'Summarize a PDF', 'Create a concise summary of supported PDF content.'],
+  ['ocr-pdf', 'searchable_pdf', 'Create a Searchable PDF', 'Add searchable text to supported scanned documents with OCR.'],
+  ['compare-pdf', 'compare_pdfs', 'Compare PDF Documents', 'Review differences between two document versions.'],
+  ['repair-pdf', 'repair_pdf', 'Repair a PDF', 'Try to recover supported damaged PDF structures in your browser.'],
+  ['gst-invoice', 'gst_invoice', 'Create a GST Invoice', 'Build a professional GST invoice with tax calculations and PDF export.'],
+  ['pos-billing', 'pos_billing', 'Create a POS Billing Slip', 'Create a practical POS receipt with UPI QR support.'],
+  ['gst-filing-prep', 'gst_filing_prep', 'GST Filing & Return Preparation', 'Prepare and organize GST sales summaries, B2B invoices, and return files.'],
+  ['p2p-share', 'p2p_share', 'Share a File with P2P', 'Create a browser-based session for direct document sharing.'],
+  ['collaborative-whiteboard', 'collab_whiteboard', 'Collaborative Whiteboard', 'Open a browser-based collaborative whiteboard for visual work.'],
+].map(([slug, tool, title, description]) => ({
+  path: `/${slug}`,
+  tool: tool as ToolMode,
+  title,
+  description,
+  intro: `${description} Use the existing ZipStream tool interface below to get started without a forced account.`,
+  keywords: [title, 'online document tool', 'ZipStream'],
+  benefits: ['No forced signup', 'Clear browser-based workflow', 'Download your result locally'],
+  steps: ['Choose the tool and select your file', 'Review the available settings', 'Process and download the result'],
+  related: ['/compress-pdf', '/merge-pdf', '/split-pdf'],
+  faqs: [{ question: `What does ${title.toLowerCase()} support?`, answer: description }],
+}));
+
+TOOL_PAGES.push(...ADDITIONAL_TOOL_PAGES);
+
 export function getToolPage(pathname: string): ToolPageDefinition | undefined {
   const normalized = pathname.replace(/\/$/, '') || '/';
+  if (normalized === '/') return undefined;
   return TOOL_PAGES.find((page) => page.path === normalized);
+}
+
+export function getToolPageForTool(tool: ToolMode): ToolPageDefinition | undefined {
+  return TOOL_PAGES.find((page) => page.tool === tool);
+}
+
+export function isToolPath(pathname: string): boolean {
+  const normalized = pathname.replace(/\/$/, '') || '/';
+  if (normalized === '/') return false;
+  return TOOL_PAGES.some((page) => page.path === normalized);
 }
 
 interface ToolLandingPageProps {
   page?: ToolPageDefinition;
+  onBackToHome?: () => void;
+  onNavigate?: (path: string, tool?: ToolMode) => void;
   children: React.ReactNode;
 }
 
-export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({ page, children }) => {
+export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({
+  page,
+  onBackToHome,
+  onNavigate,
+  children,
+}) => {
   if (!page) return <>{children}</>;
 
+  const handleToolClick = (path: string) => {
+    if (onNavigate) {
+      const targetPage = getToolPage(path);
+      onNavigate(path, targetPage?.tool);
+    } else if (onBackToHome) {
+      window.history.pushState({}, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
   return (
-  <article className="w-full space-y-10">
-    <header className="max-w-3xl space-y-5">
-      <div className="inline-flex items-center gap-2 rounded-full border border-[#FF5722]/20 bg-[#FF5722]/8 px-3 py-1.5 text-xs font-bold text-[#D84315] dark:text-[#FF9A76]">
-        <Zap className="h-3.5 w-3.5" /> ZipStream browser tool
+    <article className="w-full space-y-8 animate-fadeIn">
+      {/* Top Breadcrumb & Navigation Bar */}
+      <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#0C162C]/8 dark:border-white/10 text-xs">
+        <div className="flex items-center gap-2 text-[#5C6479] dark:text-white/60">
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="inline-flex items-center gap-1.5 font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] dark:hover:text-[#FF9A76] transition-colors cursor-pointer"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>Home</span>
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-[#5C6479]/40 dark:text-white/30" />
+          <span className="font-semibold text-[#FF5722] dark:text-[#FF9A76] truncate max-w-[200px] sm:max-w-md">
+            {page.title}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-bold text-[#0C162C] dark:text-white transition-all cursor-pointer shadow-xs shrink-0"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to All Tools</span>
+        </button>
       </div>
-      <h1 className="text-4xl font-extrabold tracking-tight text-[#0C162C] dark:text-white sm:text-5xl">{page.title}</h1>
-      <p className="max-w-2xl text-base leading-7 text-[#5C6479] dark:text-white/70">{page.intro}</p>
-      <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#5C6479] dark:text-white/65">
-        {page.keywords.map((keyword) => <span key={keyword} className="rounded-full border border-[#0C162C]/10 bg-white/70 px-3 py-1.5 dark:border-white/10 dark:bg-white/5">{keyword}</span>)}
-      </div>
-    </header>
 
-    <section aria-label={`${page.title} tool`} className="scroll-mt-24">{children}</section>
+      {/* Hero Header */}
+      <header className="max-w-3xl space-y-4">
+        <div className="inline-flex items-center gap-2 rounded-full border border-[#FF5722]/20 bg-[#FF5722]/8 px-3.5 py-1.5 text-xs font-bold text-[#D84315] dark:text-[#FF9A76]">
+          <Zap className="h-3.5 w-3.5 text-[#FF5722]" /> ZipStream browser tool
+        </div>
+        <h1 className="text-3xl font-black tracking-tight text-[#0C162C] dark:text-white sm:text-4xl lg:text-5xl">
+          {page.title}
+        </h1>
+        <p className="max-w-2xl text-base sm:text-lg leading-relaxed text-[#5C6479] dark:text-white/70">
+          {page.intro}
+        </p>
+        <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#5C6479] dark:text-white/65 pt-1">
+          {page.keywords.map((keyword) => (
+            <span
+              key={keyword}
+              className="rounded-full border border-[#0C162C]/10 bg-white/70 px-3 py-1.5 dark:border-white/10 dark:bg-white/5"
+            >
+              {keyword}
+            </span>
+          ))}
+        </div>
+      </header>
 
-    <section className="grid gap-4 sm:grid-cols-3" aria-label="Benefits">
-      {page.benefits.map((benefit) => <div key={benefit} className="rounded-2xl border border-[#0C162C]/10 bg-white/80 p-5 dark:border-white/10 dark:bg-[#111C38]"><CheckCircle2 className="mb-3 h-5 w-5 text-emerald-500" /><p className="text-sm font-bold text-[#0C162C] dark:text-white">{benefit}</p></div>)}
-    </section>
+      {/* Main Interactive Tool Workbench */}
+      <section aria-label={`${page.title} tool`} className="scroll-mt-24 pt-2">
+        <div className="rounded-3xl border border-[#0C162C]/10 bg-white/90 p-4 sm:p-6 shadow-sm dark:border-white/10 dark:bg-[#111C38]/90 backdrop-blur-sm">
+          {children}
+        </div>
+      </section>
 
-    <section className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-[#0C162C]/10 bg-white/80 p-6 dark:border-white/10 dark:bg-[#111C38]">
-        <h2 className="mb-4 text-xl font-bold text-[#0C162C] dark:text-white">How to use {page.title.toLowerCase()}</h2>
-        <ol className="space-y-3">{page.steps.map((step, index) => <li key={step} className="flex gap-3 text-sm text-[#5C6479] dark:text-white/70"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF5722] text-xs font-bold text-white">{index + 1}</span>{step}</li>)}</ol>
-      </div>
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 dark:bg-emerald-500/10">
-        <div className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-300"><ShieldCheck className="h-5 w-5" /> Privacy-first processing</div>
-        <p className="mt-3 text-sm leading-6 text-[#5C6479] dark:text-white/70">Supported browser tools process files locally where possible. Results are created for download in your browser, with no account required.</p>
-        <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-[#0C162C] dark:text-white/75"><Lock className="h-4 w-4" /> No forced signup</div>
-      </div>
-    </section>
+      {/* Value Proposition / Benefits */}
+      <section className="grid gap-4 sm:grid-cols-3" aria-label="Benefits">
+        {page.benefits.map((benefit) => (
+          <div
+            key={benefit}
+            className="rounded-2xl border border-[#0C162C]/10 bg-white/80 p-5 shadow-xs dark:border-white/10 dark:bg-[#111C38]"
+          >
+            <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-500" />
+            <p className="text-sm font-bold text-[#0C162C] dark:text-white">{benefit}</p>
+          </div>
+        ))}
+      </section>
 
-    <section className="space-y-4">
-      <h2 className="text-xl font-bold text-[#0C162C] dark:text-white">Frequently asked questions</h2>
-      <div className="grid gap-3">{page.faqs.map((faq) => <details key={faq.question} className="rounded-2xl border border-[#0C162C]/10 bg-white/70 p-5 dark:border-white/10 dark:bg-[#111C38]"><summary className="cursor-pointer text-sm font-bold text-[#0C162C] dark:text-white">{faq.question}</summary><p className="mt-3 text-sm leading-6 text-[#5C6479] dark:text-white/70">{faq.answer}</p></details>)}</div>
-    </section>
+      {/* How to Use & Privacy Guarantee */}
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-[#0C162C]/10 bg-white/80 p-6 shadow-xs dark:border-white/10 dark:bg-[#111C38]">
+          <h2 className="mb-4 text-xl font-bold text-[#0C162C] dark:text-white">
+            How to use {page.title.toLowerCase()}
+          </h2>
+          <ol className="space-y-3">
+            {page.steps.map((step, index) => (
+              <li key={step} className="flex gap-3 text-sm text-[#5C6479] dark:text-white/70">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF5722] text-xs font-bold text-white shadow-xs">
+                  {index + 1}
+                </span>
+                <span className="pt-0.5">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 dark:bg-emerald-500/10 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-base font-bold text-emerald-700 dark:text-emerald-300">
+              <ShieldCheck className="h-5 w-5" /> Privacy-first processing
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C6479] dark:text-white/70">
+              ZipStream processes your files directly inside your web browser using HTML5 Canvas, WebAssembly, and local workers where possible. Your documents stay safe on your device.
+            </p>
+          </div>
+          <div className="mt-5 flex items-center gap-2 text-xs font-bold text-[#0C162C] dark:text-white/80">
+            <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>No account or forced signup required</span>
+          </div>
+        </div>
+      </section>
 
-    <nav aria-label="Related tools" className="border-t border-[#0C162C]/10 pt-6 dark:border-white/10"><h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-[#5C6479] dark:text-white/60">Related tools</h2><div className="flex flex-wrap gap-3">{page.related.map((path) => <a key={path} href={path} className="inline-flex items-center gap-1.5 rounded-full border border-[#FF5722]/20 px-4 py-2 text-sm font-bold text-[#D84315] hover:bg-[#FF5722]/10 dark:text-[#FF9A76]">{path.slice(1).replaceAll('-', ' ')} <ArrowRight className="h-3.5 w-3.5" /></a>)}</div></nav>
-  </article>
+      {/* Frequently Asked Questions */}
+      {page.faqs.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-[#0C162C] dark:text-white">
+            Frequently asked questions
+          </h2>
+          <div className="grid gap-3">
+            {page.faqs.map((faq) => (
+              <details
+                key={faq.question}
+                className="group rounded-2xl border border-[#0C162C]/10 bg-white/70 p-5 dark:border-white/10 dark:bg-[#111C38] transition-all"
+              >
+                <summary className="cursor-pointer text-sm font-bold text-[#0C162C] dark:text-white flex items-center justify-between list-none">
+                  <span>{faq.question}</span>
+                  <span className="text-[#FF5722] group-open:rotate-180 transition-transform text-lg">▼</span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-[#5C6479] dark:text-white/70 border-t border-[#0C162C]/5 dark:border-white/5 pt-3">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Related Tools navigation */}
+      {page.related.length > 0 && (
+        <nav aria-label="Related tools" className="border-t border-[#0C162C]/10 pt-6 dark:border-white/10 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#5C6479] dark:text-white/60">
+            Related tools
+          </h2>
+          <div className="flex flex-wrap gap-2.5">
+            {page.related.map((path) => (
+              <button
+                key={path}
+                type="button"
+                onClick={() => handleToolClick(path)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#FF5722]/20 bg-white/70 dark:bg-white/5 px-4 py-2 text-xs font-bold text-[#D84315] hover:bg-[#FF5722]/10 dark:text-[#FF9A76] transition-colors cursor-pointer"
+              >
+                <span>{path.slice(1).replaceAll('-', ' ')}</span>
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
+    </article>
   );
 };

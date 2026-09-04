@@ -24,7 +24,7 @@ import { AiToolsView } from './components/views/AiToolsView';
 import { BusinessToolsView } from './components/views/BusinessToolsView';
 import { CollaborateToolsView } from './components/views/CollaborateToolsView';
 import { HomePage } from './components/HomePage';
-import { getToolPage, TOOL_PAGES, ToolLandingPage } from './components/ToolLandingPage';
+import { getToolPage, getToolPageForTool, ToolLandingPage } from './components/ToolLandingPage';
 import {
   FileCategory,
   ToolMode,
@@ -80,9 +80,10 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/pdf-to-jpg': { title: 'PDF to JPG Converter | ZipStream', description: 'Convert PDF pages into JPG images in your browser.' },
 };
 
-function toolFromLocation(): ToolMode | null {
-  const path = window.location.pathname.replace(/\/$/, '') || '/';
-  return getToolPage(path)?.tool || TOOL_PATHS[path] || null;
+function toolFromPath(path: string): ToolMode | null {
+  const normalized = path.replace(/\/$/, '') || '/';
+  if (normalized === '/') return 'compress';
+  return getToolPage(normalized)?.tool || TOOL_PATHS[normalized] || null;
 }
 
 export default function App() {
@@ -99,12 +100,19 @@ export default function App() {
     return 'dark';
   });
 
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname.replace(/\/$/, '') || '/';
+    }
+    return '/';
+  });
+
   const [activeTool, setActiveTool] = useState<ToolMode>(() => {
     if (typeof window !== 'undefined') {
-      const pathTool = toolFromLocation();
+      const path = window.location.pathname.replace(/\/$/, '') || '/';
+      const pathTool = toolFromPath(path);
       if (pathTool) return pathTool;
       const hash = window.location.hash;
-      const path = window.location.pathname;
       if (hash.includes('/room/') || path.includes('/room/')) {
         return 'p2p_share';
       }
@@ -129,23 +137,42 @@ export default function App() {
   const [history, setHistory] = useState<CompressionResult[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const currentToolPage = typeof window !== 'undefined' ? getToolPage(window.location.pathname) : undefined;
 
-  // Sync theme with HTML document class & localStorage
-  useEffect(() => {
-    const path = window.location.pathname.replace(/\/$/, '') || '/';
-    const metadata = TOOL_METADATA[path];
-    const canonicalUrl = `https://zipstream.online${path === '/' ? '/' : path}`;
-    document.title = metadata?.title || 'ZipStream — Fast, Private PDF and File Tools';
+  // SEO & Meta tags synchronizer
+  const updateSeo = (path: string, tool?: ToolMode) => {
+    const normalized = path.replace(/\/$/, '') || '/';
+    const canonicalUrl = `https://zipstream.online${normalized === '/' ? '/' : normalized}`;
+    const page = getToolPage(normalized) || (tool && tool !== 'compress' ? getToolPageForTool(tool) : undefined);
+    const metadata = TOOL_METADATA[normalized];
+
+    if (normalized === '/') {
+      document.title = 'ZipStream — Fast, Private PDF and File Tools';
+    } else if (metadata?.title) {
+      document.title = metadata.title;
+    } else if (page?.title) {
+      document.title = `${page.title} | ZipStream`;
+    } else {
+      document.title = 'ZipStream — Fast, Private PDF and File Tools';
+    }
+
     let description = document.querySelector('meta[name="description"]');
     if (!description) {
       description = document.createElement('meta');
       description.setAttribute('name', 'description');
       document.head.appendChild(description);
     }
-    description.setAttribute('content', metadata?.description || 'Compress, merge, split and convert PDF and files online with ZipStream.');
+    description.setAttribute(
+      'content',
+      metadata?.description || page?.description || 'Compress, merge, split and convert PDF and files online with ZipStream.'
+    );
+
     const canonical = document.querySelector('link[rel="canonical"]');
     canonical?.setAttribute('href', canonicalUrl);
+  };
+
+  // Sync theme with HTML document class & localStorage
+  useEffect(() => {
+    updateSeo(currentPath, activeTool);
   }, []);
 
   useEffect(() => {
@@ -165,6 +192,38 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // Centralized SPA navigation function
+  const navigateTo = (path: string, tool?: ToolMode) => {
+    const normalized = path.replace(/\/$/, '') || '/';
+    try {
+      window.history.pushState({}, '', normalized);
+    } catch {
+      // ignore
+    }
+    setCurrentPath(normalized);
+
+    const targetTool = tool || toolFromPath(normalized) || 'compress';
+    setActiveTool(targetTool);
+
+    if (normalized === '/') {
+      setStage('upload');
+      if (activeFile?.previewUrl && activeFile.previewUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(activeFile.previewUrl);
+        } catch {
+          // ignore
+        }
+      }
+      setActiveFile(null);
+      setResult(null);
+      setBatchItems([]);
+      setSettings(DEFAULT_SETTINGS);
+    }
+
+    updateSeo(normalized, targetTool);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Handle direct P2P Room links (/room/xyz or #/room/xyz)
   useEffect(() => {
     const checkRoom = () => {
@@ -179,13 +238,21 @@ export default function App() {
     return () => window.removeEventListener('hashchange', checkRoom);
   }, []);
 
+  // Listen for browser Back & Forward button events (popstate)
   useEffect(() => {
-    const syncToolRoute = () => {
-      const routeTool = toolFromLocation();
-      if (routeTool) setActiveTool(routeTool);
+    const handlePopState = () => {
+      const path = window.location.pathname.replace(/\/$/, '') || '/';
+      setCurrentPath(path);
+      const routeTool = toolFromPath(path) || 'compress';
+      setActiveTool(routeTool);
+      if (path === '/') {
+        setStage('upload');
+      }
+      updateSeo(path, routeTool);
     };
-    window.addEventListener('popstate', syncToolRoute);
-    return () => window.removeEventListener('popstate', syncToolRoute);
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Global keyboard shortcut for Search Command Palette (Ctrl+K or Cmd+K)
@@ -203,26 +270,32 @@ export default function App() {
 
   // Category selection handler from navbar
   const handleSelectCategory = (cat: FileCategory) => {
-    setActiveTool('compress');
     setActiveCategory(cat);
-    if (stage !== 'upload') {
-      handleReset();
-      setActiveCategory(cat);
+    if (currentPath !== '/') {
+      navigateTo('/');
+    } else {
+      if (stage !== 'upload') {
+        handleReset();
+      }
     }
   };
 
-  // Tool selection handler from Search or Navbar
+  // Tool selection handler from Search or Navbar or Homepage
   const handleSelectTool = (tool: ToolMode, category?: FileCategory) => {
-    setActiveTool(tool);
     if (tool === 'compress') {
       if (category) setActiveCategory(category);
+      navigateTo('/compress-pdf', 'compress');
+      return;
     }
-    handleReset();
-    const page = TOOL_PAGES.find((item) => item.tool === tool);
-    if (page) window.history.pushState({}, '', page.path);
+    const page = getToolPageForTool(tool);
+    if (page) {
+      navigateTo(page.path, tool);
+    } else {
+      setActiveTool(tool);
+    }
   };
 
-  // Reset back to upload dropzone
+  // Reset back to upload dropzone / homepage
   const handleReset = () => {
     if (activeFile?.previewUrl && activeFile.previewUrl.startsWith('blob:')) {
       try {
@@ -236,6 +309,7 @@ export default function App() {
     setBatchItems([]);
     setSettings(DEFAULT_SETTINGS);
     setStage('upload');
+    navigateTo('/');
   };
 
   // Single file loaded
@@ -352,6 +426,8 @@ export default function App() {
     'collab_whiteboard',
   ].includes(activeTool);
 
+  const activeFeaturePage = getToolPage(currentPath) || getToolPageForTool(activeTool);
+
   return (
     <div className="min-h-screen relative bg-[#FAF7F2] dark:bg-[#0B132B] text-[#0C162C] dark:text-[#F3F4F6] flex flex-col font-sans selection:bg-[#FF5722] selection:text-white transition-colors duration-200">
       {/* Background Subtle Texture */}
@@ -359,15 +435,12 @@ export default function App() {
 
       {/* 1. Nomu Storefront Header / Navbar */}
       <Navbar
-        activeTool={activeTool}
+        activeTool={currentPath === '/' ? 'compress' : activeTool}
         onSelectTool={handleSelectTool}
         activeCategory={activeCategory}
         onSelectCategory={handleSelectCategory}
         onHoverCategory={setHoverCategory}
-        onReset={() => {
-          setActiveTool('compress');
-          handleReset();
-        }}
+        onReset={() => navigateTo('/')}
         hasActiveFile={stage !== 'upload'}
         onOpenReportIssue={() => setIsReportModalOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
@@ -377,141 +450,162 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center">
-        <ToolLandingPage page={currentToolPage}>
-        {/* 1. PDF Tools (Core) */}
-        {activeTool === 'merge_pdf' && (
-          <MergePdfView
-            key="merge_pdf"
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
+        {currentPath === '/' ? (
+          /* HOMEPAGE - PURE, NEVER WRAPPED IN TOOL LANDING PAGE */
+          stage === 'upload' ? (
+            <HomePage
+              onSelectTool={handleSelectTool}
+              onFileLoaded={handleFileLoaded}
+              onMultipleFilesLoaded={handleMultipleFilesLoaded}
+              activeCategory={activeCategory}
+              hoverCategory={hoverCategory}
+            />
+          ) : (
+            /* In-flight Compression Views when user drops a file on the homepage */
+            <div className="w-full flex flex-col items-center justify-center space-y-6">
+              <button
+                onClick={handleReset}
+                className="self-start flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer"
+              >
+                <span>← Back to All Tools</span>
+              </button>
 
-        {activeTool === 'scan_document' && (
-          <ScanDocumentView
-            key="scan_document"
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
+              {stage === 'batch' && (
+                <BatchProcessingView
+                  initialItems={batchItems}
+                  settings={settings}
+                  onReset={handleReset}
+                  onAddMoreFiles={handleAddMoreToBatch}
+                />
+              )}
 
-        {activeTool === 'images_to_pdf' && (
-          <ImagesToPdfView
-            key="images_to_pdf"
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
+              {stage === 'settings' && activeFile && (
+                <CompressionSettingsCard
+                  fileInfo={activeFile}
+                  settings={settings}
+                  onUpdateSettings={setSettings}
+                  onStartCompress={handleStartCompress}
+                  onResetFile={handleReset}
+                />
+              )}
 
-        {activeTool === 'split_pdf' && (
-          <SplitPdfView
-            key="split_pdf"
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
+              {stage === 'processing' && activeFile && (
+                <ProcessingView
+                  fileInfo={activeFile}
+                  settings={settings}
+                  progress={progress}
+                />
+              )}
 
-        {activeTool === 'watermark_pdf' && (
-          <WatermarkPdfView
-            key="watermark_pdf"
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
-
-        {/* 2. Convert -> Other Tools */}
-        {isConvertTool && (
-          <ConvertToolsView
-            key={activeTool}
-            initialTool={activeTool}
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
-
-        {/* 3. Security & Privacy Tools */}
-        {isSecurityTool && (
-          <SecurityToolsView
-            key={activeTool}
-            initialTool={activeTool}
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
-
-        {/* 4. AI Tools */}
-        {isAiTool && (
-          <AiToolsView
-            key={activeTool}
-            initialTool={activeTool}
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
-
-        {/* 5. Business Tools */}
-        {isBusinessTool && (
-          <BusinessToolsView
-            key={activeTool}
-            initialTool={activeTool}
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
-
-        {/* 6. Collaborate & Share */}
-        {isCollabTool && (
-          <CollaborateToolsView
-            key={activeTool}
-            initialTool={activeTool}
-            onBackToHome={() => {
-              handleReset();
-              setActiveTool('compress');
-            }}
-          />
-        )}
-
-        {/* 7. Compression Studio & Home Page */}
-        {activeTool === 'compress' && (
-          <>
-            {/* Full Smallpdf-style Home Page with Instant DropZone and 25+ Tools */}
-            {stage === 'upload' && (
-              <HomePage
-                onSelectTool={handleSelectTool}
-                onFileLoaded={handleFileLoaded}
-                onMultipleFilesLoaded={handleMultipleFilesLoaded}
-                activeCategory={activeCategory}
-                hoverCategory={hoverCategory}
+              {stage === 'success' && result && (
+                <SuccessView
+                  result={result}
+                  onCompressAnother={handleReset}
+                />
+              )}
+            </div>
+          )
+        ) : (
+          /* DEDICATED INDIVIDUAL FEATURE PAGE */
+          <ToolLandingPage
+            page={activeFeaturePage}
+            onBackToHome={() => navigateTo('/')}
+            onNavigate={(path, tool) => navigateTo(path, tool)}
+          >
+            {/* 1. PDF Tools (Core) */}
+            {activeTool === 'merge_pdf' && (
+              <MergePdfView
+                key="merge_pdf"
+                onBackToHome={() => navigateTo('/')}
               />
             )}
 
-            {/* In-flight Compression Views */}
-            {stage !== 'upload' && (
+            {activeTool === 'scan_document' && (
+              <ScanDocumentView
+                key="scan_document"
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {activeTool === 'images_to_pdf' && (
+              <ImagesToPdfView
+                key="images_to_pdf"
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {activeTool === 'split_pdf' && (
+              <SplitPdfView
+                key="split_pdf"
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {activeTool === 'watermark_pdf' && (
+              <WatermarkPdfView
+                key="watermark_pdf"
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {/* 2. Convert -> Other Tools */}
+            {isConvertTool && (
+              <ConvertToolsView
+                key={activeTool}
+                initialTool={activeTool}
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {/* 3. Security & Privacy Tools */}
+            {isSecurityTool && (
+              <SecurityToolsView
+                key={activeTool}
+                initialTool={activeTool}
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {/* 4. AI Tools */}
+            {isAiTool && (
+              <AiToolsView
+                key={activeTool}
+                initialTool={activeTool}
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {/* 5. Business Tools */}
+            {isBusinessTool && (
+              <BusinessToolsView
+                key={activeTool}
+                initialTool={activeTool}
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {/* 6. Collaborate & Share */}
+            {isCollabTool && (
+              <CollaborateToolsView
+                key={activeTool}
+                initialTool={activeTool}
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
+            {/* 7. Dedicated Compress PDF Page (/compress-pdf) */}
+            {activeTool === 'compress' && (
               <div className="w-full flex flex-col items-center justify-center space-y-6">
-                <button
-                  onClick={handleReset}
-                  className="self-start flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer"
-                >
-                  <span>← Back to All Tools</span>
-                </button>
+                {stage === 'upload' && (
+                  <div className="w-full space-y-4">
+                    <DropZone
+                      onFileLoaded={handleFileLoaded}
+                      onMultipleFilesLoaded={handleMultipleFilesLoaded}
+                      activeCategory="pdf"
+                      isHighlighted={false}
+                    />
+                  </div>
+                )}
 
                 {stage === 'batch' && (
                   <BatchProcessingView
@@ -548,33 +642,39 @@ export default function App() {
                 )}
               </div>
             )}
-
-            {/* History */}
-            {history.length > 0 && stage !== 'processing' && stage !== 'batch' && (
-              <CompressionHistory
-                history={history}
-                onClearHistory={() => setHistory([])}
-                onSelectResult={(item) => {
-                  setResult(item);
-                  setStage('success');
-                }}
-              />
-            )}
-          </>
+          </ToolLandingPage>
         )}
-        </ToolLandingPage>
+
+        {/* Compression History for Homepage */}
+        {currentPath === '/' && history.length > 0 && stage !== 'processing' && stage !== 'batch' && (
+          <div className="mt-8">
+            <CompressionHistory
+              history={history}
+              onClearHistory={() => setHistory([])}
+              onSelectResult={(item) => {
+                setResult(item);
+                setStage('success');
+              }}
+            />
+          </div>
+        )}
       </main>
 
       {/* Nomu Storefront Inspired Clean Footer */}
       <footer className="border-t border-[#0C162C]/10 dark:border-white/10 bg-white/70 dark:bg-[#080E1E]/90 backdrop-blur-md py-6 text-[13px] text-[#5C6479] dark:text-white/60 transition-colors">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="relative w-6 h-6 rounded-md bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center shrink-0 shadow-xs">
-              <span className="text-[10px] font-mono font-bold text-[#00ff87]">⇲</span>
-            </div>
-            <span className="font-extrabold text-[#0C162C] dark:text-white tracking-tight text-sm">
-              zipstream<span className="text-[#FF5722]">.</span>
-            </span>
+            <button
+              onClick={() => navigateTo('/')}
+              className="flex items-center gap-3 cursor-pointer group text-left"
+            >
+              <div className="relative w-6 h-6 rounded-md bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center shrink-0 shadow-xs group-hover:border-[#00ff87]/60">
+                <span className="text-[10px] font-mono font-bold text-[#00ff87]">⇲</span>
+              </div>
+              <span className="font-extrabold text-[#0C162C] dark:text-white tracking-tight text-sm">
+                zipstream<span className="text-[#FF5722]">.</span>
+              </span>
+            </button>
             <span className="text-black/20 dark:text-white/20">•</span>
             <span className="text-xs">Private on-device file studio</span>
           </div>
