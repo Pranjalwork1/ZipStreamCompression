@@ -75,6 +75,11 @@ async function startServer() {
   if (process.env.NODE_ENV === 'production') {
     app.enable('trust proxy');
     app.use((req, res, next) => {
+      // Always let the Railway (and any other platform) health-check through
+      // before attempting any redirect — otherwise the deployment probe gets
+      // a 301 instead of the expected 200 and the deploy is marked unhealthy.
+      if (req.path === '/api/health') return next();
+
       const host = req.headers.host || '';
       const proto = req.headers['x-forwarded-proto'] || req.protocol;
       const isWww = host.startsWith('www.');
