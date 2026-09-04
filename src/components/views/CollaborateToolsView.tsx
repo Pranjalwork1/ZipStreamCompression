@@ -270,22 +270,20 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       if (data.interfaces && Array.isArray(data.interfaces)) {
         setNetworkInterfaces(data.interfaces);
         if (data.port) setServerPort(data.port);
-        // Default to first active non-localhost IP if available
-        if (!selectedIp) {
-          const nonLocal = data.interfaces.find((iface: NetworkInterface) => iface.ip !== '127.0.0.1');
-          if (nonLocal) {
-            setSelectedIp(nonLocal.ip);
-          } else if (data.interfaces.length > 0) {
-            setSelectedIp(data.interfaces[0].ip);
-          }
-        }
+        setSelectedIp(currentIp => {
+          const currentInterface = data.interfaces.find((iface: NetworkInterface) => iface.ip === currentIp);
+          if (currentInterface) return currentIp;
+          const nextInterface = data.interfaces.find((iface: NetworkInterface) => iface.ip !== '127.0.0.1')
+            || data.interfaces[0];
+          return nextInterface?.ip || '';
+        });
       }
     } catch (err) {
       console.warn('Network discovery error:', err);
     } finally {
       setIsRefreshingNet(false);
     }
-  }, [selectedIp]);
+  }, []);
 
   useEffect(() => {
     refreshNetworks();
@@ -330,6 +328,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
 
   // Generate QR Code dynamically whenever the shareUrl adjusts
   useEffect(() => {
+    setQrDataUrl('');
     QRCode.toDataURL(shareUrl, {
       width: 280,
       margin: 1.5,
