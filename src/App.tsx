@@ -24,6 +24,7 @@ import { AiToolsView } from './components/views/AiToolsView';
 import { BusinessToolsView } from './components/views/BusinessToolsView';
 import { CollaborateToolsView } from './components/views/CollaborateToolsView';
 import { HomePage } from './components/HomePage';
+import { getToolPage, TOOL_PAGES, ToolLandingPage } from './components/ToolLandingPage';
 import {
   FileCategory,
   ToolMode,
@@ -81,7 +82,7 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
 
 function toolFromLocation(): ToolMode | null {
   const path = window.location.pathname.replace(/\/$/, '') || '/';
-  return TOOL_PATHS[path] || null;
+  return getToolPage(path)?.tool || TOOL_PATHS[path] || null;
 }
 
 export default function App() {
@@ -128,6 +129,7 @@ export default function App() {
   const [history, setHistory] = useState<CompressionResult[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const currentToolPage = typeof window !== 'undefined' ? getToolPage(window.location.pathname) : undefined;
 
   // Sync theme with HTML document class & localStorage
   useEffect(() => {
@@ -177,6 +179,15 @@ export default function App() {
     return () => window.removeEventListener('hashchange', checkRoom);
   }, []);
 
+  useEffect(() => {
+    const syncToolRoute = () => {
+      const routeTool = toolFromLocation();
+      if (routeTool) setActiveTool(routeTool);
+    };
+    window.addEventListener('popstate', syncToolRoute);
+    return () => window.removeEventListener('popstate', syncToolRoute);
+  }, []);
+
   // Global keyboard shortcut for Search Command Palette (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -207,6 +218,8 @@ export default function App() {
       if (category) setActiveCategory(category);
     }
     handleReset();
+    const page = TOOL_PAGES.find((item) => item.tool === tool);
+    if (page) window.history.pushState({}, '', page.path);
   };
 
   // Reset back to upload dropzone
@@ -364,6 +377,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center">
+        <ToolLandingPage page={currentToolPage}>
         {/* 1. PDF Tools (Core) */}
         {activeTool === 'merge_pdf' && (
           <MergePdfView
@@ -481,13 +495,7 @@ export default function App() {
             {/* Full Smallpdf-style Home Page with Instant DropZone and 25+ Tools */}
             {stage === 'upload' && (
               <HomePage
-                onSelectTool={(tool, targetCategory) => {
-                  handleReset();
-                  if (targetCategory) {
-                    setActiveCategory(targetCategory);
-                  }
-                  setActiveTool(tool);
-                }}
+                onSelectTool={handleSelectTool}
                 onFileLoaded={handleFileLoaded}
                 onMultipleFilesLoaded={handleMultipleFilesLoaded}
                 activeCategory={activeCategory}
@@ -554,6 +562,7 @@ export default function App() {
             )}
           </>
         )}
+        </ToolLandingPage>
       </main>
 
       {/* Nomu Storefront Inspired Clean Footer */}
