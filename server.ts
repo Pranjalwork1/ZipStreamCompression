@@ -628,6 +628,23 @@ ${browserInfo}
     res.json({ url: tunnelUrl, status: tunnelStatus });
   });
 
+  // Explicit handlers for search engine crawlers with strict Content-Type headers
+  app.get('/sitemap.xml', (_req, res) => {
+    const sitemapDist = path.join(process.cwd(), 'dist', 'sitemap.xml');
+    const sitemapPublic = path.join(process.cwd(), 'public', 'sitemap.xml');
+    const filePath = require('fs').existsSync(sitemapDist) ? sitemapDist : sitemapPublic;
+    res.type('application/xml; charset=utf-8');
+    res.sendFile(filePath);
+  });
+
+  app.get('/robots.txt', (_req, res) => {
+    const robotsDist = path.join(process.cwd(), 'dist', 'robots.txt');
+    const robotsPublic = path.join(process.cwd(), 'public', 'robots.txt');
+    const filePath = require('fs').existsSync(robotsDist) ? robotsDist : robotsPublic;
+    res.type('text/plain; charset=utf-8');
+    res.sendFile(filePath);
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
