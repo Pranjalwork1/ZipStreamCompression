@@ -1,0 +1,11 @@
+{
+  "name": "ZipStream PDF and File Tools",
+  "short_name": "ZipStream",
+  "description": "Fast, privacy-first PDF and file tools that process supported files in your browser.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B132B",
+  "theme_color": "#FF5722",
+  "icons": []
+}
