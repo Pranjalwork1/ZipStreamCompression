@@ -567,7 +567,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   >
                     <img
                       src={p.dataUrl}
-                      alt={`Thumb ${idx + 1}`}
+                      alt={`Scanned document thumbnail ${idx + 1}`}
                       className="w-16 h-20 object-cover bg-white"
                     />
                     <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[10px] font-semibold">

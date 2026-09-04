@@ -757,7 +757,7 @@ export const BusinessToolsView: React.FC<BusinessToolsViewProps> = ({
                         <div className="relative group p-1.5 bg-white rounded-xl border border-black/[0.08] shadow-xs">
                           <img
                             src={qrDataUrl}
-                            alt="Invoice QR Code"
+                            alt={invoice.qrType === 'upi' ? 'UPI payment QR code for invoice' : 'GST e-Invoice QR code payload'}
                             className="w-32 h-32 object-contain"
                           />
                         </div>
@@ -1475,7 +1475,7 @@ export const BusinessToolsView: React.FC<BusinessToolsViewProps> = ({
                           <div className="shrink-0 relative group">
                             <img
                               src={qrDataUrl}
-                              alt="QR Code"
+                              alt="Printable invoice payment QR code"
                               className="w-22 h-22 object-contain rounded border border-black/[0.08] bg-white p-0.5 shadow-2xs"
                             />
                             <button
@@ -1657,7 +1657,7 @@ export const BusinessToolsView: React.FC<BusinessToolsViewProps> = ({
                 <div className="pt-2 text-center space-y-2 border-t border-dashed border-neutral-300">
                   <img
                     src={posQrDataUrl}
-                    alt="POS UPI QR"
+                    alt="POS thermal receipt quick checkout UPI QR code"
                     className="w-28 h-28 mx-auto p-1 bg-white border border-neutral-300 rounded-lg"
                   />
                   <p className="text-[11px] font-bold">Scan to Pay via Any UPI App</p>

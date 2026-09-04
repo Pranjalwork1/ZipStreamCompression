@@ -750,7 +750,7 @@ export const ConvertToolsView: React.FC<ConvertToolsViewProps> = ({
                         <div className="relative aspect-video bg-white overflow-hidden border-b border-black/[0.06] dark:border-white/[0.08]">
                           <img
                             src={slide.imageUrl}
-                            alt={`Slide ${slide.slideNumber}`}
+                            alt={`Presentation slide ${slide.slideNumber} preview: ${slide.title || 'Slide'}`}
                             className="w-full h-full object-contain group-hover:scale-102 transition-transform"
                           />
                           <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md bg-black/75 text-white text-[10.5px] font-bold backdrop-blur-xs">
@@ -833,7 +833,7 @@ export const ConvertToolsView: React.FC<ConvertToolsViewProps> = ({
                       <div className="relative aspect-[3/4] bg-white overflow-hidden p-2">
                         <img
                           src={pg.dataUrl}
-                          alt={`Page ${pg.pageNumber}`}
+                          alt={`Converted PDF page ${pg.pageNumber} JPEG preview (${pg.width}x${pg.height}px)`}
                           className="w-full h-full object-contain group-hover:scale-102 transition-transform"
                         />
                         <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/70 text-white text-[11px] font-bold">

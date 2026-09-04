@@ -131,7 +131,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
             <div className="h-44 sm:h-56 rounded-xl overflow-hidden bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center p-2">
               <img
                 src={result.compressedPreviewUrl}
-                alt="Compressed preview"
+                alt={`Compressed preview of ${result.originalFile.name}`}
                 className="max-h-full max-w-full object-contain rounded-lg"
               />
             </div>

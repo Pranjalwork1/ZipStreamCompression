@@ -18,12 +18,23 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6599219440049754"
      crossorigin="anonymous"></script>
 
-  <!-- Google Fonts for Nomu.store aesthetic (Inter & Plus Jakarta Sans) -->
+  <!-- Google Fonts (Non-Render-Blocking Asynchronous Load) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  <link
+    rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
-    rel="stylesheet" />
+    media="print"
+    onload="this.media='all'" />
+  <noscript>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  </noscript>
 
   <!-- Primary SEO Metadata -->
   <title>Compress PDF Online Free — Fast & Private | ZipStream</title>
@@ -286,6 +297,7 @@
   <!-- Meta Pixel Noscript Fallback -->
   <noscript>
     <img height="1" width="1" style="display:none"
+         alt="Meta Tracking Pixel"
          src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"/>
   </noscript>
   <div id="root"></div>

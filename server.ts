@@ -70,6 +70,25 @@ async function startServer() {
   const requestCounts = new Map<string, { count: number; resetAt: number }>();
 
   app.disable('x-powered-by');
+
+  // ─── Canonical 301 Redirect: Enforce HTTPS & non-www apex domain in production ───
+  if (process.env.NODE_ENV === 'production') {
+    app.enable('trust proxy');
+    app.use((req, res, next) => {
+      const host = req.headers.host || '';
+      const proto = req.headers['x-forwarded-proto'] || req.protocol;
+      const isWww = host.startsWith('www.');
+      const isHttp = proto === 'http';
+      const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('0.0.0.0');
+
+      if (!isLocal && (isWww || isHttp)) {
+        const cleanHost = host.replace(/^www\./i, '');
+        return res.redirect(301, `https://${cleanHost}${req.originalUrl}`);
+      }
+      next();
+    });
+  }
+
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -645,6 +664,14 @@ ${browserInfo}
     res.sendFile(filePath);
   });
 
+  // Dedicated custom 404 page handler with HTTP 404 status
+  app.get('/404', (_req, res) => {
+    const page404Dist = path.join(process.cwd(), 'dist', '404.html');
+    const page404Public = path.join(process.cwd(), 'public', '404.html');
+    const filePath = require('fs').existsSync(page404Dist) ? page404Dist : page404Public;
+    res.status(404).sendFile(filePath);
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -660,6 +687,11 @@ ${browserInfo}
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
+      // If request has a file extension that wasn't found in static assets, return 404
+      if (path.extname(req.path)) {
+        const page404 = path.join(distPath, '404.html');
+        return res.status(404).sendFile(page404);
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

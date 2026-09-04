@@ -163,7 +163,7 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
             {fileInfo.previewUrl && fileInfo.category === 'image' ? (
               <img
                 src={fileInfo.previewUrl}
-                alt="File preview"
+                alt={`Document preview for ${fileInfo.name}`}
                 className="w-full h-full object-cover"
               />
             ) : fileInfo.previewUrl && fileInfo.category === 'video' ? (

@@ -145,14 +145,18 @@ export default function App() {
     const page = getToolPage(normalized) || (tool && tool !== 'compress' ? getToolPageForTool(tool) : undefined);
     const metadata = TOOL_METADATA[normalized];
 
+    const isUnknownRoute = normalized !== '/' && !getToolPage(normalized) && !TOOL_PATHS[normalized] && !normalized.startsWith('/room/');
+
     if (normalized === '/') {
-      document.title = 'ZipStream — Fast, Private PDF and File Tools';
+      document.title = 'Compress PDF Online Free — Fast & Private | ZipStream';
+    } else if (isUnknownRoute) {
+      document.title = '404 — Page Not Found | ZipStream';
     } else if (metadata?.title) {
       document.title = metadata.title;
     } else if (page?.title) {
       document.title = `${page.title} | ZipStream`;
     } else {
-      document.title = 'ZipStream — Fast, Private PDF and File Tools';
+      document.title = 'Compress PDF Online Free — Fast & Private | ZipStream';
     }
 
     let description = document.querySelector('meta[name="description"]');
@@ -163,7 +167,9 @@ export default function App() {
     }
     description.setAttribute(
       'content',
-      metadata?.description || page?.description || 'Compress, merge, split and convert PDF and files online with ZipStream.'
+      isUnknownRoute
+        ? 'The requested page or tool could not be found. Explore 25+ free online PDF and file tools on ZipStream.'
+        : metadata?.description || page?.description || 'ZipStream is a free, privacy-first online tool to compress, merge, split, and convert PDFs and files directly in your browser. No file upload or signup needed.'
     );
 
     const canonical = document.querySelector('link[rel="canonical"]');
@@ -426,6 +432,12 @@ export default function App() {
     'collab_whiteboard',
   ].includes(activeTool);
 
+  const isNotFound =
+    currentPath !== '/' &&
+    !getToolPage(currentPath) &&
+    !TOOL_PATHS[currentPath] &&
+    !currentPath.startsWith('/room/');
+
   const activeFeaturePage = getToolPage(currentPath) || getToolPageForTool(activeTool);
 
   return (
@@ -505,6 +517,54 @@ export default function App() {
               )}
             </div>
           )
+        ) : isNotFound ? (
+          /* CUSTOM IN-APP 404 PAGE NOT FOUND */
+          <div className="w-full max-w-2xl mx-auto text-center py-12 px-4 space-y-6 animate-in fade-in duration-200">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] text-xs font-bold uppercase tracking-wider">
+              <span className="font-mono text-[#00ff87]">⇲</span> Error 404
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0C162C] dark:text-white tracking-tight">
+              Page or Tool Not Found
+            </h1>
+            <p className="text-sm sm:text-base text-[#5C6479] dark:text-white/60 max-w-md mx-auto">
+              The document tool or page you are looking for might have been moved, renamed, or doesn't exist.
+            </p>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => navigateTo('/')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FF5722] hover:bg-[#f4511e] text-white font-bold text-sm shadow-md transition-all cursor-pointer"
+              >
+                <span>← Return to ZipStream Home</span>
+              </button>
+            </div>
+            <div className="pt-8 border-t border-[#0C162C]/10 dark:border-white/10 space-y-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#5C6479] dark:text-white/40 block">
+                Popular Free PDF Tools
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {[
+                  { name: 'Compress PDF', path: '/compress-pdf', tool: 'compress' },
+                  { name: 'Merge PDF', path: '/merge-pdf', tool: 'merge_pdf' },
+                  { name: 'Split PDF', path: '/split-pdf', tool: 'split_pdf' },
+                  { name: 'PDF to Word', path: '/pdf-to-word', tool: 'pdf_to_word' },
+                  { name: 'PDF to JPG', path: '/pdf-to-jpg', tool: 'pdf_to_jpg' },
+                  { name: 'Images to PDF', path: '/images-to-pdf', tool: 'images_to_pdf' },
+                  { name: 'Scan Document', path: '/scan-document', tool: 'scan_document' },
+                  { name: 'GST Invoice', path: '/gst-invoice', tool: 'gst_invoice' },
+                ].map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => navigateTo(item.path, item.tool as ToolMode)}
+                    className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#131E3A] border border-[#0C162C]/10 dark:border-white/10 hover:border-[#FF5722]/50 text-xs font-semibold text-[#0C162C] dark:text-white transition-all cursor-pointer shadow-2xs"
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
           /* DEDICATED INDIVIDUAL FEATURE PAGE */
           <ToolLandingPage
