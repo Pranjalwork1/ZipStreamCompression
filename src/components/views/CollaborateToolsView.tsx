@@ -349,6 +349,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const peerSocketId = useRef<string>('');
   const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
+  const incomingFileRef = useRef<{ fileName: string; fileSize: number; chunks: ArrayBuffer[]; receivedBytes: number } | null>(null);
   const hasCelebratedConnectionRef = useRef<boolean>(false);
   // Tracks the last file name that triggered a celebration — prevents zoom/sync re-renders from re-firing
   const lastCelebratedFileRef = useRef<string>('');
@@ -511,18 +512,52 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       setStatusMessage('P2P Channel Closed');
     };
 
-    dc.onmessage = (event) => {
+    dc.onmessage = async (event) => {
       const data = event.data;
       if (typeof data === 'string') {
         try {
           const msg = JSON.parse(data);
           if (msg.type === 'SYNC_STATE') {
             applyViewportSync(msg);
+          } else if (msg.type === 'FILE_HEADER') {
+            incomingFileRef.current = {
+              fileName: msg.fileName || 'shared-document.pdf',
+              fileSize: Number(msg.fileSize) || 0,
+              chunks: [],
+              receivedBytes: 0,
+            };
+            setTransferState({
+              fileName: msg.fileName || 'shared-document.pdf',
+              fileSize: Number(msg.fileSize) || 0,
+              progress: 0,
+              status: 'streaming',
+            });
           }
         } catch (_) {}
+        return;
+      }
+
+      const chunk = data instanceof Blob ? await data.arrayBuffer() : normalizeToArrayBuffer(data);
+      const incomingFile = incomingFileRef.current;
+      if (!chunk || !incomingFile) return;
+
+      incomingFile.chunks.push(chunk);
+      incomingFile.receivedBytes += chunk.byteLength;
+      const progress = incomingFile.fileSize > 0
+        ? Math.min(99, Math.round((incomingFile.receivedBytes / incomingFile.fileSize) * 100))
+        : 0;
+      setTransferState(prev => ({ ...prev, progress, status: 'streaming' }));
+
+      if (incomingFile.receivedBytes >= incomingFile.fileSize) {
+        const blob = new Blob(incomingFile.chunks, { type: 'application/pdf' });
+        const fileName = incomingFile.fileName;
+        incomingFileRef.current = null;
+        loadDocumentBlob(blob, fileName);
+        setTransferState({ fileName, fileSize: blob.size, progress: 100, status: 'complete' });
+        celebrateNewFileOnce(fileName);
       }
     };
-  }, [isHost, applyViewportSync]);
+  }, [isHost, applyViewportSync, loadDocumentBlob, celebrateNewFileOnce]);
 
   // Create WebRTC PeerConnection
   const createPeerConnection = useCallback((targetId: string) => {
@@ -745,11 +780,18 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     try {
       const buffer = await fileOrBlob.arrayBuffer();
       dc.send(JSON.stringify({
-        type: 'HEADER',
+        type: 'FILE_HEADER',
         fileName: (fileOrBlob as File).name || 'shared-document.pdf',
         fileSize: fileOrBlob.size,
         fileType: 'application/pdf',
       }));
+
+      for (let offset = 0; offset < buffer.byteLength; offset += CHUNK_SIZE) {
+        while (dc.bufferedAmount > CHUNK_SIZE * 8) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        dc.send(buffer.slice(offset, Math.min(offset + CHUNK_SIZE, buffer.byteLength)));
+      }
     } catch (_) {}
   };
 
