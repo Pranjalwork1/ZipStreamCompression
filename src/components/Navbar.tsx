@@ -93,13 +93,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onReset}
             className="flex items-center gap-2.5 text-left focus:outline-none group cursor-pointer"
           >
-            {/* Previous Logo Icon beside left of zipstream */}
-            <div className="relative w-8.5 h-8.5 rounded-lg bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center transition-all duration-200 group-hover:border-[#00ff87]/60 group-hover:shadow-[0_0_15px_rgba(0,255,135,0.25)] shadow-xs shrink-0">
-              <span className="text-[13px] font-mono font-bold text-[#00ff87]">⇲</span>
-              {/* Corner crosshairs */}
-              <span className="absolute -top-0.5 -left-0.5 text-[7px] text-white/30 font-mono">+</span>
-              <span className="absolute -bottom-0.5 -right-0.5 text-[7px] text-white/30 font-mono">+</span>
-            </div>
+            {/* ZipStream Logo Image */}
+            <img
+              src="/favicon.jpg"
+              alt="ZipStream Logo"
+              width={34}
+              height={34}
+              className="rounded-lg shrink-0 shadow-xs transition-all duration-200 group-hover:shadow-[0_0_15px_rgba(255,87,34,0.35)] group-hover:scale-105"
+            />
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-1">
                 <span className="text-base sm:text-lg font-black tracking-tight text-[#0C162C] dark:text-white">

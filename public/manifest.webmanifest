@@ -1,11 +1,24 @@
 {
-  "name": "ZipStream PDF and File Tools",
+  "name": "ZipStream — Free PDF Compressor & File Tools",
   "short_name": "ZipStream",
-  "description": "Fast, privacy-first PDF and file tools that process supported files in your browser.",
+  "description": "Free online PDF compressor, merger, splitter & converter. Compress PDF, merge PDF, split PDF, convert PDF to Word, JPG & more. 100% private, no upload needed.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0B132B",
   "theme_color": "#FF5722",
-  "icons": []
+  "icons": [
+    {
+      "src": "/favicon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
 }
