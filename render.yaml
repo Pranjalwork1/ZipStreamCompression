@@ -2,7 +2,7 @@ services:
   - type: web
     name: zipstream-compression
     runtime: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci --include=dev && npm run build && test -f dist/server.cjs
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -10,3 +10,11 @@ services:
         value: production
       - key: ENABLE_TUNNEL
         value: "false"
+      - key: DISABLE_HMR
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
