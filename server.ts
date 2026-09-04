@@ -65,6 +65,35 @@ async function startServer() {
   const app = express();
   const httpServer = createHttpServer(app);
   const PORT = Number(process.env.PORT) || 3000;
+  const MAX_ROOM_DOCUMENT_BYTES = 20 * 1024 * 1024;
+  const roomIdPattern = /^[a-zA-Z0-9_-]{4,64}$/;
+  const requestCounts = new Map<string, { count: number; resetAt: number }>();
+
+  app.disable('x-powered-by');
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+  });
+  app.use('/api', (req, res, next) => {
+    const now = Date.now();
+    const key = req.ip || 'unknown';
+    const current = requestCounts.get(key);
+    if (!current || current.resetAt <= now) {
+      requestCounts.set(key, { count: 1, resetAt: now + 60_000 });
+      return next();
+    }
+    current.count += 1;
+    if (current.count > 120) {
+      return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
+    }
+    return next();
+  });
 
   // ─── Ephemeral Room Document Cache (Held in volatile RAM during room lifetime) ───
   interface EphemeralDocument {
@@ -173,7 +202,7 @@ async function startServer() {
     });
   });
 
-  app.use(express.json({ limit: '50mb' }));
+  app.use(express.json({ limit: '28mb' }));
 
   // Cleanup documents older than 4 hours
   setInterval(() => {
@@ -187,7 +216,7 @@ async function startServer() {
 
   // Health check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString(), rooms: rooms.size });
+    res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
   // Room info endpoint
@@ -226,13 +255,23 @@ async function startServer() {
   app.post('/api/rooms/:roomId/document', (req, res) => {
     const { roomId } = req.params;
     const { fileName, fileSize, dataBase64 } = req.body || {};
-    if (!fileName || !dataBase64) {
+    if (!roomIdPattern.test(roomId) || typeof fileName !== 'string' || typeof dataBase64 !== 'string') {
       return res.status(400).json({ error: 'Invalid document payload' });
     }
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9._ -]/g, '_').slice(0, 160) || 'shared-document.pdf';
+    const normalizedBase64 = dataBase64.replace(/^data:application\/pdf;base64,/, '');
+    const decodedSize = Math.floor((normalizedBase64.length * 3) / 4) - (normalizedBase64.endsWith('==') ? 2 : normalizedBase64.endsWith('=') ? 1 : 0);
+    if (!normalizedBase64 || decodedSize <= 0 || decodedSize > MAX_ROOM_DOCUMENT_BYTES || !/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(normalizedBase64)) {
+      return res.status(413).json({ error: 'PDF must be valid base64 and no larger than 20 MB' });
+    }
+    const pdfHeader = Buffer.from(normalizedBase64.slice(0, 16), 'base64').toString('ascii');
+    if (!pdfHeader.startsWith('%PDF-')) {
+      return res.status(415).json({ error: 'Only valid PDF documents are supported' });
+    }
     roomDocuments.set(roomId, {
-      fileName,
-      fileSize: fileSize || 0,
-      dataBase64,
+      fileName: safeFileName,
+      fileSize: decodedSize,
+      dataBase64: normalizedBase64,
       updatedAt: Date.now(),
       page: 1,
       zoom: 1.0,
@@ -240,15 +279,18 @@ async function startServer() {
     });
     // Broadcast document available to all members in the room
     io.to(roomId).emit('room-document-available', {
-      fileName,
-      fileSize,
+      fileName: safeFileName,
+      fileSize: decodedSize,
       hasDocument: true,
     });
-    res.json({ success: true, roomId, fileName });
+    res.json({ success: true, roomId, fileName: safeFileName });
   });
 
   app.get('/api/rooms/:roomId/document', (req, res) => {
     const { roomId } = req.params;
+    if (!roomIdPattern.test(roomId)) {
+      return res.status(400).json({ error: 'Invalid room ID' });
+    }
     const doc = roomDocuments.get(roomId);
     if (!doc) {
       return res.status(404).json({ error: 'No active document in this room' });

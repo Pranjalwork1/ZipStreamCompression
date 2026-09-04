@@ -53,6 +53,37 @@ const DEFAULT_SETTINGS: CompressionSettings = {
   audioBitrate: 128,
 };
 
+const TOOL_PATHS: Record<string, ToolMode> = {
+  '/compress-pdf': 'compress',
+  '/merge-pdf': 'merge_pdf',
+  '/split-pdf': 'split_pdf',
+  '/images-to-pdf': 'images_to_pdf',
+  '/scan-document': 'scan_document',
+  '/watermark-pdf': 'watermark_pdf',
+  '/pdf-to-word': 'pdf_to_word',
+  '/pdf-to-excel': 'pdf_to_excel',
+  '/pdf-to-powerpoint': 'pdf_to_powerpoint',
+  '/pdf-to-jpg': 'pdf_to_jpg',
+};
+
+const TOOL_METADATA: Record<string, { title: string; description: string }> = {
+  '/compress-pdf': { title: 'Compress PDF Online | ZipStream', description: 'Reduce PDF file size quickly with ZipStream privacy-first compression tools.' },
+  '/merge-pdf': { title: 'Merge PDF Files Online | ZipStream', description: 'Combine PDF files in your browser with ZipStream.' },
+  '/split-pdf': { title: 'Split PDF Online | ZipStream', description: 'Extract and split PDF pages with ZipStream.' },
+  '/images-to-pdf': { title: 'Images to PDF Online | ZipStream', description: 'Convert JPG and PNG images into a PDF in your browser.' },
+  '/scan-document': { title: 'Scan Documents Online | ZipStream', description: 'Scan documents with your camera and create clean PDFs.' },
+  '/watermark-pdf': { title: 'Watermark PDF Online | ZipStream', description: 'Add a watermark to PDF documents in your browser.' },
+  '/pdf-to-word': { title: 'PDF to Word Converter | ZipStream', description: 'Convert PDF documents to editable Word files with ZipStream.' },
+  '/pdf-to-excel': { title: 'PDF to Excel Converter | ZipStream', description: 'Extract PDF tables into spreadsheet formats with ZipStream.' },
+  '/pdf-to-powerpoint': { title: 'PDF to PowerPoint Converter | ZipStream', description: 'Convert PDF pages into PowerPoint presentations with ZipStream.' },
+  '/pdf-to-jpg': { title: 'PDF to JPG Converter | ZipStream', description: 'Convert PDF pages into JPG images in your browser.' },
+};
+
+function toolFromLocation(): ToolMode | null {
+  const path = window.location.pathname.replace(/\/$/, '') || '/';
+  return TOOL_PATHS[path] || null;
+}
+
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
@@ -69,6 +100,8 @@ export default function App() {
 
   const [activeTool, setActiveTool] = useState<ToolMode>(() => {
     if (typeof window !== 'undefined') {
+      const pathTool = toolFromLocation();
+      if (pathTool) return pathTool;
       const hash = window.location.hash;
       const path = window.location.pathname;
       if (hash.includes('/room/') || path.includes('/room/')) {
@@ -97,6 +130,22 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Sync theme with HTML document class & localStorage
+  useEffect(() => {
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    const metadata = TOOL_METADATA[path];
+    const canonicalUrl = `https://zipstream.online${path === '/' ? '/' : path}`;
+    document.title = metadata?.title || 'ZipStream — Fast, Private PDF and File Tools';
+    let description = document.querySelector('meta[name="description"]');
+    if (!description) {
+      description = document.createElement('meta');
+      description.setAttribute('name', 'description');
+      document.head.appendChild(description);
+    }
+    description.setAttribute('content', metadata?.description || 'Compress, merge, split and convert PDF and files online with ZipStream.');
+    const canonical = document.querySelector('link[rel="canonical"]');
+    canonical?.setAttribute('href', canonicalUrl);
+  }, []);
+
   useEffect(() => {
     try {
       if (theme === 'dark') {

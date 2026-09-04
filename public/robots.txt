@@ -1,4 +1,3 @@
-# robots.txt for ZipStream
 User-agent: *
 Allow: /
-Sitemap: https://ais-dev-vgswgqo5ia4iekt2eijjqg-747012021764.asia-southeast1.run.app/sitemap.xml
+Sitemap: https://zipstream.online/sitemap.xml
