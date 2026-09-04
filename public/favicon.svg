@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <rect x="2" y="2" width="44" height="44" rx="10" fill="#11141a" stroke="rgba(255,255,255,0.15)" stroke-width="1.2"/>
+  <!-- Corner crosshairs -->
+  <path d="M4 8h4M6 6v4M40 40h4M42 38v4" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Center compression glyph ⇲ -->
+  <g stroke="#00ff87" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Corner angle bracket -->
+    <path d="M22 36h14V22" fill="none"/>
+    <!-- Diagonal arrow -->
+    <path d="M14 14l20 20" fill="none"/>
+    <!-- Arrowhead -->
+    <path d="M26 34h8v-8" fill="none"/>
+  </g>
+</svg>
