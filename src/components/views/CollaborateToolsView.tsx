@@ -296,7 +296,14 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
 
   // Compute live shareable URL — tunnel URL is always preferred (works from any network/device)
   const computeShareUrl = useCallback(() => {
-    // 1. Manual custom host / tunnel URL override
+    // Hosted HTTPS sessions must use the public origin, never a private LAN address.
+    const isHostedOrigin = window.location.protocol === 'https:'
+      || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+    if (isHostedOrigin) {
+      return `${window.location.origin}/#/room/${roomId}`;
+    }
+
+    // 1. Manual custom host / tunnel URL override for local development
     if (isCustomHostMode && customHost.trim()) {
       const trimmed = customHost.trim().replace(/\/$/, '');
       const prefix = trimmed.startsWith('http') ? '' : 'http://';
@@ -308,13 +315,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       return `${tunnelUrl}/#/room/${roomId}`;
     }
 
-    // 3. Preserve the hosted origin when no tunnel is available. Adding port 3000
-    // to a deployed HTTPS domain produces a QR code that cannot be opened.
-    if (!selectedIp && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return `${window.location.origin}/#/room/${roomId}`;
-    }
-
-    // 4. LAN IP fallback (works only on the same Wi-Fi network)
+    // 3. LAN IP fallback for local development (works only on the same Wi-Fi network)
     const hostIp = selectedIp || window.location.hostname;
     const isLocal = hostIp === 'localhost' || hostIp === '127.0.0.1';
     if (isLocal && !selectedIp) {
