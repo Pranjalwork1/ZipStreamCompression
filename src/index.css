@@ -2,6 +2,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* WCAG AA foreground colours. The brand accents are intentionally darker on
+   light surfaces; the brighter variants remain available in dark mode. */
+.text-\[\#FF5722\] { color: #B93815; }
+.text-\[\#ff3b30\] { color: #C9281A; }
+.text-\[\#FF9500\] { color: #9A5B00; }
+.text-emerald-600 { color: #047857; }
+
+.dark .text-\[\#FF5722\] { color: #FF9A76; }
+.dark .text-\[\#ff3b30\] { color: #FF6961; }
+.dark .text-\[\#FF9500\] { color: #FFC36B; }
+.dark .text-emerald-600 { color: #34D399; }
+
 @layer base {
   html {
     font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
