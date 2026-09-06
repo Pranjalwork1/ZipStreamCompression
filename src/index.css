@@ -8,6 +8,8 @@
 .text-\[\#ff3b30\] { color: #C9281A; }
 .text-\[\#FF9500\] { color: #9A5B00; }
 .text-emerald-600 { color: #047857; }
+.bg-\[\#FF5722\] { background-color: #B93815; }
+.hover\:bg-\[\#FF6838\]:hover { background-color: #932E11; }
 
 .dark .text-\[\#FF5722\] { color: #FF9A76; }
 .dark .text-\[\#ff3b30\] { color: #FF6961; }
@@ -70,14 +72,14 @@
 
 /* Nomu Signature Orange Pulse & Buttons */
 .nomu-btn-orange {
-  background-color: #FF5722;
+  background-color: #B93815;
   color: #FFFFFF;
   box-shadow: 0 4px 14px 0 rgba(255, 87, 34, 0.35);
   transition: all 0.15s ease-in-out;
 }
 
 .nomu-btn-orange:hover {
-  background-color: #FF6838;
+  background-color: #932E11;
   box-shadow: 0 6px 20px 0 rgba(255, 87, 34, 0.45);
   transform: translateY(-1px);
 }
