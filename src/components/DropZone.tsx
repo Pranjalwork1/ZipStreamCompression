@@ -13,15 +13,7 @@ import {
 } from 'lucide-react';
 import { FileCategory, UploadedFileInfo } from '../types';
 import { detectFileCategory, getAcceptedExtensions } from '../utils/formatters';
-import {
-  createSamplePdfFile,
-  createSamplePdfFileAsync,
-  createSampleImageFile,
-  createSampleVideoFile,
-  createSampleVideoFileAsync,
-  createSampleAudioFile,
-  prepareFileInfo,
-} from '../utils/sampleFiles';
+import { prepareFileInfo } from '../utils/fileInfo';
 
 interface DropZoneProps {
   activeCategory: FileCategory;
@@ -156,22 +148,23 @@ export const DropZone: React.FC<DropZoneProps> = ({
   };
 
   const handleLoadSample = async (type: 'pdf' | 'image' | 'video' | 'audio') => {
+    const samples = await import('../utils/sampleFiles');
     let file: File;
     if (type === 'pdf') {
       try {
-        file = await createSamplePdfFileAsync();
+        file = await samples.createSamplePdfFileAsync();
       } catch {
-        file = createSamplePdfFile();
+        file = samples.createSamplePdfFile();
       }
     } else if (type === 'image') {
-      file = createSampleImageFile();
+      file = samples.createSampleImageFile();
     } else if (type === 'audio') {
-      file = createSampleAudioFile();
+      file = samples.createSampleAudioFile();
     } else {
       try {
-        file = await createSampleVideoFileAsync();
+        file = await samples.createSampleVideoFileAsync();
       } catch {
-        file = createSampleVideoFile();
+        file = samples.createSampleVideoFile();
       }
     }
 

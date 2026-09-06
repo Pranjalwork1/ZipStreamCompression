@@ -5,6 +5,10 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    build: {
+      target: 'es2022',
+      cssCodeSplit: true,
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

@@ -5,18 +5,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
 
-  <!-- Google tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-03TP79QZLH"></script>
+  <!-- Analytics and ads are deliberately delayed so they cannot block the first render. -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-03TP79QZLH');
+    window.addEventListener('load', function () {
+      window.setTimeout(function () {
+        var analytics = document.createElement('script');
+        analytics.async = true;
+        analytics.src = 'https://www.googletagmanager.com/gtag/js?id=G-03TP79QZLH';
+        document.head.appendChild(analytics);
+        var ads = document.createElement('script');
+        ads.async = true;
+        ads.crossOrigin = 'anonymous';
+        ads.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6599219440049754';
+        document.head.appendChild(ads);
+      }, 3000);
+    }, { once: true });
   </script>
-
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6599219440049754"
-     crossorigin="anonymous"></script>
 
   <!-- Google Fonts (Non-Render-Blocking Asynchronous Load) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -88,20 +96,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
-
-  <!-- Meta Pixel Code -->
-  <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', 'YOUR_PIXEL_ID');
-    fbq('track', 'PageView');
-  </script>
 
   <!-- Structured Data (JSON-LD) for Maximum SEO -->
   <script type="application/ld+json">
@@ -294,12 +288,6 @@
 
 <body
   class="bg-[#FAF7F2] dark:bg-[#0B132B] text-[#0C162C] dark:text-[#F3F4F6] antialiased selection:bg-[#FF5722] selection:text-white transition-colors duration-200">
-  <!-- Meta Pixel Noscript Fallback -->
-  <noscript>
-    <img height="1" width="1" style="display:none"
-         alt="Meta Tracking Pixel"
-         src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"/>
-  </noscript>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

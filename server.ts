@@ -97,6 +97,7 @@ async function startServer() {
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
     if (process.env.NODE_ENV === 'production') {
@@ -690,7 +691,14 @@ ${browserInfo}
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        // HTML must always be revalidated so a newly deployed asset manifest is used.
+        if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+      },
+    }));
     app.get('*', (req, res) => {
       // If request has a file extension that wasn't found in static assets, return 404
       if (path.extname(req.path)) {

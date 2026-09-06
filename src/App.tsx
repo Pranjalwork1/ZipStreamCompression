@@ -3,26 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { DropZone } from './components/DropZone';
-import { CompressionSettingsCard } from './components/CompressionSettingsCard';
-import { ProcessingView } from './components/ProcessingView';
-import { SuccessView } from './components/SuccessView';
 import { CompressionHistory } from './components/CompressionHistory';
 import { ReportIssueModal } from './components/ReportIssueModal';
-import { BatchProcessingView } from './components/BatchProcessingView';
-import { MergePdfView } from './components/MergePdfView';
-import { ScanDocumentView } from './components/ScanDocumentView';
-import { ImagesToPdfView } from './components/ImagesToPdfView';
-import { SplitPdfView } from './components/SplitPdfView';
-import { WatermarkPdfView } from './components/WatermarkPdfView';
-import { SearchCommandPalette } from './components/SearchCommandPalette';
-import { ConvertToolsView } from './components/views/ConvertToolsView';
-import { SecurityToolsView } from './components/views/SecurityToolsView';
-import { AiToolsView } from './components/views/AiToolsView';
-import { BusinessToolsView } from './components/views/BusinessToolsView';
-import { CollaborateToolsView } from './components/views/CollaborateToolsView';
 import { HomePage } from './components/HomePage';
 import { getToolPage, getToolPageForTool, ToolLandingPage } from './components/ToolLandingPage';
 import {
@@ -33,16 +18,29 @@ import {
   CompressionResult,
   BatchItem,
 } from './types';
-import {
-  processCompression,
-  ProgressUpdate,
-} from './utils/compressionEngine';
+import type { ProgressUpdate } from './utils/compressionEngine';
 import { detectFileCategory } from './utils/formatters';
-import { prepareFileInfo } from './utils/sampleFiles';
+import { prepareFileInfo } from './utils/fileInfo';
 import {
   Lock,
   Shield,
 } from 'lucide-react';
+
+const BatchProcessingView = lazy(() => import('./components/BatchProcessingView').then(module => ({ default: module.BatchProcessingView })));
+const CompressionSettingsCard = lazy(() => import('./components/CompressionSettingsCard').then(module => ({ default: module.CompressionSettingsCard })));
+const ProcessingView = lazy(() => import('./components/ProcessingView').then(module => ({ default: module.ProcessingView })));
+const SuccessView = lazy(() => import('./components/SuccessView').then(module => ({ default: module.SuccessView })));
+const MergePdfView = lazy(() => import('./components/MergePdfView').then(module => ({ default: module.MergePdfView })));
+const ScanDocumentView = lazy(() => import('./components/ScanDocumentView').then(module => ({ default: module.ScanDocumentView })));
+const ImagesToPdfView = lazy(() => import('./components/ImagesToPdfView').then(module => ({ default: module.ImagesToPdfView })));
+const SplitPdfView = lazy(() => import('./components/SplitPdfView').then(module => ({ default: module.SplitPdfView })));
+const WatermarkPdfView = lazy(() => import('./components/WatermarkPdfView').then(module => ({ default: module.WatermarkPdfView })));
+const SearchCommandPalette = lazy(() => import('./components/SearchCommandPalette').then(module => ({ default: module.SearchCommandPalette })));
+const ConvertToolsView = lazy(() => import('./components/views/ConvertToolsView').then(module => ({ default: module.ConvertToolsView })));
+const SecurityToolsView = lazy(() => import('./components/views/SecurityToolsView').then(module => ({ default: module.SecurityToolsView })));
+const AiToolsView = lazy(() => import('./components/views/AiToolsView').then(module => ({ default: module.AiToolsView })));
+const BusinessToolsView = lazy(() => import('./components/views/BusinessToolsView').then(module => ({ default: module.BusinessToolsView })));
+const CollaborateToolsView = lazy(() => import('./components/views/CollaborateToolsView').then(module => ({ default: module.CollaborateToolsView })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -374,6 +372,7 @@ export default function App() {
     });
 
     try {
+      const { processCompression } = await import('./utils/compressionEngine');
       const compressionResult = await processCompression(
         activeFile,
         settings,
@@ -461,6 +460,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
+      <Suspense fallback={<div className="min-h-[240px]" aria-busy="true" aria-label="Loading selected tool" />}>
       <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center">
         {currentPath === '/' ? (
           /* HOMEPAGE - PURE, NEVER WRAPPED IN TOOL LANDING PAGE */
@@ -719,6 +719,7 @@ export default function App() {
           </div>
         )}
       </main>
+      </Suspense>
 
       {/* Nomu Storefront Inspired Clean Footer */}
       <footer className="border-t border-[#0C162C]/10 dark:border-white/10 bg-white/70 dark:bg-[#080E1E]/90 backdrop-blur-md py-6 text-[13px] text-[#5C6479] dark:text-white/60 transition-colors">
@@ -815,11 +816,15 @@ export default function App() {
       </footer>
 
       {/* Search Command Palette (Ctrl+K / Cmd+K) */}
-      <SearchCommandPalette
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectTool={handleSelectTool}
-      />
+      {isSearchOpen && (
+        <Suspense fallback={null}>
+          <SearchCommandPalette
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            onSelectTool={handleSelectTool}
+          />
+        </Suspense>
+      )}
 
       {/* Report Issue Dialog Modal */}
       <ReportIssueModal
