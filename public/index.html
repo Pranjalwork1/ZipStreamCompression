@@ -1,20 +1,94 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en-US" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ZipStream P2P - Zero-Install PDF Stream & Co-Viewer</title>
 
-  <!-- Favicon & Touch Icons -->
+  <!-- Primary SEO Metadata -->
+  <title>P2P PDF Co-Viewer — Real-Time WebRTC Document Sync | ZipStream</title>
+  <meta name="title" content="P2P PDF Co-Viewer — Real-Time WebRTC Document Sync | ZipStream" />
+  <meta name="description" content="Share and co-view PDF documents peer-to-peer in real time with ZipStream's zero-install WebRTC viewer. No upload, no server — files stream directly browser-to-browser with encrypted WebRTC channels." />
+  <meta name="keywords" content="p2p pdf viewer, share pdf online, webrtc document sharing, real time pdf sync, co-view pdf, browser to browser file share, encrypted pdf share, zero install pdf viewer" />
+  <meta name="author" content="Pranjal Singh (ZipStream)" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow" />
+  <link rel="canonical" href="https://zipstream.online/p2p-share" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://zipstream.online/p2p-share" />
+  <meta property="og:title" content="P2P PDF Co-Viewer — Real-Time WebRTC Document Sync | ZipStream" />
+  <meta property="og:description" content="Share and co-view PDF documents peer-to-peer in real time. No upload, no server — files stream directly browser-to-browser with encrypted WebRTC channels." />
+  <meta property="og:site_name" content="ZipStream — Free PDF &amp; File Tools" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:image" content="https://zipstream.online/logo512.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="ZipStream P2P Co-Viewer — Real-Time WebRTC PDF Sharing" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://zipstream.online/p2p-share" />
+  <meta name="twitter:title" content="P2P PDF Co-Viewer — Real-Time WebRTC Document Sync | ZipStream" />
+  <meta name="twitter:description" content="Share and co-view PDF documents peer-to-peer in real time. No upload, no server — 100% encrypted WebRTC." />
+  <meta name="twitter:image" content="https://zipstream.online/logo512.png" />
+
+  <!-- Favicon &amp; Touch Icons -->
   <link rel="icon" href="/favicon.ico" sizes="48x48" />
   <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Mobile & PWA Theme Colors -->
+  <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ZipStream P2P" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://zipstream.online/p2p-share#webpage",
+        "url": "https://zipstream.online/p2p-share",
+        "name": "P2P PDF Co-Viewer — Real-Time WebRTC Document Sync | ZipStream",
+        "description": "Share and co-view PDF documents peer-to-peer in real time with ZipStream's zero-install WebRTC viewer. Files stream directly browser-to-browser with encrypted WebRTC channels.",
+        "isPartOf": { "@id": "https://zipstream.online/#website" },
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://zipstream.online/" },
+            { "@type": "ListItem", "position": 2, "name": "P2P PDF Co-Viewer", "item": "https://zipstream.online/p2p-share" }
+          ]
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://zipstream.online/p2p-share#app",
+        "name": "ZipStream P2P PDF Co-Viewer",
+        "url": "https://zipstream.online/p2p-share",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web, Windows, macOS, Linux, iOS, Android",
+        "browserRequirements": "Requires JavaScript, WebRTC, HTML5",
+        "description": "Stream PDF documents peer-to-peer in real time using encrypted WebRTC data channels. Zero installation, zero server upload — files are chunked into 32KB binary buffers and transmitted directly between browsers.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@id": "https://zipstream.online/#organization" }
+      }
+    ]
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <!-- Core Client Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -197,6 +271,38 @@
     </section>
 
   </main>
+
+  <!-- SEO Content Section: Provides rich text for crawlers & fixes thin-content audit -->
+  <section style="background:#121215;border-top:1px solid rgba(255,255,255,0.06);padding:2.5rem 1.5rem;max-width:56rem;margin:0 auto;color:#a1a1aa;font-family:'Plus Jakarta Sans',sans-serif;">
+    <h2 style="font-size:1.25rem;font-weight:700;color:#f4f4f5;margin-bottom:0.75rem;">How ZipStream P2P PDF Co-Viewer Works</h2>
+    <p style="font-size:0.875rem;line-height:1.7;margin-bottom:1rem;">
+      ZipStream's P2P Co-Viewer uses encrypted WebRTC data channels to stream PDF documents directly between browsers — no server storage, no upload delay. The host selects a PDF locally; it gets chunked into 32 KB binary buffers and transmitted peer-to-peer over DTLS-encrypted channels. Peers receive the file and render it simultaneously in a synchronized view.
+    </p>
+
+    <h2 style="font-size:1.1rem;font-weight:700;color:#f4f4f5;margin:1.5rem 0 0.5rem;">Key Features</h2>
+    <ul style="font-size:0.875rem;line-height:1.8;padding-left:1.25rem;list-style:disc;">
+      <li>Zero-install — runs entirely in any modern browser</li>
+      <li>End-to-end encrypted WebRTC data channels</li>
+      <li>Real-time synchronized page navigation and zoom</li>
+      <li>Host-controlled sync mode or free-scroll for peers</li>
+      <li>QR code for instant mobile device pairing</li>
+      <li>Files never touch a server — pure in-memory streaming</li>
+    </ul>
+
+    <h2 style="font-size:1.1rem;font-weight:700;color:#f4f4f5;margin:1.5rem 0 0.5rem;">Explore More Free PDF Tools</h2>
+    <nav aria-label="Related PDF Tools" style="display:flex;flex-wrap:wrap;gap:0.6rem;font-size:0.8rem;">
+      <a href="/" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">All PDF Tools</a>
+      <a href="/compress-pdf" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">Compress PDF</a>
+      <a href="/merge-pdf" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">Merge PDF</a>
+      <a href="/split-pdf" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">Split PDF</a>
+      <a href="/pdf-to-word" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">PDF to Word</a>
+      <a href="/chat-pdf" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">Chat with PDF</a>
+      <a href="/ocr-pdf" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">OCR PDF</a>
+      <a href="/collaborative-whiteboard" style="color:#60a5fa;text-decoration:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.3rem 0.75rem;border-radius:999px;">Whiteboard</a>
+    </nav>
+
+    <p style="font-size:0.75rem;margin-top:1.5rem;color:#52525b;">&copy; 2026 <a href="/" style="color:#60a5fa;text-decoration:none;">ZipStream</a>. Free Private Browser PDF Tools. Built by Pranjal Singh.</p>
+  </section>
 
   <script src="/pdf-viewer.js"></script>
   <script src="/app.js"></script>

@@ -1,0 +1,85 @@
+# ZipStream — LLMs.txt
+# https://zipstream.online/llms.txt
+# This file provides AI language models and crawlers with structured
+# information about ZipStream's content, tools, and permissions.
+
+## About ZipStream
+
+ZipStream (https://zipstream.online) is a free, privacy-first online PDF and
+file tools suite. All tools run 100% client-side in the browser — files never
+leave the user's device. No account, signup, or upload to external servers is
+required.
+
+Built by: Pranjal Singh (Pranjalsinghwork1@gmail.com)
+Founded: 2025
+Location: Greater Noida, Uttar Pradesh, India
+
+## What ZipStream Does
+
+ZipStream provides 25+ free online document and file processing tools:
+
+### PDF Tools
+- Compress PDF (reduce file size without quality loss)
+- Merge PDF (combine multiple PDFs into one)
+- Split PDF (extract pages or ranges)
+- PDF to Word (.docx) converter
+- PDF to Excel (.xlsx) converter
+- PDF to JPG/PNG image converter
+- PDF to PowerPoint (.pptx) converter
+- PDF to Audio (text-to-speech)
+- PDF to EPUB e-book converter
+- PDF to HTML converter
+- Images to PDF converter
+- Scan Document (camera to PDF)
+- Watermark PDF
+- Protect PDF (AES-256 encryption)
+- Unlock PDF (remove password)
+- Redact PDF (auto-redact PII)
+- OCR PDF (make scanned PDFs searchable)
+- Extract Text & Markdown
+- Repair PDF
+- Compare PDF (diff two documents)
+- Privacy Metadata Scanner
+- SHA-256 File Fingerprint
+
+### AI-Powered Tools
+- Chat with PDF (ask questions using Gemini AI)
+- AI Document Summarizer
+
+### Business Tools
+- GST Tax Invoice Generator (India)
+- POS Thermal Billing & UPI QR
+- GST Filing Preparation (GSTR-1, GSTR-3B)
+
+### Collaboration & Sharing
+- P2P Encrypted File Share (WebRTC)
+- Collaborative Whiteboard (real-time)
+- ZipStream P2P Co-Viewer (sync PDF across devices)
+
+## Key Value Propositions
+
+1. **100% Private** — Files process in-browser via WebAssembly; never uploaded to external servers
+2. **Free & Unlimited** — No subscriptions, no file size limits, no account required
+3. **Fast** — Client-side WebAssembly execution; no upload/download round trips
+4. **No ads on tools** — Clean, distraction-free tool interfaces
+
+## AI Crawler Permissions
+
+ZipStream explicitly welcomes AI crawlers to index its content for:
+- LLM training datasets
+- AI search engine indexing (ChatGPT Search, Perplexity, Claude, etc.)
+- Knowledge base updates
+
+All pages on https://zipstream.online/ are freely crawlable.
+
+## Sitemap
+
+https://zipstream.online/sitemap.xml
+
+## Contact
+
+Email: Pranjalsinghwork1@gmail.com
+X (Twitter): https://x.com/Pranjalwork
+LinkedIn: https://www.linkedin.com/in/pranjal-singh-02aba0363/
+YouTube: https://www.youtube.com/@DecodingPranjalSingh
+Instagram: https://www.instagram.com/officialpranjal1111
