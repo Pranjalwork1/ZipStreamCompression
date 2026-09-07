@@ -49,6 +49,8 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
         return <ImageIcon className="w-8 h-8 text-[#34c759]" />;
       case 'video':
         return <Film className="w-8 h-8 text-[#0071e3]" />;
+      case 'document':
+        return <FileText className="w-8 h-8 text-[#0071e3]" />;
       case 'audio':
         return <Music className="w-8 h-8 text-[#af52de]" />;
       default:
@@ -66,6 +68,8 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
         return 'Video';
       case 'audio':
         return 'Audio & Voice';
+      case 'document':
+        return 'Office Document';
       default:
         return 'File';
     }
@@ -242,7 +246,7 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
 
           {/* Quick Target Size Buttons (e.g. 2MB, 4MB, 8MB) */}
           <div className="pt-2 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93] font-medium mr-1">Target Exact Max:</span>
+            <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93] font-medium mr-1">Target Maximum:</span>
             {[
               { label: 'Under 2 MB', bytes: 2 * 1024 * 1024 },
               { label: 'Under 4 MB (Email)', bytes: 4 * 1024 * 1024 },

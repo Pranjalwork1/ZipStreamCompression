@@ -1,12 +1,19 @@
 import express from 'express';
 import path from 'path';
 import os from 'os';
+import fs from 'fs/promises';
+import { createReadStream } from 'fs';
+import crypto from 'crypto';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import { createServer as createHttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { startTunnel as startCloudflareTunnel } from 'untun';
+import compressionRouter from './server/compression/api';
 
 // Shared tunnel state — readable by API routes
 let tunnelUrl: string = '';
@@ -50,6 +57,11 @@ interface RoomMember {
   role: 'host' | 'peer';
   joinedAt: number;
 }
+interface LocalNetworkInterface {
+  name: string;
+  ip: string;
+  isDefault: boolean;
+}
 const rooms = new Map<string, RoomMember[]>();
 // Cleanup rooms older than 4 hours
 setInterval(() => {
@@ -60,16 +72,21 @@ setInterval(() => {
     else rooms.set(roomId, fresh);
   }
 }, 30 * 60 * 1000);
-
 async function startServer() {
   const app = express();
+  const execFileAsync = promisify(execFile);
   const httpServer = createHttpServer(app);
   const PORT = Number(process.env.PORT) || 3000;
-  const MAX_ROOM_DOCUMENT_BYTES = 20 * 1024 * 1024;
+  const MAX_ROOM_DOCUMENT_BYTES = Number(process.env.MAX_ROOM_DOCUMENT_BYTES || 250 * 1024 * 1024);
   const roomIdPattern = /^[a-zA-Z0-9_-]{4,64}$/;
   const requestCounts = new Map<string, { count: number; resetAt: number }>();
 
   app.disable('x-powered-by');
+  // REST API is called by the Vercel frontend in production.
+  app.use(cors({ origin: true, methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'X-Target-Size-Bytes', 'X-Compression-Level'] }));
+  // Parse bodies before API routes; room documents are uploaded as base64 JSON.
+  app.use(express.json({ limit: '70mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
   // ─── Canonical 301 Redirect: Enforce HTTPS & non-www apex domain in production ───
   if (process.env.NODE_ENV === 'production') {
@@ -105,6 +122,25 @@ async function startServer() {
     }
     next();
   });
+  // Local development helpers used by the pairing UI. Hosted production does not
+  // depend on these endpoints; it always shares from the canonical HTTPS origin.
+  app.get('/api/network-interfaces', (_req, res) => {
+    const interfaces: LocalNetworkInterface[] = [];
+    for (const [name, entries] of Object.entries(os.networkInterfaces())) {
+      for (const iface of entries || []) {
+        if (iface.family === 'IPv4') {
+          interfaces.push({ name, ip: iface.address, isDefault: iface.address === getLocalIp() });
+        }
+      }
+    }
+    res.json({ interfaces, port: PORT });
+  });
+
+  app.get('/api/tunnel', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ status: tunnelStatus, url: tunnelUrl || null });
+  });
+
   app.use('/api', (req, res, next) => {
     const now = Date.now();
     const key = req.ip || 'unknown';
@@ -120,17 +156,183 @@ async function startServer() {
     return next();
   });
 
+  // ─── Server-side PDF compression (Ghostscript) ───────────────────────────
+  // This is the production path for PDF compression. Browser PDF rasterization is
+  // retained as a fallback, but Railway performs the heavy PDF optimization.
+  const runGhostscript = async (inputPath: string, outputPath: string, profile: {
+    pdfSettings?: string;
+    dpi: number;
+    jpegQuality?: number;
+  }) => {
+    const args = [
+      '-dSAFER',
+      '-dBATCH',
+      '-dNOPAUSE',
+      '-dQUIET',
+      '-dPDFSTOPONERROR',
+      '-dBufferSpace=1000000000',
+      '-dNumRenderingThreads=2',
+      '-dCompatibilityLevel=1.4',
+      '-sDEVICE=pdfwrite',
+      '-dDetectDuplicateImages=true',
+      '-dCompressFonts=true',
+      '-dSubsetFonts=true',
+      '-dAutoRotatePages=/PageByPage',
+      '-dDownsampleColorImages=true',
+      '-dDownsampleGrayImages=true',
+      '-dDownsampleMonoImages=true',
+      '-dColorImageDownsampleType=/Bicubic',
+      '-dGrayImageDownsampleType=/Bicubic',
+      '-dMonoImageDownsampleType=/Subsample',
+      `-dColorImageResolution=${profile.dpi}`,
+      `-dGrayImageResolution=${profile.dpi}`,
+      `-dMonoImageResolution=${Math.max(120, profile.dpi * 2)}`,
+    ];
+    if (profile.pdfSettings) args.push(`-dPDFSETTINGS=${profile.pdfSettings}`);
+    if (profile.jpegQuality) {
+      args.push('-dAutoFilterColorImages=false', '-dColorImageFilter=/DCTEncode');
+      args.push('-dAutoFilterGrayImages=false', '-dGrayImageFilter=/DCTEncode');
+      args.push(`-dJPEGQ=${profile.jpegQuality}`);
+    }
+    args.push(`-sOutputFile=${outputPath}`, inputPath);
+    await execFileAsync(process.env.GHOSTSCRIPT_PATH || 'gs', args, {
+      timeout: 180000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+  };
+ 
+  // Distributed multi-format compression engine (PDF, Image, Video, Audio)
+  app.use('/api/compress', compressionRouter);
+
+  app.post('/api/compress/pdf', express.raw({
+    type: ['application/pdf', 'application/octet-stream'],
+    limit: '100mb',
+  }), async (req, res) => {
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []);
+    if (!body.length) return res.status(400).json({ error: 'PDF body is empty' });
+    if (body.length > 80 * 1024 * 1024) return res.status(413).json({ error: 'PDF exceeds the 80MB compression limit' });
+    if (body.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      return res.status(400).json({ error: 'Invalid PDF file' });
+    }
+
+    const originalSize = body.length;
+    const requestedTarget = Number(req.header('x-target-size-bytes') || 0);
+    const level = req.header('x-compression-level') || 'medium';
+    const targetMax = requestedTarget > 0 ? Math.min(requestedTarget, originalSize - 1) : Math.floor(
+      originalSize * (level === 'high' ? 0.35 : level === 'low' ? 0.78 : 0.58)
+    );
+
+    const profiles = [
+      { pdfSettings: level === 'low' ? '/printer' : level === 'high' ? '/screen' : '/ebook', dpi: level === 'low' ? 150 : level === 'high' ? 72 : 110, jpegQuality: level === 'low' ? 85 : level === 'high' ? 55 : 70 },
+      { pdfSettings: '/ebook', dpi: 96, jpegQuality: 62 },
+      { pdfSettings: '/screen', dpi: 72, jpegQuality: 50 },
+      { pdfSettings: '/screen', dpi: 60, jpegQuality: 42 },
+      { pdfSettings: '/screen', dpi: 48, jpegQuality: 34 },
+    ];
+
+    const jobId = crypto.randomUUID();
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), `zipstream-${jobId}-`));
+    const inputPath = path.join(dir, 'input.pdf');
+    try {
+      await fs.writeFile(inputPath, body);
+      const candidates: Buffer[] = [];
+      let successfulProfiles = 0;
+
+      for (let i = 0; i < profiles.length; i++) {
+        const outputPath = path.join(dir, `output-${i}.pdf`);
+        try {
+          await runGhostscript(inputPath, outputPath, profiles[i]);
+          successfulProfiles++;
+          const out = await fs.readFile(outputPath);
+          if (out.length > 0 && out.length < originalSize) {
+            candidates.push(out);
+            // Stop once the requested maximum is actually met.
+            if (requestedTarget > 0 && out.length <= targetMax) break;
+            if (!requestedTarget && out.length <= targetMax) break;
+          }
+        } catch (err) {
+          console.warn(`Ghostscript profile ${i + 1} failed`, err);
+        }
+      }
+
+      if (!candidates.length) {
+        // If Ghostscript wasn't installed or failed, run native in-stream optimizer
+        try {
+          const { processPdf } = await import('./server/compression/processors/pdfWorker');
+          const fallbackOutput = path.join(dir, 'output-fallback.pdf');
+          await processPdf({
+            jobId,
+            originalFileName: 'document.pdf',
+            originalSize,
+            mimeType: 'application/pdf',
+            category: 'pdf',
+            inputFilePath: inputPath,
+            outputFilePath: fallbackOutput,
+            options: { level: level as any },
+            createdAt: Date.now(),
+          });
+          const fallbackBuf = await fs.readFile(fallbackOutput);
+          if (fallbackBuf.length > 0 && fallbackBuf.length < originalSize) {
+            candidates.push(fallbackBuf);
+          }
+        } catch (fbErr) {
+          console.warn('[Server] Native PDF fallback in legacy endpoint failed:', fbErr);
+        }
+      }
+
+      if (!candidates.length) {
+        // Ghostscript succeeded but the source is already efficiently encoded: return
+        // an integrity-preserving identity result so the UI completes normally.
+        if (successfulProfiles > 0) {
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''zipstream-compressed.pdf");
+          res.setHeader('X-Original-Size', String(originalSize));
+          res.setHeader('X-Compressed-Size', String(originalSize));
+          res.setHeader('X-Compression-Engine', 'ghostscript');
+          res.setHeader('X-Compression-Status', 'unchanged');
+          return res.send(body);
+        }
+        return res.status(503).json({ error: 'PDF compression engine is temporarily unavailable.' });
+      }
+
+      const underTarget = requestedTarget > 0 ? candidates.filter(b => b.length <= targetMax) : [];
+      const selected = (underTarget.length ? underTarget : candidates)
+        .reduce((best, current) => current.length > best.length ? current : best);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="zipstream-compressed.pdf"');
+      res.setHeader('X-Original-Size', String(originalSize));
+      res.setHeader('X-Compressed-Size', String(selected.length));
+      res.setHeader('X-Compression-Engine', 'ghostscript');
+      return res.send(selected);
+    } catch (err) {
+      console.error('PDF compression endpoint failed:', err);
+      return res.status(500).json({ error: 'Server PDF compression failed' });
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    }
+  });
+
   // ─── Ephemeral Room Document Cache (Held in volatile RAM during room lifetime) ───
   interface EphemeralDocument {
     fileName: string;
     fileSize: number;
-    dataBase64: string;
+    fileType?: string;
+    filePath: string;
     updatedAt: number;
     page: number;
     zoom: number;
     scrollRatio: number;
+    sha256: string;
   }
   const roomDocuments = new Map<string, EphemeralDocument>();
+  // Keep documents across short reconnects; expire stale ephemeral data after four hours.
+  setInterval(() => {
+    const cutoff = Date.now() - 4 * 60 * 60 * 1000;
+    for (const [id, doc] of roomDocuments.entries()) {
+      if (doc.updatedAt < cutoff) { roomDocuments.delete(id); void fs.rm(doc.filePath, { force: true }).catch(() => undefined); }
+    }
+  }, 30 * 60 * 1000);
 
   // ─── Socket.io WebRTC Signaling Server ─────────────────────────────────
   const io = new SocketIOServer(httpServer, {
@@ -166,6 +368,7 @@ async function startServer() {
         socket.emit('room-document-available', {
           fileName: activeDoc.fileName,
           fileSize: activeDoc.fileSize,
+          fileType: activeDoc.fileType || 'application/pdf',
           hasDocument: true,
           page: activeDoc.page || 1,
           zoom: activeDoc.zoom || 1.0,
@@ -173,6 +376,7 @@ async function startServer() {
         });
       }
     });
+
     // WebRTC offer relay
     socket.on('webrtc-offer', ({ roomId, offer, targetId }: any) => {
       if (targetId) io.to(targetId).emit('webrtc-offer', { offer, senderId: socket.id });
@@ -181,6 +385,7 @@ async function startServer() {
     socket.on('signal-offer', ({ targetPeerId, sdp }: any) => {
       io.to(targetPeerId).emit('signal-offer', { senderId: socket.id, sdp });
     });
+
     // WebRTC answer relay
     socket.on('webrtc-answer', ({ roomId, answer, targetId }: any) => {
       if (targetId) io.to(targetId).emit('webrtc-answer', { answer, senderId: socket.id });
@@ -189,6 +394,7 @@ async function startServer() {
     socket.on('signal-answer', ({ targetPeerId, sdp }: any) => {
       io.to(targetPeerId).emit('signal-answer', { senderId: socket.id, sdp });
     });
+
     // ICE candidate relay
     socket.on('webrtc-ice', ({ roomId, candidate, targetId }: any) => {
       if (targetId) io.to(targetId).emit('webrtc-ice', { candidate, senderId: socket.id });
@@ -197,10 +403,13 @@ async function startServer() {
     socket.on('signal-ice', ({ targetPeerId, candidate }: any) => {
       io.to(targetPeerId).emit('signal-ice', { senderId: socket.id, candidate });
     });
+
     // Synchronized PDF page events
     socket.on('sync-page', ({ roomId, page }: any) => {
       socket.to(roomId).emit('sync-page', { page, senderId: socket.id });
     });
+
+    // Synchronized document view state
     socket.on('sync-state', ({ roomId, event }: any) => {
       const doc = roomDocuments.get(roomId);
       if (doc && event) {
@@ -208,146 +417,157 @@ async function startServer() {
         if (event.zoom) doc.zoom = event.zoom;
         if (typeof event.scrollRatio === 'number') doc.scrollRatio = event.scrollRatio;
       }
-      socket.to(roomId).emit('sync-state', event);
+      socket.to(roomId).emit('sync-state', { event, senderId: socket.id });
     });
-    // WebSocket fallback chunk relay
-    socket.on('relay-chunk-fallback', ({ roomId, chunk, index, total, metadata }: any) => {
-      socket.to(roomId).emit('relay-chunk-fallback', { chunk, index, total, metadata });
+
+    // Relay chunk fallback when WebRTC data channels are blocked by symmetric NAT/firewalls
+    socket.on('relay-chunk-fallback', ({ roomId, chunk, targetId }: any) => {
+      if (targetId) {
+        io.to(targetId).emit('relay-chunk-fallback', { chunk, senderId: socket.id });
+      } else {
+        socket.to(roomId).emit('relay-chunk-fallback', { chunk, senderId: socket.id });
+      }
     });
-    // Room chat messages
-    socket.on('room-message', ({ roomId, text }: any) => {
-      io.in(roomId).emit('room-message', { text, senderId: socket.id, timestamp: Date.now() });
+
+    socket.on('relay-file-request', ({ roomId, transferId, fileName, fileSize, fileType, sha256 }: any) => {
+      socket.to(roomId).emit('relay-file-request', { transferId, fileName, fileSize, fileType, sha256, senderId: socket.id });
     });
+    socket.on('relay-file-ack', ({ roomId, transferId, ok }: any) => {
+      socket.to(roomId).emit('relay-file-ack', { transferId, ok: ok === true, senderId: socket.id });
+    });
+
     // Disconnect cleanup
     socket.on('disconnect', () => {
       for (const [roomId, members] of rooms.entries()) {
-        const updated = members.filter(m => m.socketId !== socket.id);
-        if (updated.length !== members.length) {
-          rooms.set(roomId, updated);
-          io.in(roomId).emit('peer-left', { socketId: socket.id });
+        const remaining = members.filter(m => m.socketId !== socket.id);
+        if (remaining.length === 0) {
+          rooms.delete(roomId);
+          // Preserve the ephemeral document so a reconnecting guest can recover it.
+        } else {
+          rooms.set(roomId, remaining);
+          socket.to(roomId).emit('peer-left', { socketId: socket.id });
         }
-        if (updated.length === 0) rooms.delete(roomId);
       }
     });
   });
 
-  app.use(express.json({ limit: '28mb' }));
-
-  // Cleanup documents older than 4 hours
-  setInterval(() => {
-    const now = Date.now();
-    for (const [roomId, doc] of roomDocuments.entries()) {
-      if (now - doc.updatedAt > 4 * 60 * 60 * 1000) {
-        roomDocuments.delete(roomId);
-      }
-    }
-  }, 30 * 60 * 1000);
-
-  // Health check
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
+  // Health check endpoint (used by Railway and monitors)
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'ZipStream Server',
+      timestamp: new Date().toISOString(),
+      roomsCount: rooms.size,
+      activeDocuments: roomDocuments.size,
+      uptime: process.uptime(),
+    });
   });
 
+  // WebRTC STUN/TURN configuration endpoint
   app.get('/api/webrtc-config', (_req, res) => {
-    const iceServers: Array<{ urls: string | string[]; username?: string; credential?: string }> = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-    ];
-    const turnUrl = process.env.TURN_SERVER_URL;
-    const turnUsername = process.env.TURN_USERNAME;
-    const turnCredential = process.env.TURN_CREDENTIAL;
-    if (turnUrl && turnUsername && turnCredential) {
-      iceServers.push({ urls: turnUrl, username: turnUsername, credential: turnCredential });
-    }
-    res.json({ iceServers });
-  });
-
-  // Room info endpoint
-  app.get('/api/rooms/:roomId', (req, res) => {
-    const { roomId } = req.params;
-    const members = rooms.get(roomId) || [];
-    const hasDoc = roomDocuments.has(roomId);
-    res.json({ roomId, memberCount: members.length, exists: members.length > 0, hasDocument: hasDoc });
-  });
-
-  // Dynamic Network Interfaces discovery endpoint (detects all active Wi-Fi, Ethernet & Hotspot IPs)
-  app.get('/api/network-interfaces', (req, res) => {
-    const interfaces = os.networkInterfaces();
-    const results: { name: string; ip: string; isDefault: boolean }[] = [];
-    for (const name of Object.keys(interfaces)) {
-      for (const iface of interfaces[name] || []) {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          results.push({
-            name: `${name} (${iface.address})`,
-            ip: iface.address,
-            isDefault: results.length === 0,
-          });
-        }
-      }
-    }
-    results.push({ name: 'Localhost (127.0.0.1)', ip: '127.0.0.1', isDefault: false });
-    res.json({ interfaces: results, port: PORT });
-  });
-
-  // Legacy local IP endpoint
-  app.get('/api/local-ip', (req, res) => {
-    res.json({ ip: getLocalIp(), port: PORT });
-  });
-
-  // Room active document endpoints
-  app.post('/api/rooms/:roomId/document', (req, res) => {
-    const { roomId } = req.params;
-    const { fileName, fileSize, dataBase64 } = req.body || {};
-    if (!roomIdPattern.test(roomId) || typeof fileName !== 'string' || typeof dataBase64 !== 'string') {
-      return res.status(400).json({ error: 'Invalid document payload' });
-    }
-    const safeFileName = fileName.replace(/[^a-zA-Z0-9._ -]/g, '_').slice(0, 160) || 'shared-document.pdf';
-    const normalizedBase64 = dataBase64.replace(/^data:application\/pdf;base64,/, '');
-    const decodedSize = Math.floor((normalizedBase64.length * 3) / 4) - (normalizedBase64.endsWith('==') ? 2 : normalizedBase64.endsWith('=') ? 1 : 0);
-    if (!normalizedBase64 || decodedSize <= 0 || decodedSize > MAX_ROOM_DOCUMENT_BYTES || !/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(normalizedBase64)) {
-      return res.status(413).json({ error: 'PDF must be valid base64 and no larger than 20 MB' });
-    }
-    const pdfHeader = Buffer.from(normalizedBase64.slice(0, 16), 'base64').toString('ascii');
-    if (!pdfHeader.startsWith('%PDF-')) {
-      return res.status(415).json({ error: 'Only valid PDF documents are supported' });
-    }
-    roomDocuments.set(roomId, {
-      fileName: safeFileName,
-      fileSize: decodedSize,
-      dataBase64: normalizedBase64,
-      updatedAt: Date.now(),
-      page: 1,
-      zoom: 1.0,
-      scrollRatio: 0,
+    res.json({
+      iceServers: [
+        ...(process.env.TURN_URL && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL
+          ? [{ urls: process.env.TURN_URL.split(',').map(v => v.trim()), username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL }]
+          : []),
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'stun:stun.services.mozilla.com' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+      ],
     });
-    // Broadcast document available to all members in the room
-    io.to(roomId).emit('room-document-available', {
-      fileName: safeFileName,
-      fileSize: decodedSize,
-      hasDocument: true,
-    });
-    res.json({ success: true, roomId, fileName: safeFileName });
+  });
+
+  // Upload/cache room document. Binary uploads are the production path; a legacy
+  // JSON/Base64 request is still accepted for backward compatibility.
+  app.post('/api/rooms/:roomId/document', express.raw({ type: () => true, limit: `${Math.ceil(MAX_ROOM_DOCUMENT_BYTES / (1024 * 1024))}mb` }), async (req, res) => {
+    const { roomId } = req.params;
+    if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
+
+    let rawBuffer: Buffer;
+    let fileName = String(req.header('x-file-name') || 'Shared File');
+    let fileType = req.header('x-file-type') || req.header('content-type') || 'application/octet-stream';
+    let page = 1, zoom = 1, scrollRatio = 0;
+
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const maybeJson = (req.header('content-type') || '').includes('application/json');
+    if (maybeJson && body.length) {
+      try {
+        const parsed = JSON.parse(body.toString('utf8'));
+        if (typeof parsed.dataBase64 === 'string') {
+          rawBuffer = Buffer.from(parsed.dataBase64, 'base64');
+          fileName = parsed.fileName || fileName;
+          fileType = parsed.fileType || fileType;
+          page = Number(parsed.page) || 1;
+          zoom = Number(parsed.zoom) || 1;
+          scrollRatio = Number(parsed.scrollRatio) || 0;
+        } else rawBuffer = body;
+      } catch { rawBuffer = body; }
+    } else {
+      rawBuffer = body;
+    }
+    fileName = decodeURIComponent(fileName).replace(/[\\/]/g, '_').slice(0, 240) || 'Shared File';
+
+    if (!rawBuffer?.length) return res.status(400).json({ error: 'File body is empty' });
+    if (rawBuffer.length > MAX_ROOM_DOCUMENT_BYTES) return res.status(413).json({ error: `File exceeds the ${Math.round(MAX_ROOM_DOCUMENT_BYTES / 1024 / 1024)}MB room limit` });
+
+    const sha256 = crypto.createHash('sha256').update(rawBuffer).digest('hex');
+    const roomDir = await fs.mkdtemp(path.join(os.tmpdir(), `zipstream-room-${roomId}-`));
+    const filePath = path.join(roomDir, 'payload.bin');
+    await fs.writeFile(filePath, rawBuffer);
+    const previous = roomDocuments.get(roomId);
+    if (previous) await fs.rm(previous.filePath, { force: true }).catch(() => undefined);
+
+    const doc: EphemeralDocument = { fileName, fileSize: rawBuffer.length, fileType, filePath, updatedAt: Date.now(), page, zoom, scrollRatio, sha256 };
+    roomDocuments.set(roomId, doc);
+    res.set('Cache-Control', 'no-store');
+    io.to(roomId).emit('room-document-available', { fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, hasDocument: true, page: doc.page, zoom: doc.zoom, scrollRatio: doc.scrollRatio, sha256: doc.sha256 });
+    return res.json({ success: true, fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, sha256: doc.sha256 });
+  });
+
+  // Stream cached room document as raw bytes. This is the lossless recovery path.
+  app.get('/api/rooms/:roomId/document/raw', async (req, res) => {
+    const { roomId } = req.params;
+    if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
+    const doc = roomDocuments.get(roomId);
+    if (!doc) return res.status(404).json({ error: 'No document active in this room' });
+    try {
+      const stat = await fs.stat(doc.filePath);
+      res.status(200).set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Content-Type': doc.fileType || 'application/octet-stream',
+        'Content-Length': String(stat.size),
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(doc.fileName)}`,
+        'X-File-Name': encodeURIComponent(doc.fileName),
+        'X-File-Sha256': doc.sha256,
+        'X-File-Size': String(stat.size),
+        'Access-Control-Expose-Headers': 'Content-Length, Content-Disposition, X-File-Name, X-File-Sha256, X-File-Size',
+      });
+      doc.updatedAt = Date.now();
+      return createReadStream(doc.filePath).pipe(res);
+    } catch { return res.status(404).json({ error: 'Room file is no longer available' }); }
   });
 
   app.get('/api/rooms/:roomId/document', (req, res) => {
     const { roomId } = req.params;
-    if (!roomIdPattern.test(roomId)) {
-      return res.status(400).json({ error: 'Invalid room ID' });
-    }
+    if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
     const doc = roomDocuments.get(roomId);
-    if (!doc) {
-      return res.status(404).json({ error: 'No active document in this room' });
-    }
-    res.json(doc);
+    if (!doc) return res.status(404).json({ error: 'No document active in this room' });
+    res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Content-Type': 'application/json; charset=utf-8' });
+    return res.json({ fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, updatedAt: doc.updatedAt, page: doc.page, zoom: doc.zoom, scrollRatio: doc.scrollRatio, sha256: doc.sha256 });
   });
 
-  // Direct P2P Room URL route - redirect to hash route for SPA
+  // Direct room URL redirect for deep links
   app.get('/room/:roomId', (req, res) => {
-    res.redirect(`/#/room/${req.params.roomId}`);
+    const { roomId } = req.params;
+    return res.redirect(`/#/room/${encodeURIComponent(roomId)}`);
   });
 
-  // Gemini AI Chat with Document / PDF
+  // Gemini AI Chat about Document
   app.post('/api/gemini/chat', async (req, res) => {
     try {
       const { message, documentContext, history = [] } = req.body || {};
@@ -359,7 +579,7 @@ async function startServer() {
       if (!client) {
         // High quality deterministic fallback response when API key is not yet set
         return res.json({
-          reply: `[Offline Local Intelligence Mode]\n\nBased on the extracted document content: "${message}"\n\nYour document contains ${documentContext ? documentContext.split(/\s+/).length : 0} words. Key insights have been indexed locally in-browser. Connect your Gemini API Key in Settings > Secrets to unlock full live conversational reasoning!`,
+          reply: `[Offline Local Intelligence Mode]\n\nBased on the extracted document content: "${message}"\n\nYour document contains ${documentContext ? documentContext.split(/\\s+/).length : 0} words. Key insights have been indexed locally in-browser. Connect your Gemini API Key in Settings > Secrets to unlock full live conversational reasoning!`,
           isFallback: true,
         });
       }
@@ -398,259 +618,24 @@ ${documentContext ? documentContext.slice(0, 35000) : 'No document uploaded yet.
   app.post('/api/gemini/summarize', async (req, res) => {
     try {
       const { text, type = 'executive' } = req.body || {};
-      if (!text || typeof text !== 'string') {
-        return res.status(400).json({ error: 'Document text is required' });
-      }
-
-      const wordCount = text.split(/\s+/).length;
-      const readingTime = Math.ceil(wordCount / 200);
-
+      if (!text || typeof text !== 'string') return res.status(400).json({ error: 'Document text is required' });
+      const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+      const readingTime = Math.max(1, Math.ceil(wordCount / 200));
       const client = getGeminiClient();
       if (!client) {
-        // High quality intelligent offline extractive summary fallback
-        const sentences = text
-          .split(/(?<=[.?!])\s+/)
-          .map(s => s.trim())
-          .filter(s => s.length > 20 && !s.startsWith('--- Page'));
-
-        let offlineSummary = '';
-        if (type === 'tldr') {
-          const top3 = sentences.slice(0, 3).join(' ');
-          const points = sentences.slice(3, 8).map((s, i) => `${i + 1}. ${s}`).join('\n');
-          offlineSummary = `## ⚡ TL;DR\n${top3 || 'Document indexed successfully on-device.'}\n\n## 🏆 Top Facts to Know\n${points || 'No additional facts detected.'}\n\n## 💡 Bottom Line\nDocument processed 100% on-device with zero server transmission.`;
-        } else if (type === 'bullets') {
-          const items = sentences.slice(0, 8).map(s => `- **Key Finding:** ${s}`).join('\n');
-          offlineSummary = `## 📌 Key Thematic Highlights\n\n${items || '- Document parsed successfully.'}\n\n## 🔑 Key Takeaways\n- Total Words: ${wordCount.toLocaleString()}\n- Reading Duration: ~${readingTime} min\n- Integrity: 100% Client-Side Verified`;
-        } else if (type === 'action_items') {
-          const actionSentences = sentences.filter(s => /must|should|will|shall|need|action|deadline|agree|payment|submit|review|complete/i.test(s));
-          const list = (actionSentences.length > 0 ? actionSentences.slice(0, 6) : sentences.slice(0, 5))
-            .map(s => `- [ ] ${s}`)
-            .join('\n');
-          offlineSummary = `## ✅ Action Items & Requirements\n\n${list}\n\n---\n*Extracted based on directive terminology in document.*`;
-        } else if (type === 'faq') {
-          const faqItems = sentences.slice(0, 5).map((s, i) => {
-            const shortQ = s.split(',')[0] || `Section Topic ${i + 1}`;
-            return `**Q${i + 1}: What is the requirement regarding "${shortQ.slice(0, 45)}..."?**\n*A:* ${s}\n`;
-          }).join('\n');
-          offlineSummary = `## ❓ Frequently Asked Questions\n\n${faqItems}`;
-        } else if (type === 'metrics') {
-          const metricSentences = sentences.filter(s => /\d+|\$|₹|%|total|amount|rate|cost|fee|inr|usd/i.test(s)).slice(0, 6);
-          const rows = metricSentences.map((s, idx) => `| #${idx + 1} | ${s.slice(0, 60)}... | Document Core |`).join('\n');
-          offlineSummary = `## 📊 Key Metrics & Financial Highlights\n\n| Item | Extracted Insight | Source |\n|---|---|---|\n${rows || '| 1 | Total Document Volume | ' + wordCount + ' words |'}\n\n- **Word Count:** ${wordCount.toLocaleString()}\n- **Estimated Reading Time:** ~${readingTime} min`;
-        } else {
-          // Executive default
-          const topSentences = sentences.slice(0, 5).join(' ');
-          const takeaways = sentences.slice(5, 10).map(s => `- ${s}`).join('\n');
-          offlineSummary = `## 📋 Executive Summary\n\n${topSentences || 'Document analyzed successfully on-device.'}\n\n## 🎯 Key Takeaways\n${takeaways || '- All pages indexed locally without cloud leaks.'}\n\n---\n### 📊 Document Intelligence Metrics\n- **Words Indexed:** ${wordCount.toLocaleString()}\n- **Estimated Reading Time:** ~${readingTime} min\n- **Processing Location:** Local Browser Environment`;
-        }
-
-        return res.json({
-          summary: offlineSummary,
-          isFallback: true,
-        });
+        const fallback = text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 6).join(' ');
+        return res.json({ summary: fallback || text.slice(0, 1200), type, wordCount, readingTime, isFallback: true });
       }
-
-      const instructions: Record<string, string> = {
-        executive: `You are a senior business analyst. Generate a comprehensive executive summary of this document with these sections:
-## 📋 Executive Summary
-A 2-3 paragraph high-level overview of the document.
-
-## 🎯 Key Takeaways
-5-7 bullet points with the most critical insights.
-
-## ⚡ Action Items
-Any required follow-ups, decisions, or next steps found in the document.
-
-## 📊 Document Stats
-Note the document scope and complexity.
-
-Format in clean Markdown.`,
-
-        bullets: `You are a research assistant. Create a structured bullet-point breakdown:
-## 📌 Topic Breakdown
-
-Organize the document into main topics, each with sub-bullets. Use clear headers for each section.
-Then add a ## 🔑 Key Facts section with standalone factual claims from the document.
-
-Format in clean Markdown with bullets and sub-bullets.`,
-
-        tldr: `Create a crisp TL;DR summary:
-## ⚡ TL;DR
-2-3 sentence punchy summary (what is this document about in plain English).
-
-## 🏆 Top 5 Things to Know
-Five numbered takeaways that cover the most essential points.
-
-## 💡 Bottom Line
-One final sentence stating the most important conclusion.
-
-Format in clean Markdown.`,
-
-        action_items: `You are a project manager. Extract all action items, tasks, deadlines, and decisions:
-## ✅ Action Items & Decisions
-
-List every task, decision, or follow-up mentioned in the document.
-For each item, note: what to do, who is responsible (if mentioned), and when (deadline if mentioned).
-
-## 📅 Deadlines & Dates
-Extract all mentioned dates, timelines, and deadlines.
-
-Format as a clean checklist in Markdown.`,
-
-        faq: `You are a helpful assistant. Generate a comprehensive FAQ from this document:
-## ❓ Frequently Asked Questions
-
-Generate 8-12 question-and-answer pairs that cover the most important topics in this document.
-Questions should be the kind a reader would actually ask. Answers should be concise and accurate.
-
-Format each as:
-**Q: [Question]**
-A: [Answer]
-
-Use clean Markdown formatting.`,
-
-        metrics: `You are a financial and data intelligence analyst. Extract all quantitative metrics, statistics, percentages, costs, dates, and numbers from this document:
-## 📊 Key Metrics & Financial Summary
-
-Format as a structured Markdown table with columns:
-| Metric / Parameter | Value / Figure | Context / Reference |
-
-Then add a ## 📈 Quantitative Takeaways section highlighting the key trends, financial conclusions, or critical data points.
-
-Format in clean Markdown.`,
-      };
-
-      const instruction = instructions[type] || instructions['executive'];
-
       const response = await client.models.generateContent({
         model: 'gemini-3.7-flash',
-        contents: text.slice(0, 50000),
-        config: {
-          systemInstruction: instruction,
-          temperature: 0.25,
-        },
+        contents: `Create a ${type} summary. Be concise, factual, and do not invent information.\n\nDOCUMENT:\n${text.slice(0, 50000)}`,
+        config: { temperature: 0.2 },
       });
-
-      return res.json({
-        summary: response.text || 'Unable to generate summary.',
-        isFallback: false,
-      });
+      return res.json({ summary: response.text || 'No summary was generated.', type, wordCount, readingTime, isFallback: false });
     } catch (err: any) {
       console.error('Gemini summarize error:', err);
-      return res.status(500).json({
-        error: err.message || 'Failed to generate summary',
-      });
+      return res.status(500).json({ error: err?.message || 'Failed to summarize document' });
     }
-  });
-
-  // Telegram Issue Dispatch API
-  app.post('/api/report-issue', async (req, res) => {
-    try {
-      const {
-        id,
-        ticketId = id || `ISSUE-${Math.floor(1000 + Math.random() * 9000)}`,
-        category = 'file_error',
-        subject = 'Issue Report',
-        description = '',
-        userName = 'Anonymous',
-        userEmail = '',
-        fileType = 'N/A',
-        fileSizeApprox = 'N/A',
-        severity = 'medium',
-        browserInfo = 'Not provided',
-        createdAt = Date.now(),
-      } = req.body || {};
-
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
-
-      // Construct rich message for Telegram
-      const formattedMessage = 
-`🚨 *NEW COMPRESSOR ISSUE REPORT*
-
-🎫 *Ticket ID:* \`${ticketId}\`
-🏷️ *Category:* ${category.replace(/_/g, ' ').toUpperCase()}
-⚠️ *Severity:* ${severity.toUpperCase()}
-👤 *Reported By:* ${userName} ${userEmail ? `(${userEmail})` : ''}
-📅 *Date:* ${new Date(createdAt).toLocaleString()}
-
-📌 *Subject:*
-${subject}
-
-📝 *Description:*
-${description}
-
-📁 *File Info:*
-• Type: ${fileType}
-• Approximate Size: ${fileSizeApprox}
-
-💻 *System Diagnostic:*
-${browserInfo}
-`;
-
-      let telegramDelivered = false;
-      let telegramError = null;
-
-      if (botToken && chatId) {
-        try {
-          // Attempt markdown parse first
-          let response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: formattedMessage,
-              parse_mode: 'Markdown',
-            }),
-          });
-
-          let data = await response.json();
-
-          // Fallback to plain text if markdown formatting failed
-          if (!data.ok) {
-            response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: chatId,
-                text: formattedMessage.replace(/[*`_]/g, ''),
-              }),
-            });
-            data = await response.json();
-          }
-
-          if (data.ok) {
-            telegramDelivered = true;
-          } else {
-            telegramError = data.description || 'Telegram API returned error';
-            console.warn('Telegram API response error:', data);
-          }
-        } catch (tgErr: any) {
-          telegramError = tgErr.message || 'Failed to connect to Telegram API';
-          console.error('Error posting to Telegram:', tgErr);
-        }
-      }
-
-      return res.status(200).json({
-        success: true,
-        ticketId,
-        telegramDelivered,
-        telegramConfigured: Boolean(botToken && chatId),
-        telegramError,
-        receivedAt: new Date().toISOString(),
-      });
-    } catch (err: any) {
-      console.error('Server error handling issue report:', err);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to process issue report',
-      });
-    }
-  });
-
-  // ─── Public HTTPS Tunnel API (must be BEFORE Vite middleware) ──────────
-  app.get('/api/tunnel', (_req, res) => {
-    res.json({ url: tunnelUrl, status: tunnelStatus });
   });
 
   // Explicit handlers for search engine crawlers with strict Content-Type headers

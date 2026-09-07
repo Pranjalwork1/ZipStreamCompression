@@ -63,6 +63,8 @@ const TOOL_PATHS: Record<string, ToolMode> = {
   '/pdf-to-excel': 'pdf_to_excel',
   '/pdf-to-powerpoint': 'pdf_to_powerpoint',
   '/pdf-to-jpg': 'pdf_to_jpg',
+  '/p2p-share': 'p2p_share',
+  '/collaborative-whiteboard': 'collab_whiteboard',
 };
 
 const TOOL_METADATA: Record<string, { title: string; description: string }> = {
@@ -76,6 +78,8 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/pdf-to-excel': { title: 'PDF to Excel Converter | ZipStream', description: 'Extract PDF tables into spreadsheet formats with ZipStream.' },
   '/pdf-to-powerpoint': { title: 'PDF to PowerPoint Converter | ZipStream', description: 'Convert PDF pages into PowerPoint presentations with ZipStream.' },
   '/pdf-to-jpg': { title: 'PDF to JPG Converter | ZipStream', description: 'Convert PDF pages into JPG images in your browser.' },
+  '/p2p-share': { title: 'P2P File Share Online — Direct, Encrypted & Zero Cloud | ZipStream', description: 'Share files and documents directly peer-to-peer with zero cloud storage, QR camera pairing, and live synchronization.' },
+  '/collaborative-whiteboard': { title: 'Collaborative Whiteboard Online | ZipStream', description: 'Real-time collaborative whiteboard for sketches, diagrams, and visual brainstorming.' },
 };
 
 function toolFromPath(path: string): ToolMode | null {
@@ -100,20 +104,25 @@ export default function App() {
 
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return window.location.pathname.replace(/\/$/, '') || '/';
+      const hash = window.location.hash;
+      const path = window.location.pathname.replace(/\/$/, '') || '/';
+      if (hash.includes('/room/') || path.startsWith('/room/')) {
+        return '/p2p-share';
+      }
+      return path;
     }
     return '/';
   });
 
   const [activeTool, setActiveTool] = useState<ToolMode>(() => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname.replace(/\/$/, '') || '/';
-      const pathTool = toolFromPath(path);
-      if (pathTool) return pathTool;
       const hash = window.location.hash;
-      if (hash.includes('/room/') || path.includes('/room/')) {
+      const path = window.location.pathname.replace(/\/$/, '') || '/';
+      if (hash.includes('/room/') || path.startsWith('/room/')) {
         return 'p2p_share';
       }
+      const pathTool = toolFromPath(path);
+      if (pathTool) return pathTool;
     }
     return 'compress';
   });
@@ -143,7 +152,12 @@ export default function App() {
     const page = getToolPage(normalized) || (tool && tool !== 'compress' ? getToolPageForTool(tool) : undefined);
     const metadata = TOOL_METADATA[normalized];
 
-    const isUnknownRoute = normalized !== '/' && !getToolPage(normalized) && !TOOL_PATHS[normalized] && !normalized.startsWith('/room/');
+    const isUnknownRoute =
+      normalized !== '/' &&
+      normalized !== '/p2p-share' &&
+      !getToolPage(normalized) &&
+      !TOOL_PATHS[normalized] &&
+      !normalized.startsWith('/room/');
 
     if (normalized === '/') {
       document.title = 'Compress PDF Online Free — Fast & Private | ZipStream';
@@ -232,9 +246,10 @@ export default function App() {
   useEffect(() => {
     const checkRoom = () => {
       const hash = window.location.hash;
-      const path = window.location.pathname;
-      if (hash.includes('/room/') || path.includes('/room/')) {
+      const path = window.location.pathname.replace(/\/$/, '') || '/';
+      if (hash.includes('/room/') || path.startsWith('/room/')) {
         setActiveTool('p2p_share');
+        setCurrentPath('/p2p-share');
       }
     };
     checkRoom();
@@ -433,6 +448,7 @@ export default function App() {
 
   const isNotFound =
     currentPath !== '/' &&
+    currentPath !== '/p2p-share' &&
     !getToolPage(currentPath) &&
     !TOOL_PATHS[currentPath] &&
     !currentPath.startsWith('/room/');
@@ -795,43 +811,43 @@ export default function App() {
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-              </svg>
-            </a>
+            </svg>
+          </a>
 
-            {/* YouTube ("Decoding Pranjal Singh") */}
-            <a
-              href="https://www.youtube.com/@DecodingPranjalSingh"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Decoding Pranjal Singh YouTube channel"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF0000]/10 hover:text-[#FF0000] text-[#0C162C] dark:text-white transition-all duration-150"
-              title="Decoding Pranjal Singh on YouTube"
-            >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-            </a>
-          </div>
+          {/* YouTube ("Decoding Pranjal Singh") */}
+          <a
+            href="https://www.youtube.com/@DecodingPranjalSingh"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Decoding Pranjal Singh YouTube channel"
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF0000]/10 hover:text-[#FF0000] text-[#0C162C] dark:text-white transition-all duration-150"
+            title="Decoding Pranjal Singh on YouTube"
+          >
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+          </a>
         </div>
-      </footer>
+      </div>
+    </footer>
 
-      {/* Search Command Palette (Ctrl+K / Cmd+K) */}
-      {isSearchOpen && (
-        <Suspense fallback={null}>
-          <SearchCommandPalette
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-            onSelectTool={handleSelectTool}
-          />
-        </Suspense>
-      )}
+    {/* Search Command Palette (Ctrl+K / Cmd+K) */}
+    {isSearchOpen && (
+      <Suspense fallback={null}>
+        <SearchCommandPalette
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onSelectTool={handleSelectTool}
+        />
+      </Suspense>
+    )}
 
-      {/* Report Issue Dialog Modal */}
-      <ReportIssueModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        activeFile={activeFile}
-      />
-    </div>
-  );
+    {/* Report Issue Dialog Modal */}
+    <ReportIssueModal
+      isOpen={isReportModalOpen}
+      onClose={() => setIsReportModalOpen(false)}
+      activeFile={activeFile}
+    />
+  </div>
+);
 }

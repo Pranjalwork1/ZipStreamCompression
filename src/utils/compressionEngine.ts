@@ -7,6 +7,7 @@ import {
 import { generateCompressedFilename } from './formatters';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+import JSZip from 'jszip';
 
 // Configure PDF.js worker URL for browser execution
 if (typeof window !== 'undefined') {
@@ -44,6 +45,13 @@ export const COMPRESSION_STEPS: Record<string, string[]> = {
     'Balancing audio channels...',
     'Writing faststart playback container...',
   ],
+  document: [
+    'Inspecting Office package structure & embedded assets...',
+    'Recompressing XML and package streams with maximum DEFLATE...',
+    'Preserving media, relationships, macros & document parts...',
+    'Rebuilding Office ZIP container without data loss...',
+    'Verifying the optimized Office package...',
+  ],
   audio: [
     'Analyzing psychoacoustic spectrum...',
     'Downsampling audio frequency buffers...',
@@ -58,7 +66,7 @@ export const COMPRESSION_STEPS: Record<string, string[]> = {
  */
 export function getPresetSettings(
   preset: CompressionPreset,
-  category: 'pdf' | 'image' | 'video' | 'audio'
+  category: 'pdf' | 'image' | 'video' | 'audio' | 'document'
 ): CompressionSettings {
   switch (preset) {
     case 'web':
@@ -144,7 +152,7 @@ export function getPresetSettings(
  */
 export function estimateCompressedSize(
   originalSize: number,
-  category: 'pdf' | 'image' | 'video' | 'audio',
+  category: 'pdf' | 'image' | 'video' | 'audio' | 'document',
   settings: CompressionSettings
 ): { estimatedBytes: number; savedPercentage: number } {
   // If user set an explicit target size in MB/Bytes and original is larger than target:
@@ -193,6 +201,11 @@ export function estimateCompressedSize(
     if (settings.outputFormat === 'image/webp') {
       reductionPercent = Math.min(0.92, reductionPercent + 0.12);
     }
+  } else if (category === 'document') {
+    // Office Open XML files are already ZIP containers. Safe lossless recompression
+    // usually yields a modest saving; unlike PDF/image transcoding, this does not
+    // rewrite the document's visual content.
+    reductionPercent = settings.level === 'high' ? 0.12 : settings.level === 'low' ? 0.04 : 0.08;
   } else if (category === 'audio') {
     if (settings.level === 'low') reductionPercent = 0.35;
     else if (settings.level === 'medium') reductionPercent = 0.58;
@@ -318,19 +331,40 @@ async function compressImageReal(
           });
         };
 
-        if (onProgress) onProgress(45, 'Executing discrete cosine transform quantization...');
-        let currentBlob = await renderFrame(scale, quality, targetMime);
+        if (onProgress) onProgress(45, 'Executing adaptive image compression...');
+        const candidates: Blob[] = [];
+        const formats = Array.from(new Set([targetMime, 'image/webp', 'image/jpeg']));
+        const qualitySteps = [quality, 0.62, 0.50, 0.42, 0.35, 0.28, 0.22];
+        const scaleSteps = [scale, scale * 0.9, scale * 0.8, scale * 0.7, scale * 0.6, scale * 0.5, scale * 0.4, scale * 0.32];
 
-        // If target size is specified and not met, do one fast targeted pass
-        if (currentBlob.size > targetMaxBytes) {
-          if (onProgress) onProgress(75, 'Optimizing Huffman entropy codebooks & size limits...');
-          const ratio = Math.sqrt(targetMaxBytes / currentBlob.size);
-          scale = Math.max(0.35, Math.min(scale, scale * ratio * 0.95));
-          quality = Math.max(0.18, Math.min(quality, quality * ratio * 0.9));
-          currentBlob = await renderFrame(scale, quality, 'image/webp');
+        outer:
+        for (const format of formats) {
+          for (const s of scaleSteps) {
+            for (const q of qualitySteps) {
+              try {
+                const candidate = await renderFrame(
+                  Math.max(0.18, Math.min(1, s)),
+                  Math.max(0.12, Math.min(0.92, q)),
+                  format
+                );
+                candidates.push(candidate);
+                if (candidate.size < Math.min(originalSize, targetMaxBytes)) break outer;
+              } catch (_) {}
+            }
+          }
         }
 
-        if (onProgress) onProgress(92, 'Packaging compressed image container...');
+        const smallerCandidates = candidates.filter(blob => blob.size < originalSize);
+        if (!smallerCandidates.length) {
+          reject(new Error('ZipStream could not produce a smaller valid image encoding without inflating the file.'));
+          return;
+        }
+        const underTarget = smallerCandidates.filter(blob => blob.size <= targetMaxBytes);
+        const currentBlob = underTarget.length
+          ? underTarget.reduce((best, candidate) => candidate.size > best.size ? candidate : best)
+          : smallerCandidates.reduce((best, candidate) => candidate.size < best.size ? candidate : best);
+
+        if (onProgress) onProgress(92, `Packaging compressed image (${Math.round((1 - currentBlob.size / originalSize) * 100)}% smaller)...`);
         const previewUrl = URL.createObjectURL(currentBlob);
         resolve({ blob: currentBlob, previewUrl });
       } catch (err) {
@@ -352,12 +386,139 @@ async function compressImageReal(
  * - Employs dual-engine pipeline with real-time progressive status updates
  * - Smooth step reporting through 95%+ so no stalling occurs
  */
+
+function getCompressionBackendUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const configured = (import.meta as any).env?.VITE_BACKEND_URL?.trim();
+  if (configured) return configured.replace(/\/$/, '');
+  return window.location.origin;
+}
+
+/**
+ * Unified multi-format asynchronous compression via backend engine:
+ * Ingests file, polls BullMQ / local runner progress, and streams the finished file.
+ */
+async function compressOnServerUnified(
+  file: File,
+  settings: CompressionSettings,
+  onProgress?: (pct: number, text: string) => void
+): Promise<{ blob: Blob; previewUrl?: string; pageCount?: number } | null> {
+  const backend = getCompressionBackendUrl();
+  if (!backend) return null;
+
+  const controller = new AbortController();
+  // Responsive 45-second timeout to prevent stalling
+  const timeoutMs = Math.min(45_000, Number((import.meta as any).env?.VITE_COMPRESSION_TIMEOUT_MS) || 45_000);
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    onProgress?.(10, 'Uploading file to ZipStream engine…');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('level', settings.level || 'medium');
+    if (settings.targetSizeBytes) formData.append('targetSizeBytes', String(settings.targetSizeBytes));
+    if (settings.outputFormat) formData.append('imageFormat', settings.outputFormat);
+
+    const uploadRes = await fetch(`${backend}/api/compress/upload`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error(`Upload failed (${uploadRes.status})`);
+    }
+
+    const uploadData = await uploadRes.json();
+    const jobId = uploadData?.jobId;
+    if (!jobId) throw new Error('No jobId returned by server');
+
+    onProgress?.(25, 'Processing with specialized CLI worker…');
+
+    // Poll status until complete or failed (max 60s polling)
+    const startTime = Date.now();
+    while (Date.now() - startTime < 60_000) {
+      await new Promise(r => setTimeout(r, 400));
+      if (controller.signal.aborted) throw new Error('Compression timed out');
+
+      let statusRes: Response;
+      try {
+        statusRes = await fetch(`${backend}/api/compress/jobs/${jobId}`, {
+          signal: controller.signal,
+        });
+      } catch {
+        continue;
+      }
+
+      if (!statusRes.ok) continue;
+
+      const statusData = await statusRes.json();
+      if (statusData.status === 'completed') {
+        onProgress?.(96, 'Downloading optimized file…');
+        const downloadRes = await fetch(`${backend}${statusData.result.downloadUrl}`, {
+          signal: controller.signal,
+        });
+        if (!downloadRes.ok) throw new Error('Download failed');
+        const blob = await downloadRes.blob();
+        if (!blob.size) throw new Error('Empty payload returned');
+
+        onProgress?.(100, 'Optimization complete!');
+        return {
+          blob,
+          previewUrl: URL.createObjectURL(blob),
+        };
+      }
+
+      if (statusData.status === 'failed') {
+        throw new Error(statusData.failedReason || 'Server processing failed');
+      }
+
+      const currentProg = Math.min(94, Math.max(25, Number(statusData.progress) || 30));
+      onProgress?.(currentProg, 'Compressing with high-performance worker…');
+    }
+
+    throw new Error('Server compression timed out');
+  } catch (err: any) {
+    console.warn('Server compression engine unavailable, falling back to client engine:', err.message);
+    return null;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 async function compressPdfReal(
   file: File,
   settings: CompressionSettings,
   onPageProgress?: (current: number, total: number, stepText: string, progressPct: number) => void
 ): Promise<{ blob: Blob; previewUrl?: string; pageCount: number }> {
   const originalSize = file.size;
+
+  // Production-first path: Railway + Ghostscript gives real PDF object/image
+  // optimization (the same class of server-side approach used by mature PDF services).
+  // Fall back to the browser engine if the backend is unavailable.
+  if (originalSize > 0) {
+    try {
+      const remote = await compressOnServerUnified(file, settings, onPageProgress
+        ? (pct, text) => onPageProgress(1, 1, text, pct)
+        : undefined);
+      if (remote) {
+        return {
+          blob: remote.blob,
+          pageCount: remote.pageCount || 1,
+          previewUrl: remote.previewUrl || URL.createObjectURL(remote.blob),
+        };
+      }
+    } catch (remoteError) {
+      console.warn('Server PDF compressor unavailable; using local fallback:', remoteError);
+    }
+  }
+
+  const requestedTarget = settings.targetSizeBytes && settings.targetSizeBytes > 0 ? settings.targetSizeBytes : 0;
+  const presetRatio = settings.level === 'high' ? 0.35 : settings.level === 'medium' ? 0.55 : 0.75;
+  // A target is a MAXIMUM, never a promise to inflate an already smaller file.
+  const targetMaxBytes = requestedTarget > 0
+    ? Math.max(1, Math.min(originalSize - 1, requestedTarget))
+    : Math.max(1, Math.floor(originalSize * presetRatio));
   const arrayBuffer = await file.arrayBuffer();
 
   // If user explicitly picked lossless_stream mode:
@@ -379,14 +540,46 @@ async function compressPdfReal(
         addDefaultPage: false,
       });
       const blob = new Blob([compressedBytes], { type: 'application/pdf' });
-      return {
-        blob,
-        pageCount: pdfDoc.getPageCount(),
-        previewUrl: URL.createObjectURL(blob),
-      };
+      if (blob.size < originalSize) {
+        return {
+          blob,
+          pageCount: pdfDoc.getPageCount(),
+          previewUrl: URL.createObjectURL(blob),
+        };
+      }
+      // Refuse to return an inflated lossless result; continue adaptively.
     } catch {
       // Fall through to raster downsample
     }
+  }
+
+  // Strategy 1: vector/stream optimization first. Never accept an inflated result.
+  try {
+    const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+    if (settings.removeMetadata) {
+      pdfDoc.setTitle('');
+      pdfDoc.setAuthor('');
+      pdfDoc.setSubject('');
+      pdfDoc.setKeywords([]);
+      pdfDoc.setProducer('ZipStream Engine');
+      pdfDoc.setCreator('ZipStream Web');
+    }
+    const optimizedBytes = await pdfDoc.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+      objectsPerTick: 50,
+    });
+    const optimizedBlob = new Blob([optimizedBytes], { type: 'application/pdf' });
+    if (optimizedBlob.size < originalSize && optimizedBlob.size <= targetMaxBytes) {
+      onPageProgress?.(1, 1, 'Vector/stream optimization produced a smaller PDF.', 96);
+      return {
+        blob: optimizedBlob,
+        pageCount: pdfDoc.getPageCount(),
+        previewUrl: URL.createObjectURL(optimizedBlob),
+      };
+    }
+  } catch (err) {
+    console.warn('Vector PDF optimization unavailable; using adaptive raster fallback.', err);
   }
 
   // Active Rasterization & Stream Downsampling Engine
@@ -404,16 +597,6 @@ async function compressPdfReal(
     });
     const pdf = await loadingTask.promise;
     const totalPages = pdf.numPages;
-
-    // Calculate maximum target bytes for the whole PDF
-    let targetMaxBytes = originalSize;
-    if (settings.targetSizeBytes && settings.targetSizeBytes > 0 && originalSize > settings.targetSizeBytes) {
-      targetMaxBytes = settings.targetSizeBytes;
-    } else {
-      if (settings.level === 'high') targetMaxBytes = Math.round(originalSize * 0.35);
-      else if (settings.level === 'medium') targetMaxBytes = Math.round(originalSize * 0.55);
-      else targetMaxBytes = Math.round(originalSize * 0.75);
-    }
 
     // Determine target bytes per page budget
     const targetBytesPerPage = Math.max(15000, Math.floor((targetMaxBytes * 0.88) / Math.max(1, totalPages)));
@@ -539,10 +722,57 @@ async function compressPdfReal(
     let rasterBlob = new Blob([compressedBytes], { type: 'application/pdf' });
 
     if (onPageProgress) {
-      onPageProgress(totalPages, totalPages, 'Finalizing linearized PDF payload...', 96);
+      onPageProgress(totalPages, totalPages, 'Finalizing linearized PDF payload...', 92);
     }
 
-    let bestBlob = rasterBlob;
+    const rasterCandidates: Blob[] = [rasterBlob];
+    // Fast adaptive search space: at most 2 profiles instead of 21 CPU-locking profiles
+    const requestedDpi = Math.max(36, Math.min(180, settings.targetDpi || (settings.level === 'high' ? 85 : settings.level === 'low' ? 160 : 120)));
+    const retryProfiles = [
+      { dpi: requestedDpi, quality: settings.level === 'high' ? 0.40 : 0.65 },
+      { dpi: 72, quality: 0.35 },
+    ];
+
+    for (const profile of retryProfiles) {
+      if (rasterBlob.size < originalSize && rasterBlob.size <= targetMaxBytes) break;
+      const retryDoc = await PDFDocument.create();
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        // Yield to browser event loop to keep UI responsive and prevent 96% freeze!
+        await new Promise(r => setTimeout(r, 0));
+        const page = await pdf.getPage(pageNum);
+        const baseViewport = page.getViewport({ scale: 1 });
+        const retryScale = Math.max(0.18, Math.min(1.8, (profile.dpi / 72) * (settings.scalePercent || 100) / 100));
+        const viewport = page.getViewport({ scale: retryScale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(viewport.width));
+        canvas.height = Math.max(1, Math.round(viewport.height));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas 2D context unavailable');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const jpeg = canvas.toDataURL('image/jpeg', profile.quality);
+        const image = await retryDoc.embedJpg(jpeg);
+        const outPage = retryDoc.addPage([baseViewport.width, baseViewport.height]);
+        outPage.drawImage(image, { x: 0, y: 0, width: baseViewport.width, height: baseViewport.height });
+        canvas.width = 1;
+        canvas.height = 1;
+      }
+      const bytes = await retryDoc.save({ useObjectStreams: true });
+      rasterBlob = new Blob([bytes], { type: 'application/pdf' });
+      rasterCandidates.push(rasterBlob);
+    }
+
+    const smaller = rasterCandidates.filter(candidate => candidate.size < originalSize);
+    if (!smaller.length) {
+      throw new Error('ZipStream could not produce a smaller valid PDF without corrupting or inflating the document.');
+    }
+    const underTarget = smaller.filter(candidate => candidate.size <= targetMaxBytes);
+    // Respect the requested cap while preserving as much quality as possible: choose the
+    // largest candidate that fits. If no candidate can reach the cap, choose the smallest safe one.
+    const bestBlob = underTarget.length
+      ? underTarget.reduce((best, candidate) => candidate.size > best.size ? candidate : best)
+      : smaller.reduce((best, candidate) => candidate.size < best.size ? candidate : best);
 
     return {
       blob: bestBlob,
@@ -556,12 +786,88 @@ async function compressPdfReal(
       const pageCount = pdfDoc.getPageCount();
       const compressedBytes = await pdfDoc.save({ useObjectStreams: true, addDefaultPage: false });
       const blob = new Blob([compressedBytes], { type: 'application/pdf' });
-      return { blob, pageCount, previewUrl: URL.createObjectURL(blob) };
-    } catch {
-      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-      return { blob, pageCount: 1 };
+      if (blob.size < originalSize) {
+        return { blob, pageCount, previewUrl: URL.createObjectURL(blob) };
+      }
+      throw new Error('PDF compression could not produce a smaller valid file; refusing to inflate the original.');
+    } catch (fallbackErr) {
+      throw err;
     }
   }
+}
+
+/**
+ * Lossless Office compression for DOCX/PPTX/XLSX (and macro-enabled OOXML).
+ * OOXML documents are ZIP containers. We rebuild the container, applying
+ * maximum DEFLATE to text/XML parts while storing already-compressed media
+ * (JPEG/PNG/WEBP/etc.) to avoid accidental inflation. No document payload
+ * bytes are modified, so relationships, styles, macros and embedded assets
+ * remain intact.
+ */
+async function compressOfficeReal(
+  file: File,
+  settings: CompressionSettings,
+  onProgress?: (pct: number, text: string) => void,
+): Promise<{ blob: Blob; previewUrl?: string }> {
+  const originalSize = file.size;
+  const buffer = await file.arrayBuffer();
+  onProgress?.(20, 'Inspecting Office package structure & embedded assets...');
+
+  let source: JSZip;
+  try {
+    source = await JSZip.loadAsync(buffer, { createFolders: false, checkCRC32: true });
+  } catch (error) {
+    throw new Error('The Office document package is invalid or corrupted and cannot be safely compressed.');
+  }
+
+  const output = new JSZip();
+  const entries = Object.values(source.files);
+  const mediaPattern = /\.(?:jpe?g|png|gif|webp|avif|bmp|ico|mp3|m4a|wav|mp4|mov|avi|wmv|zip|gz|bin)$/i;
+
+  let processed = 0;
+  for (const entry of entries) {
+    if (entry.dir) {
+      output.folder(entry.name);
+      processed++;
+      continue;
+    }
+    const data = await entry.async('uint8array');
+    const alreadyCompressed = mediaPattern.test(entry.name);
+    output.file(entry.name, data, {
+      binary: true,
+      compression: alreadyCompressed ? 'STORE' : 'DEFLATE',
+      compressionOptions: alreadyCompressed ? undefined : { level: 9 },
+      createFolders: false,
+      date: entry.date,
+    });
+    processed++;
+    if (processed % 20 === 0 || processed === entries.length) {
+      onProgress?.(25 + Math.round((processed / Math.max(1, entries.length)) * 60), `Rebuilding Office package (${processed}/${entries.length} parts)...`);
+      await new Promise(requestAnimationFrame);
+    }
+  }
+
+  onProgress?.(90, 'Writing and verifying optimized Office package...');
+  const out = await output.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 9 },
+    streamFiles: true,
+  }, metadata => {
+    const ratio = Math.max(0, Math.min(1, metadata.percent / 100));
+    onProgress?.(25 + Math.round(ratio * 70), `Rebuilding Office package… ${Math.round(metadata.percent)}%`);
+  });
+
+  // Verify the generated OOXML is still a readable ZIP before completing.
+  try { await JSZip.loadAsync(out, { createFolders: false, checkCRC32: true }); }
+  catch { throw new Error('ZipStream produced an invalid Office package.'); }
+
+  if (!out.size) throw new Error('Compression engine produced an empty Office file.');
+  const finalBlob = out.size <= originalSize ? out : file;
+  onProgress?.(99, out.size < originalSize
+    ? `Office package compressed (${Math.round((1 - out.size / originalSize) * 100)}% smaller).`
+    : 'Office package verified (already efficiently compressed).');
+  return { blob: finalBlob, previewUrl: URL.createObjectURL(finalBlob) };
 }
 
 /**
@@ -569,8 +875,12 @@ async function compressPdfReal(
  */
 async function compressVideoReal(
   file: File,
-  settings: CompressionSettings
+  settings: CompressionSettings,
+  onProgress?: (pct: number, text: string) => void
 ): Promise<{ blob: Blob; previewUrl?: string }> {
+  // Try backend FFmpeg worker first!
+  const remote = await compressOnServerUnified(file, settings, onProgress);
+  if (remote) return remote;
   return new Promise(async (resolve) => {
     try {
       const video = document.createElement('video');
@@ -696,8 +1006,12 @@ async function compressVideoReal(
  */
 async function compressAudioReal(
   file: File,
-  settings: CompressionSettings
+  settings: CompressionSettings,
+  onProgress?: (pct: number, text: string) => void
 ): Promise<{ blob: Blob; previewUrl?: string }> {
+  // Try backend FFmpeg worker first!
+  const remote = await compressOnServerUnified(file, settings, onProgress);
+  if (remote) return remote;
   try {
     const arrayBuffer = await file.arrayBuffer();
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -834,7 +1148,7 @@ export async function processCompression(
   const setMilestone = (target: number, stepText?: string) => {
     if (stepText) activeStepText = stepText;
     if (target > targetPercentage) {
-      targetPercentage = Math.min(96, target);
+      targetPercentage = Math.min(99, target);
     }
   };
 
@@ -849,13 +1163,27 @@ export async function processCompression(
   }, 25);
 
   try {
-    if (fileInfo.category === 'image') {
-      setMilestone(20, 'Analyzing color profile & bit-depth headers...');
-      const realResult = await compressImageReal(fileInfo.file, settings, (pct, txt) => {
+    if (fileInfo.category === 'document') {
+      setMilestone(20, 'Inspecting Office package structure & embedded assets...');
+      const realResult = await compressOfficeReal(fileInfo.file, settings, (pct, txt) => {
         setMilestone(pct, txt);
       });
       compressedBlob = realResult.blob;
       compressedPreviewUrl = realResult.previewUrl;
+    } else if (fileInfo.category === 'image') {
+      setMilestone(20, 'Analyzing color profile & bit-depth headers...');
+      // Try backend Sharp/libvips compressor first!
+      const remote = await compressOnServerUnified(fileInfo.file, settings, (pct, txt) => setMilestone(pct, txt));
+      if (remote) {
+        compressedBlob = remote.blob;
+        compressedPreviewUrl = remote.previewUrl;
+      } else {
+        const realResult = await compressImageReal(fileInfo.file, settings, (pct, txt) => {
+          setMilestone(pct, txt);
+        });
+        compressedBlob = realResult.blob;
+        compressedPreviewUrl = realResult.previewUrl;
+      }
     } else if (fileInfo.category === 'pdf') {
       setMilestone(15, 'Parsing PDF structure & font catalogs...');
       const realResult = await compressPdfReal(
@@ -870,21 +1198,21 @@ export async function processCompression(
       pdfPageCount = realResult.pageCount;
     } else if (fileInfo.category === 'audio') {
       setMilestone(25, 'Analyzing audio waveform & resampling PCM channels...');
-      const realResult = await compressAudioReal(fileInfo.file, settings);
+      const realResult = await compressAudioReal(fileInfo.file, settings, (pct, txt) => setMilestone(pct, txt));
       setMilestone(85, 'Finalizing compressed audio stream...');
       compressedBlob = realResult.blob;
       compressedPreviewUrl = realResult.previewUrl || fileInfo.previewUrl;
     } else {
       setMilestone(25, 'Demuxing video frames & preparing transcode buffer...');
-      const realResult = await compressVideoReal(fileInfo.file, settings);
+      const realResult = await compressVideoReal(fileInfo.file, settings, (pct, txt) => setMilestone(pct, txt));
       setMilestone(85, 'Packaging video container...');
       compressedBlob = realResult.blob;
       compressedPreviewUrl = realResult.previewUrl || fileInfo.previewUrl;
     }
   } catch (err) {
     console.error('Compression execution error:', err);
-    const rawBuffer = await fileInfo.file.arrayBuffer();
-    compressedBlob = new Blob([rawBuffer], { type: fileInfo.type });
+    // Never report the original/uncompressed file as a successful compression result.
+    throw err;
   } finally {
     isDone = true;
     clearInterval(progressInterval);

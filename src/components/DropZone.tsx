@@ -60,6 +60,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
           badge: 'Video Clips',
           extensions: ['.mp4', '.mov', '.mkv', '.webm'],
         };
+      case 'document':
+        return {
+          title: 'Drop Office document here',
+          subtitle: 'Losslessly optimize DOCX, PPTX, and XLSX packages without changing document content.',
+          icon: <FileText className="w-10 h-10 text-[#0071e3]" />,
+          badge: 'Office Documents',
+          extensions: ['.docx', '.pptx', '.xlsx', '.docm', '.pptm', '.xlsm'],
+        };
       case 'audio':
         return {
           title: 'Drop audio files here',
@@ -72,7 +80,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       default:
         return {
           title: 'Drop your files here to compress',
-          subtitle: 'Reduce file size of PDFs, images, videos, and audio on-device.',
+          subtitle: 'Reduce PDF, image, video, audio, and Office document file sizes with safe content-preserving optimization.',
           icon: <FilePlus2 className="w-10 h-10 text-[#0071e3]" />,
           badge: 'Universal Compression',
           extensions: ['.pdf', '.jpg', '.png', '.webp', '.mp4', '.mp3', '.wav'],
@@ -98,7 +106,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
     if (invalidNames.length > 0 && validItems.length === 0) {
       setErrorMessage(
-        `"${invalidNames.join(', ')}" is not supported. Please choose a PDF, image, video, or audio file.`
+        `"${invalidNames.join(', ')}" is not supported. Please choose a PDF, image, video, audio, DOCX, PPTX, or XLSX file.`
       );
       return;
     }

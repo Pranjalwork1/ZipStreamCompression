@@ -10,7 +10,7 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-export function detectFileCategory(file: File): 'pdf' | 'image' | 'video' | 'audio' | null {
+export function detectFileCategory(file: File): 'pdf' | 'image' | 'video' | 'audio' | 'document' | null {
   const type = file.type.toLowerCase();
   const name = file.name.toLowerCase();
 
@@ -52,6 +52,15 @@ export function detectFileCategory(file: File): 'pdf' | 'image' | 'video' | 'aud
   ) {
     return 'audio';
   }
+  if (
+    name.endsWith('.docx') || name.endsWith('.pptx') || name.endsWith('.xlsx') ||
+    name.endsWith('.docm') || name.endsWith('.pptm') || name.endsWith('.xlsm') ||
+    type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+    type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ) {
+    return 'document';
+  }
   return null;
 }
 
@@ -65,9 +74,11 @@ export function getAcceptedExtensions(category: FileCategory): string {
       return '.mp4,.mov,.mkv,.webm,.avi,video/mp4,video/quicktime,video/x-matroska,video/webm,video/*';
     case 'audio':
       return '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/*';
+    case 'document':
+      return '.docx,.pptx,.xlsx,.docm,.pptm,.xlsm,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     case 'all':
     default:
-      return '.pdf,.jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.mp3,.wav,.m4a,application/pdf,image/*,video/*,audio/*';
+      return '.pdf,.jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.mp3,.wav,.m4a,.docx,.pptx,.xlsx,.docm,.pptm,.xlsm,application/pdf,image/*,video/*,audio/*,application/vnd.openxmlformats-officedocument.*';
   }
 }
 

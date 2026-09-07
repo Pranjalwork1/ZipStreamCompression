@@ -5,12 +5,16 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+import { createReadStream } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+app.use(express.json({ limit: '70mb' }));
+app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -28,6 +32,49 @@ app.get('/room/:roomId', (req, res) => {
 
 // Ephemeral Room Registry: roomId -> { hostSocketId, peers: Set<socketId> }
 const activeRooms = new Map();
+const roomDocuments = new Map();
+const MAX_ROOM_DOCUMENT_BYTES = Number(process.env.MAX_ROOM_DOCUMENT_BYTES || 250 * 1024 * 1024);
+setInterval(() => {
+  const cutoff = Date.now() - 4 * 60 * 60 * 1000;
+  for (const [roomId, doc] of roomDocuments.entries()) {
+    if (doc.updatedAt < cutoff) roomDocuments.delete(roomId);
+  }
+}, 30 * 60 * 1000);
+
+app.post('/api/rooms/:roomId/document', (req, res) => {
+  const { roomId } = req.params;
+  if (!/^[a-zA-Z0-9_-]{4,64}$/.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
+  const { fileName, fileSize, fileType, dataBase64 } = req.body || {};
+  if (typeof dataBase64 !== 'string' || !dataBase64) return res.status(400).json({ error: 'Valid base64 document data is required' });
+  const estimatedBytes = Math.floor((dataBase64.replace(/=+$/, '').length * 3) / 4);
+  if (estimatedBytes > MAX_ROOM_DOCUMENT_BYTES) return res.status(413).json({ error: 'File size exceeds maximum allowed room document limit (50MB)' });
+  const rawBuffer = Buffer.from(dataBase64, 'base64');
+  if (Number(fileSize) && Number(fileSize) !== rawBuffer.length) return res.status(400).json({ error: 'File size does not match payload' });
+  const doc = { fileName: fileName || 'Shared Document', fileSize: rawBuffer.length, fileType: fileType || 'application/octet-stream', dataBase64, updatedAt: Date.now(), sha256: crypto.createHash('sha256').update(rawBuffer).digest('hex') };
+  roomDocuments.set(roomId, doc);
+  io.to(roomId).emit('room-document-available', { fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, hasDocument: true });
+  res.set('Cache-Control', 'no-store').json({ success: true });
+});
+
+app.get('/api/rooms/:roomId/document/raw', (req, res) => {
+  const { roomId } = req.params;
+  if (!/^[a-zA-Z0-9_-]{4,64}$/.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
+  const doc = roomDocuments.get(roomId);
+  if (!doc) return res.status(404).json({ error: 'No document active in this room' });
+  const buffer = Buffer.from(doc.dataBase64, 'base64');
+  res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Content-Type': doc.fileType || 'application/octet-stream', 'Content-Length': String(buffer.length), 'X-File-Sha256': doc.sha256 || crypto.createHash('sha256').update(buffer).digest('hex'), 'X-File-Name': encodeURIComponent(doc.fileName), 'Access-Control-Expose-Headers': 'Content-Length, X-File-Sha256, X-File-Name' });
+  return res.end(buffer);
+});
+
+app.get('/api/rooms/:roomId/document', (req, res) => {
+  const { roomId } = req.params;
+  if (!/^[a-zA-Z0-9_-]{4,64}$/.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
+  const doc = roomDocuments.get(roomId);
+  if (!doc) return res.status(404).json({ error: 'No document active in this room' });
+  const includeData = req.query.includeData === '1' || req.query.includeData === 'true';
+  res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Content-Type': 'application/json; charset=utf-8' });
+  return res.json({ fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, ...(includeData ? { dataBase64: doc.dataBase64 } : {}), updatedAt: doc.updatedAt, sha256: doc.sha256 });
+});
 
 io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`);
@@ -48,6 +95,8 @@ io.on('connection', (socket) => {
     }
 
     const totalCount = (room.hostSocketId ? 1 : 0) + room.peers.size;
+    const activeDoc = roomDocuments.get(roomId);
+    if (activeDoc) socket.emit('room-document-available', { fileName: activeDoc.fileName, fileSize: activeDoc.fileSize, fileType: activeDoc.fileType, hasDocument: true });
     io.to(roomId).emit('room-presence', {
       roomId,
       peerCount: totalCount,

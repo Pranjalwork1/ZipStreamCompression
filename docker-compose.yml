@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # ─── Redis Message Broker & Queue Store ──────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: zipstream_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - zipstream_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── ZipStream Ingestion & Routing API ────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zipstream_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - STORAGE_DIR=/data/storage
+      - MAX_UPLOAD_MB=250
+      - VIDEO_TIMEOUT_MS=600000
+      - AUDIO_TIMEOUT_MS=180000
+      - PDF_TIMEOUT_MS=180000
+    volumes:
+      - storage_data:/data/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - zipstream_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ─── Distributed Multi-Format Worker Pool ─────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zipstream_worker
+    restart: unless-stopped
+    command: ["npm", "run", "worker"]
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - STORAGE_DIR=/data/storage
+      - WORKER_CONCURRENCY=4
+      - VIDEO_TIMEOUT_MS=600000
+      - AUDIO_TIMEOUT_MS=180000
+      - PDF_TIMEOUT_MS=180000
+      - GHOSTSCRIPT_PATH=gs
+      - FFMPEG_PATH=ffmpeg
+      - FFPROBE_PATH=ffprobe
+    volumes:
+      - storage_data:/data/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - zipstream_net
+
+volumes:
+  redis_data:
+    driver: local
+  storage_data:
+    driver: local
+
+networks:
+  zipstream_net:
+    driver: bridge

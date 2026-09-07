@@ -1,4 +1,4 @@
-export type FileCategory = 'all' | 'pdf' | 'image' | 'video' | 'audio';
+export type FileCategory = 'all' | 'pdf' | 'image' | 'video' | 'audio' | 'document';
 
 export type ToolCategory =
   | 'compression'
@@ -53,7 +53,7 @@ export interface UploadedFileInfo {
   name: string;
   size: number; // in bytes
   type: string;
-  category: 'pdf' | 'image' | 'video' | 'audio';
+  category: 'pdf' | 'image' | 'video' | 'audio' | 'document';
   previewUrl?: string;
   lastModified: number;
 }

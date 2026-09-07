@@ -1,40 +1,64 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# ZipStream — Production Deployment Notes
 
-# Run and deploy your AI Studio app
+## Production architecture
 
-This contains everything you need to run your app locally.
+- **Vercel / zipstream.online** serves the React application and all public share links.
+- **Railway** runs the Node/Express + Socket.IO backend and Ghostscript PDF compressor.
+- PDF compression uses Ghostscript with adaptive profiles and refuses to return an inflated result.
+- DOCX/PPTX/XLSX compression is lossless OOXML package recompression in the browser.
+- P2P uses WebRTC for the fast path, with a verified Railway room-cache recovery path for NAT/firewall/mobile failures.
+- Shared-room files are streamed as raw bytes with SHA-256 verification; metadata endpoints no longer return the full Base64 payload by default.
 
-View your app in AI Studio: https://ai.studio/apps/0282376f-3129-4c78-a480-66df23f7bad7
+## Vercel environment variables
 
-## Run Locally
+Set:
 
-**Prerequisites:**  Node.js
+```text
+VITE_BACKEND_URL=https://YOUR-RAILWAY-DOMAIN
+VITE_PUBLIC_APP_URL=https://zipstream.online
+```
+
+## Railway environment variables
+
+Set production secrets only in Railway:
+
+```text
+NODE_ENV=production
+GEMINI_API_KEY=...
+TURN_URL=...
+TURN_USERNAME=...
+TURN_CREDENTIAL=...
+```
+
+`TURN_*` values are optional but recommended for reliable WebRTC across restrictive networks.
+
+## Deploy
+
+```bash
+git checkout main
+git pull origin main
+git add .
+git commit -m "Harden production compression and P2P sharing"
+git push origin main
+```
+
+Railway uses the included Dockerfile, which installs Ghostscript and runs `npm start`.
+
+## Production smoke tests
+
+1. Open `https://zipstream.online/compress-pdf` and compress a real multi-page/image-heavy PDF.
+2. Verify the downloaded PDF is smaller and opens correctly.
+3. Upload a `.docx`, `.pptx`, or `.xlsx` and run compression.
+4. Open P2P Share on desktop, copy the public `/room/<id>` link, then open it on a phone using mobile data.
+5. Scan the QR code from the phone camera and verify the room file downloads/reconstructs to 100%.
+6. Turn off WebRTC/TURN or test behind a restrictive network; the guest should still recover the cached room document.
+7. Use the downloaded file and verify its SHA-256 integrity against the source when needed.
+
+Do not commit `.env`, API keys, Telegram bot tokens, or TURN credentials.
 
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
-
-## Deploy on Railway
-
-Create a Railway project from this GitHub repository and deploy the repository root. Railway will use `railway.json` automatically.
-
-Required variables:
-
-- `NODE_ENV=production`
-- `ENABLE_TUNNEL=false`
-- `DISABLE_HMR=true`
-
-Optional variables:
-
-- `GEMINI_API_KEY`
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-
-For the most reliable P2P connections across restrictive mobile networks, optionally configure a TURN provider with `TURN_SERVER_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL`. STUN-only connections remain supported when these are blank.
-
-Railway provides `PORT` automatically. Do not set it manually. The health check endpoint is `/api/health`.
+## Production environment
+- `VITE_BACKEND_URL` points the Vercel frontend to Railway.
+- `VITE_PUBLIC_APP_URL=https://zipstream.online` makes QR/share links canonical.
+- `MAX_ROOM_DOCUMENT_BYTES` controls the binary P2P recovery cache limit (default 250MB).
+- `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` are recommended for WebRTC stability.
