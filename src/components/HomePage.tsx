@@ -64,6 +64,38 @@ export interface ToolItem {
   targetCategory?: FileCategory;
 }
 
+export const TOOL_CANONICAL_PATHS: Record<string, string> = {
+  compress: '/compress-pdf',
+  merge_pdf: '/merge-pdf',
+  split_pdf: '/split-pdf',
+  images_to_pdf: '/images-to-pdf',
+  scan_document: '/scan-document',
+  watermark_pdf: '/watermark-pdf',
+  pdf_to_word: '/pdf-to-word',
+  pdf_to_excel: '/pdf-to-excel',
+  pdf_to_powerpoint: '/pdf-to-powerpoint',
+  pdf_to_jpg: '/pdf-to-jpg',
+  extract_text: '/extract-text',
+  pdf_to_html: '/pdf-to-html',
+  pdf_to_audio: '/pdf-to-audio',
+  pdf_to_epub: '/pdf-to-epub',
+  encrypt_pdf: '/protect-pdf',
+  unlock_pdf: '/unlock-pdf',
+  auto_redact_pii: '/redact-pdf',
+  privacy_scanner: '/privacy-scanner',
+  fingerprint_gen: '/file-fingerprint',
+  chat_pdf: '/chat-pdf',
+  ai_summarize: '/summarize-pdf',
+  searchable_pdf: '/ocr-pdf',
+  compare_pdfs: '/compare-pdf',
+  repair_pdf: '/repair-pdf',
+  gst_invoice: '/gst-invoice',
+  pos_billing: '/pos-billing',
+  gst_filing_prep: '/gst-filing-prep',
+  p2p_share: '/p2p-share',
+  collab_whiteboard: '/collaborative-whiteboard',
+};
+
 interface HomePageProps {
   onSelectTool: (tool: ToolMode, targetCategory?: FileCategory) => void;
   onFileLoaded: (fileInfo: UploadedFileInfo) => void;
@@ -744,13 +776,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             id="hero-title"
             className="text-4xl sm:text-6xl lg:text-[62px] font-extrabold tracking-tight text-[#0C162C] dark:text-white leading-[1.08]"
           >
-            Private file tools.{' '}
+            Compress PDF Online Free{' '}
             <span className="block text-[#FF5722]">
-              Made for modern work.
+              Fast, Secure &amp; 100% Private
             </span>
           </h1>
           <p className="text-base sm:text-lg text-[#5C6479] dark:text-white/70 leading-relaxed max-w-2xl mx-auto font-normal">
-            Compress PDFs, images, audio, and videos, convert Office documents, auto-redact confidential data, and sign documents directly inside your browser. Fast, unlimited, and free.
+            Reduce PDF file size without losing quality. Merge, split, convert to Word and Excel, sign, and redact documents directly in your browser. No file upload or signup needed.
           </p>
 
           {/* Value Highlights */}
@@ -873,17 +905,19 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredTools.map((tool) => (
-              <a
-                key={`${tool.id}-${tool.name}`}
-                id={`home-tool-card-${tool.id}-${tool.name.toLowerCase().replace(/\s+/g, '-')}`}
-                href={`#${tool.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelectTool(tool.id, tool.targetCategory);
-                }}
-                className="group relative p-5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/40 shadow-sm hover:shadow-[0_12px_32px_rgba(255,87,34,0.12)] transition-all duration-200 flex flex-col justify-between cursor-pointer"
-              >
+            {filteredTools.map((tool) => {
+              const toolHref = TOOL_CANONICAL_PATHS[tool.id] || `/${tool.id.replace(/_/g, '-')}`;
+              return (
+                <a
+                  key={`${tool.id}-${tool.name}`}
+                  id={`home-tool-card-${tool.id}-${tool.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  href={toolHref}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onSelectTool(tool.id, tool.targetCategory);
+                  }}
+                  className="group relative p-5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/40 shadow-sm hover:shadow-[0_12px_32px_rgba(255,87,34,0.12)] transition-all duration-200 flex flex-col justify-between cursor-pointer"
+                >
                 <div>
                   {/* Top Bar: Icon & Badge */}
                   <div className="flex items-center justify-between mb-3.5">
@@ -915,7 +949,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
                 </div>
               </a>
-            ))}
+            );
+          })}
           </div>
         )}
       </section>
@@ -1083,18 +1118,26 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 7. STRUCTURED FOOTER WITH DIRECT HYPERLINKS TO EVERY TOOL */}
-      <section aria-labelledby="all-tools-footer-nav" className="pt-12 border-t border-[#0C162C]/8 dark:border-white/8">
+      {/* 7. STRUCTURED DIRECTORY WITH DIRECT HYPERLINKS TO EVERY TOOL */}
+      <section aria-labelledby="all-tools-footer-nav" className="pt-12 border-t border-[#0C162C]/8 dark:border-white/8 space-y-6">
+        <div>
+          <h2 id="all-tools-footer-nav" className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0C162C] dark:text-white">
+            Explore Free Online PDF &amp; Document Tools
+          </h2>
+          <p className="text-xs sm:text-sm text-[#5C6479] dark:text-white/60 mt-1">
+            Browse our full suite of fast, privacy-first document utilities running 100% in your browser.
+          </p>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Column 1: Convert & Compress */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
-              Convert & Compress
+              Convert &amp; Compress
             </h3>
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="#compress"
+                  href="/compress-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('compress', 'pdf');
@@ -1106,7 +1149,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#pdf_to_word"
+                  href="/pdf-to-word"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('pdf_to_word');
@@ -1118,7 +1161,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#pdf_to_excel"
+                  href="/pdf-to-excel"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('pdf_to_excel');
@@ -1130,7 +1173,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#pdf_to_powerpoint"
+                  href="/pdf-to-powerpoint"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('pdf_to_powerpoint');
@@ -1142,7 +1185,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#pdf_to_jpg"
+                  href="/pdf-to-jpg"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('pdf_to_jpg');
@@ -1154,7 +1197,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#pdf_to_audio"
+                  href="/pdf-to-audio"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('pdf_to_audio');
@@ -1166,14 +1209,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#extract_text"
+                  href="/extract-text"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('extract_text');
                   }}
                   className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
                 >
-                  Extract Text & Markdown
+                  Extract Text &amp; Markdown
                 </a>
               </li>
             </ul>
@@ -1182,12 +1225,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Column 2: Split & Merge */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
-              Split & Merge
+              Split &amp; Merge
             </h3>
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="#merge_pdf"
+                  href="/merge-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('merge_pdf');
@@ -1199,19 +1242,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#split_pdf"
+                  href="/split-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('split_pdf');
                   }}
                   className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
                 >
-                  Split & Extract PDF
+                  Split &amp; Extract PDF
                 </a>
               </li>
               <li>
                 <a
-                  href="#scan_document"
+                  href="/scan-document"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('scan_document');
@@ -1223,7 +1266,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#images_to_pdf"
+                  href="/images-to-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('images_to_pdf');
@@ -1235,7 +1278,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#watermark_pdf"
+                  href="/watermark-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('watermark_pdf');
@@ -1247,7 +1290,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#collab_whiteboard"
+                  href="/collaborative-whiteboard"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('collab_whiteboard');
@@ -1263,24 +1306,24 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Column 3: Sign & Security */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
-              Sign & Security
+              Sign &amp; Security
             </h3>
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="#encrypt_pdf"
+                  href="/protect-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('encrypt_pdf');
                   }}
                   className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
                 >
-                  Protect & Encrypt PDF
+                  Protect &amp; Encrypt PDF
                 </a>
               </li>
               <li>
                 <a
-                  href="#unlock_pdf"
+                  href="/unlock-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('unlock_pdf');
@@ -1292,7 +1335,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#auto_redact_pii"
+                  href="/redact-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('auto_redact_pii');
@@ -1304,19 +1347,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#privacy_scanner"
+                  href="/privacy-scanner"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('privacy_scanner');
                   }}
                   className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
                 >
-                  Privacy & Metadata Strip
+                  Privacy &amp; Metadata Strip
                 </a>
               </li>
               <li>
                 <a
-                  href="#fingerprint_gen"
+                  href="/file-fingerprint"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('fingerprint_gen');
@@ -1328,7 +1371,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#repair_pdf"
+                  href="/repair-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('repair_pdf');
@@ -1344,12 +1387,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Column 4: AI & Business */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
-              AI & Business
+              AI &amp; Business
             </h3>
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="#chat_pdf"
+                  href="/chat-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('chat_pdf');
@@ -1361,7 +1404,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#ai_summarize"
+                  href="/summarize-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('ai_summarize');
@@ -1373,7 +1416,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#searchable_pdf"
+                  href="/ocr-pdf"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('searchable_pdf');
@@ -1385,7 +1428,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#gst_invoice"
+                  href="/gst-invoice"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('gst_invoice');
@@ -1397,19 +1440,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               </li>
               <li>
                 <a
-                  href="#pos_billing"
+                  href="/pos-billing"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('pos_billing');
                   }}
                   className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
                 >
-                  POS Billing Slip & UPI QR
+                  POS Billing Slip &amp; UPI QR
                 </a>
               </li>
               <li>
                 <a
-                  href="#p2p_share"
+                  href="/p2p-share"
                   onClick={(e) => {
                     e.preventDefault();
                     onSelectTool('p2p_share');

@@ -1,6 +1,22 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.zipstream.online"
+        }
+      ],
+      "destination": "https://zipstream.online/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    {"source":"/room/(.*)","destination":"/index.html"},
+    {
+      "source": "/room/(.*)",
+      "destination": "/index.html"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
@@ -11,3 +27,4 @@
     }
   ]
 }
+

@@ -94,28 +94,24 @@ async function startServer() {
   app.use(express.json({ limit: '70mb' }));
   app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
-  // ─── Canonical 301 Redirect: Enforce HTTPS & non-www apex domain in production ───
-  if (process.env.NODE_ENV === 'production') {
-    app.enable('trust proxy');
-    app.use((req, res, next) => {
-      // Always let the Railway (and any other platform) health-check through
-      // before attempting any redirect — otherwise the deployment probe gets
-      // a 301 instead of the expected 200 and the deploy is marked unhealthy.
-      if (req.path === '/api/health') return next();
+  // ─── Canonical 301 Redirect: Enforce HTTPS & non-www apex domain ───
+  app.enable('trust proxy');
+  app.use((req, res, next) => {
+    // Always let health-checks through before attempting any redirect
+    if (req.path === '/api/health') return next();
 
-      const host = req.headers.host || '';
-      const proto = req.headers['x-forwarded-proto'] || req.protocol;
-      const isWww = host.startsWith('www.');
-      const isHttp = proto === 'http';
-      const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('0.0.0.0');
+    const host = req.headers.host || '';
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const isWww = /^www\./i.test(host);
+    const isHttp = proto === 'http';
+    const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(host);
 
-      if (!isLocal && (isWww || isHttp)) {
-        const cleanHost = host.replace(/^www\./i, '');
-        return res.redirect(301, `https://${cleanHost}${req.originalUrl}`);
-      }
-      next();
-    });
-  }
+    if (!isLocal && (isWww || isHttp)) {
+      const cleanHost = host.replace(/^www\./i, '');
+      return res.redirect(301, `https://${cleanHost}${req.originalUrl}`);
+    }
+    next();
+  });
 
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');

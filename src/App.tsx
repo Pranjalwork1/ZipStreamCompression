@@ -737,99 +737,401 @@ export default function App() {
       </main>
       </Suspense>
 
-      {/* Nomu Storefront Inspired Clean Footer */}
-      <footer className="border-t border-[#0C162C]/10 dark:border-white/10 bg-white/70 dark:bg-[#080E1E]/90 backdrop-blur-md py-6 text-[13px] text-[#5C6479] dark:text-white/60 transition-colors">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-            <button
-              onClick={() => navigateTo('/')}
-              className="flex items-center gap-2 cursor-pointer group text-left"
-            >
-              <div className="relative w-6 h-6 rounded-md bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center shrink-0 shadow-xs group-hover:border-[#00ff87]/60">
-                <span className="text-[10px] font-mono font-bold text-[#00ff87]">⇲</span>
+      {/* Nomu Storefront Inspired Comprehensive SEO Footer */}
+      <footer className="border-t border-[#0C162C]/10 dark:border-white/10 bg-white/80 dark:bg-[#080E1E]/95 backdrop-blur-md pt-12 pb-8 text-[13px] text-[#5C6479] dark:text-white/60 transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          {/* Top Multi-Column Internal Links Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+            {/* Brand Information */}
+            <div className="col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-1 space-y-3.5">
+              <button
+                type="button"
+                onClick={() => navigateTo('/')}
+                className="flex items-center gap-2 cursor-pointer group text-left"
+              >
+                <div className="relative w-7 h-7 rounded-lg bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center shrink-0 shadow-xs group-hover:border-[#00ff87]/60 transition-colors">
+                  <span className="text-[11px] font-mono font-bold text-[#00ff87]">⇲</span>
+                </div>
+                <span className="font-extrabold text-[#0C162C] dark:text-white tracking-tight text-base">
+                  zipstream<span className="text-[#FF5722]">.</span>
+                </span>
+              </button>
+              <p className="text-xs text-[#5C6479] dark:text-white/65 leading-relaxed">
+                Free, privacy-first online PDF and document processing. Files are handled directly in your browser using client-side WebAssembly — zero cloud uploads.
+              </p>
+              <div className="pt-1 text-xs text-[#5C6479] dark:text-white/50">
+                Created by <a href="https://www.linkedin.com/in/pranjal-singh-02aba0363/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] underline underline-offset-2 transition-colors">Pranjal Singh</a>
               </div>
-              <span className="font-extrabold text-[#0C162C] dark:text-white tracking-tight text-sm">
-                zipstream<span className="text-[#FF5722]">.</span>
+            </div>
+
+            {/* Column 1: Compress & Convert */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+                Compress &amp; Convert
               </span>
-            </button>
-            <span className="text-black/20 dark:text-white/20 hidden sm:inline">•</span>
-            <span className="text-xs">Built by <a href="https://www.linkedin.com/in/pranjal-singh-02aba0363/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] underline underline-offset-2 transition-colors">Pranjal Singh</a></span>
-            <span className="text-black/20 dark:text-white/20 hidden sm:inline">•</span>
-            <a href="mailto:Pranjalsinghwork1@gmail.com" className="text-xs hover:text-[#FF5722] transition-colors">Pranjalsinghwork1@gmail.com</a>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <a
+                    href="/compress-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/compress-pdf', 'compress'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Compress PDF Online
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pdf-to-word"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-word', 'pdf_to_word'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    PDF to Word (.docx)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pdf-to-excel"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-excel', 'pdf_to_excel'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    PDF to Excel (.xlsx)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pdf-to-powerpoint"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-powerpoint', 'pdf_to_powerpoint'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    PDF to PowerPoint
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pdf-to-jpg"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-jpg', 'pdf_to_jpg'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    PDF to JPG Images
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/images-to-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/images-to-pdf', 'images_to_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Images to PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/extract-text"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/extract-text', 'extract_text'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Extract Text
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 2: Organize & Edit */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+                Organize &amp; Edit
+              </span>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <a
+                    href="/merge-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/merge-pdf', 'merge_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Merge PDF Files
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/split-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/split-pdf', 'split_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Split &amp; Extract PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/scan-document"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/scan-document', 'scan_document'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Scan Documents (Camera)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/watermark-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/watermark-pdf', 'watermark_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Watermark PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/compare-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/compare-pdf', 'compare_pdfs'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Compare PDF Files
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/repair-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/repair-pdf', 'repair_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Repair Damaged PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/collaborative-whiteboard"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/collaborative-whiteboard', 'collab_whiteboard'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Collab Whiteboard
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Security & Privacy */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+                Security &amp; Privacy
+              </span>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <a
+                    href="/protect-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/protect-pdf', 'encrypt_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Protect PDF (Password)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/unlock-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/unlock-pdf', 'unlock_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Unlock Protected PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/redact-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/redact-pdf', 'auto_redact_pii'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Auto-Redact Sensitive PII
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/privacy-scanner"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/privacy-scanner', 'privacy_scanner'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Privacy Metadata Scanner
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/file-fingerprint"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/file-fingerprint', 'fingerprint_gen'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    SHA-256 Fingerprint
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/p2p-share"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/p2p-share', 'p2p_share'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    P2P Encrypted File Share
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: AI & Business */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+                AI &amp; Business
+              </span>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <a
+                    href="/chat-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/chat-pdf', 'chat_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Chat with PDF (Gemini AI)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/summarize-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/summarize-pdf', 'ai_summarize'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    AI Document Summarizer
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/ocr-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/ocr-pdf', 'searchable_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Searchable PDF (OCR)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/gst-invoice"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/gst-invoice', 'gst_invoice'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    GST Tax Invoice Generator
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pos-billing"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/pos-billing', 'pos_billing'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    POS Thermal Billing &amp; UPI
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/gst-filing-prep"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/gst-filing-prep', 'gst_filing_prep'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    GSTR Filing Preparation
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/sitemap.xml"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    XML Site Map
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <span className="flex items-center gap-1.5 font-medium text-[#0C162C] dark:text-white/90">
-              <Lock className="w-3.5 h-3.5 text-[#FF5722]" />
-              100% Client-Side
-            </span>
-            <span className="text-black/20 dark:text-white/20">•</span>
-            <span className="flex items-center gap-1.5 font-medium text-[#0C162C] dark:text-white/90">
-              <Shield className="w-3.5 h-3.5 text-[#FFCB70]" />
-              Zero Cloud Ingress
-            </span>
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-[#0C162C]/8 dark:border-white/8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs text-[#5C6479] dark:text-white/60">
+              <span>&copy; {new Date().getFullYear()} ZipStream. All rights reserved.</span>
+              <span className="text-black/20 dark:text-white/20 hidden sm:inline">&bull;</span>
+              <a href="mailto:Pranjalsinghwork1@gmail.com" className="hover:text-[#FF5722] transition-colors">
+                Pranjalsinghwork1@gmail.com
+              </a>
+              <span className="text-black/20 dark:text-white/20 hidden sm:inline">&bull;</span>
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(true)}
+                className="hover:text-[#FF5722] transition-colors cursor-pointer"
+              >
+                Report an Issue
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs">
+              <span className="flex items-center gap-1.5 font-medium text-[#0C162C] dark:text-white/90">
+                <Lock className="w-3.5 h-3.5 text-[#FF5722]" />
+                100% Client-Side
+              </span>
+              <span className="text-black/20 dark:text-white/20">&bull;</span>
+              <span className="flex items-center gap-1.5 font-medium text-[#0C162C] dark:text-white/90">
+                <Shield className="w-3.5 h-3.5 text-[#FFCB70]" />
+                Zero Cloud Ingress
+              </span>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="flex items-center gap-2" aria-label="Social Media Links">
+              <a
+                href="https://x.com/Pranjalwork"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="X (Twitter) profile"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF5722]/10 hover:text-[#FF5722] text-[#0C162C] dark:text-white transition-all duration-150"
+                title="Follow on X"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+
+              <a
+                href="https://www.linkedin.com/in/pranjal-singh-02aba0363/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn profile"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#0077B5]/10 hover:text-[#0077B5] text-[#0C162C] dark:text-white transition-all duration-150"
+                title="Connect on LinkedIn"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+              </a>
+
+              <a
+                href="https://www.instagram.com/officialpranjal1111?igsi=MTliZzVnODd1dWZzZw=="
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram profile"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#E1306C]/10 hover:text-[#E1306C] text-[#0C162C] dark:text-white transition-all duration-150"
+                title="Follow on Instagram"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+              </a>
+
+              <a
+                href="https://www.youtube.com/@DecodingPranjalSingh"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Decoding Pranjal Singh YouTube channel"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF0000]/10 hover:text-[#FF0000] text-[#0C162C] dark:text-white transition-all duration-150"
+                title="Decoding Pranjal Singh on YouTube"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              </a>
+            </div>
           </div>
-
-          {/* Social Media Links */}
-          <div className="flex items-center gap-2" aria-label="Social Media Links">
-            {/* X (Twitter) */}
-            <a
-              href="https://x.com/Pranjalwork"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="X (Twitter) profile"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF5722]/10 hover:text-[#FF5722] text-[#0C162C] dark:text-white transition-all duration-150"
-              title="Follow on X"
-            >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-            </a>
-
-            {/* LinkedIn */}
-            <a
-              href="https://www.linkedin.com/in/pranjal-singh-02aba0363/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn profile"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#0077B5]/10 hover:text-[#0077B5] text-[#0C162C] dark:text-white transition-all duration-150"
-              title="Connect on LinkedIn"
-            >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-              </svg>
-            </a>
-
-            {/* Instagram */}
-            <a
-              href="https://www.instagram.com/officialpranjal1111?igsi=MTliZzVnODd1dWZzZw=="
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram profile"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#E1306C]/10 hover:text-[#E1306C] text-[#0C162C] dark:text-white transition-all duration-150"
-              title="Follow on Instagram"
-            >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-            </svg>
-          </a>
-
-          {/* YouTube ("Decoding Pranjal Singh") */}
-          <a
-            href="https://www.youtube.com/@DecodingPranjalSingh"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Decoding Pranjal Singh YouTube channel"
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF0000]/10 hover:text-[#FF0000] text-[#0C162C] dark:text-white transition-all duration-150"
-            title="Decoding Pranjal Singh on YouTube"
-          >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-            </svg>
-          </a>
         </div>
-      </div>
-    </footer>
+      </footer>
 
     {/* Search Command Palette (Ctrl+K / Cmd+K) */}
     {isSearchOpen && (
