@@ -402,7 +402,7 @@ async function compressOnServerUnified(
   file: File,
   settings: CompressionSettings,
   onProgress?: (pct: number, text: string) => void
-): Promise<{ blob: Blob; previewUrl?: string; pageCount?: number } | null> {
+): Promise<{ blob: Blob; previewUrl?: string; pageCount?: number; downloadUrl?: string } | null> {
   const backend = getCompressionBackendUrl();
   if (!backend) return null;
 

@@ -175,12 +175,16 @@ export function downloadBlob(blob: Blob, filename: string): void {
  */
 export async function downloadBatchZip(results: any[], zipFilename = 'Compressed_Files.zip'): Promise<void> {
   const zip = new JSZip();
+  let count = 0;
   results.forEach((item, index) => {
     const res: CompressionResult = item?.result || item;
     if (!res?.compressedBlob) return;
     const name = res.compressedName || `compressed_file_${index + 1}`;
     zip.file(name, res.compressedBlob);
+    count++;
   });
+
+  if (count === 0) return;
 
   const zipContent = await zip.generateAsync({ type: 'blob' });
   downloadBlob(zipContent, zipFilename);
