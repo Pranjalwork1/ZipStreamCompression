@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Universal Compressor</title>
+</head>
+<body style="font-family: Arial; padding: 50px; max-width: 600px; margin: auto;">
+    <h2>Upload PDF to Compress</h2>
+    <input type="file" id="fileInput" accept=".pdf">
+    <button onclick="uploadFile()" style="padding: 10px 20px; background: #E53935; color: white; border: none; cursor: pointer;">Compress</button>
+    
+    <div style="margin-top: 20px; width: 100%; background: #eee; height: 20px; border-radius: 10px; overflow: hidden;">
+        <!-- This bar only moves when the server tells it to -->
+        <div id="progressBar" style="width: 0%; height: 100%; background: #4CAF50; transition: width 0.3s;"></div>
+    </div>
+    <p id="statusText" style="font-weight: bold;">0%</p>
+    
+    <a id="downloadLink" style="display: none; color: #E53935; font-weight: bold;" href="#">Download Compressed File</a>
+
+    <script>
+        async function uploadFile() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            document.getElementById('statusText').innerText = "Uploading to server...";
+            
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            trackProgress(data.task_id, data.filename);
+        }
+
+        function trackProgress(taskId, filename) {
+            const evtSource = new EventSource(`/status/${taskId}`);
+            
+            evtSource.onmessage = function(event) {
+                const progress = event.data;
+                if (progress === "error") {
+                    document.getElementById('statusText').innerText = "Compression Error";
+                    evtSource.close();
+                    return;
+                }
+                
+                document.getElementById('progressBar').style.width = progress + '%';
+                document.getElementById('statusText').innerText = 'Compressing: ' + progress + '%';
+                
+                if (progress === "100") {
+                    document.getElementById('statusText').innerText = "Complete!";
+                    const link = document.getElementById('downloadLink');
+                    link.href = '/download/' + filename;
+                    link.style.display = 'inline-block';
+                    evtSource.close();
+                }
+            };
+        }
+    </script>
+</body>
+</html>
