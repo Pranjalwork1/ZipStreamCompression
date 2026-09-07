@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZipStream Rooms • Instant Document & File Sync</title>
+  <meta name="description" content="Instant real-time room-based document sharing with live in-browser PDF preview and ephemeral zero-cloud storage." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafafa;
+      --card-bg: #ffffff;
+      --border: rgba(0, 0, 0, 0.08);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --accent: #0071e3;
+      --accent-hover: #005bb5;
+      --accent-light: rgba(0, 113, 227, 0.08);
+      --success: #10b981;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f19;
+        --card-bg: #141b2d;
+        --border: rgba(255, 255, 255, 0.08);
+        --text-main: #f9fafb;
+        --text-sub: #9ca3af;
+        --accent: #2997ff;
+        --accent-hover: #147ce5;
+        --accent-light: rgba(41, 151, 255, 0.12);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+      border: 1px solid rgba(0, 113, 227, 0.15);
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+    }
+
+    p.subtitle {
+      font-size: 0.95rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.05);
+      text-align: left;
+    }
+
+    .btn-create {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 0.875rem;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 14px rgba(0, 113, 227, 0.25);
+    }
+
+    .btn-create:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-create:active {
+      transform: scale(0.99);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.75rem 0;
+      color: var(--text-sub);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .join-form {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .input-code {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      font-size: 1.125rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-align: center;
+      background: rgba(125, 125, 125, 0.05);
+      color: var(--text-main);
+      outline: none;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: border-color 0.2s;
+    }
+
+    .input-code:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .btn-join {
+      padding: 0.875rem 1.5rem;
+      background: rgba(125, 125, 125, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-join:hover {
+      background: rgba(125, 125, 125, 0.14);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+
+    .feature-item {
+      padding: 1rem 0.75rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      text-align: center;
+    }
+
+    .feature-icon {
+      font-size: 1.25rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .feature-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.2rem;
+    }
+
+    .feature-desc {
+      font-size: 0.68rem;
+      color: var(--text-sub);
+    }
+
+    .error-toast {
+      color: #ef4444;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      WebSocket Fast Sync • Zero Cloud
+    </div>
+
+    <h1>Instant Room Sharing</h1>
+    <p class="subtitle">
+      Create an ephemeral workspace, share your 6-digit code, and sync PDFs instantly with live in-browser preview.
+    </p>
+
+    <div class="card">
+      <button class="btn-create" id="btn-create-room">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        <span>Create New Room</span>
+      </button>
+
+      <div class="divider">or join existing</div>
+
+      <div class="join-form">
+        <input
+          type="text"
+          id="input-room-code"
+          class="input-code"
+          placeholder="492-103"
+          maxlength="7"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters"
+          spellcheck="false"
+        />
+        <button class="btn-join" id="btn-join-room">Join</button>
+      </div>
+      <div class="error-toast" id="error-toast">Please enter a valid 6-digit room code.</div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">WebSocket Sync</div>
+        <div class="feature-desc">Immediate alerts with 0s polling</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📄</div>
+        <div class="feature-title">Live PDF.js</div>
+        <div class="feature-desc">Preview pages before downloading</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">Auto-Purge</div>
+        <div class="feature-desc">Wiped when all users leave</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Generates human-friendly 6-digit room code e.g. 492-103
+    function generateRoomCode() {
+      const part1 = Math.floor(100 + Math.random() * 900);
+      const part2 = Math.floor(100 + Math.random() * 900);
+      return `${part1}-${part2}`;
+    }
+
+    const createBtn = document.getElementById('btn-create-room');
+    const joinBtn = document.getElementById('btn-join-room');
+    const inputCode = document.getElementById('input-room-code');
+    const errorToast = document.getElementById('error-toast');
+
+    // Auto-hyphenate 6-digit code during typing
+    inputCode.addEventListener('input', (e) => {
+      errorToast.style.display = 'none';
+      let val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      if (val.length > 3) {
+        val = val.slice(0, 3) + '-' + val.slice(3, 6);
+      }
+      e.target.value = val;
+    });
+
+    function navigateToRoom(code) {
+      const clean = code.trim().replace(/[^a-zA-Z0-9-]/g, '');
+      if (clean.length < 5) {
+        errorToast.style.display = 'block';
+        return;
+      }
+      window.location.href = `/room/${clean}`;
+    }
+
+    createBtn.addEventListener('click', () => {
+      const newRoom = generateRoomCode();
+      navigateToRoom(newRoom);
+    });
+
+    joinBtn.addEventListener('click', () => {
+      navigateToRoom(inputCode.value);
+    });
+
+    inputCode.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        navigateToRoom(inputCode.value);
+      }
+    });
+  </script>
+</body>
+</html>
