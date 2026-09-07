@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FliQR — Instant QR File Sharing</title>
+    <!-- Modern Typography & QR Code Generator CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-card: rgba(18, 24, 38, 0.85);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #a5b4fc, #6366f1, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-card);
+            border-radius: 24px;
+            padding: 36px;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 50px -10px var(--accent-glow);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Upload Zone */
+        .drop-zone {
+            border: 2px dashed rgba(99, 102, 241, 0.35);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            background: rgba(99, 102, 241, 0.03);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.08);
+            transform: scale(1.01);
+        }
+
+        .drop-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-primary);
+        }
+
+        .drop-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .drop-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Progress Area */
+        .progress-container {
+            display: none;
+            margin-top: 24px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #38bdf8);
+            border-radius: 999px;
+            transition: width 0.2s ease;
+        }
+
+        .status-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* QR Result Container */
+        .result-container {
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .qr-wrapper {
+            display: inline-block;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            margin-bottom: 24px;
+        }
+
+        .qr-wrapper img, .qr-wrapper canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .result-meta {
+            margin-bottom: 20px;
+        }
+
+        .result-filename {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+
+        .result-size {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .link-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .link-text {
+            color: #818cf8;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: left;
+        }
+
+        .link-text:hover {
+            text-decoration: underline;
+        }
+
+        .copy-btn {
+            background: var(--accent-primary);
+            color: #ffffff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .action-btn {
+            display: inline-block;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-card);
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .error-message {
+            display: none;
+            color: var(--error);
+            font-size: 14px;
+            margin-top: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/>
+                </svg>
+                FliQR
+            </div>
+            <p class="subtitle">Drop a file on desktop. Scan QR on mobile to download.</p>
+        </header>
+
+        <main class="card">
+            <!-- Upload Container -->
+            <div id="uploadSection">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="drop-title">Drop your file here</div>
+                    <div class="drop-desc">or click to browse from device</div>
+                    <input type="file" id="fileInput" class="file-input">
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressBar"></div>
+                    </div>
+                    <div class="status-text">
+                        <span id="statusLabel">Uploading file...</span>
+                        <span id="progressPct">0%</span>
+                    </div>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <!-- QR Result Container -->
+            <div id="resultSection" class="result-container">
+                <div class="qr-wrapper" id="qrcode"></div>
+
+                <div class="result-meta">
+                    <div class="result-filename" id="resFilename">document.pdf</div>
+                    <div class="result-size" id="resSize">2.4 MB • Scan with mobile camera</div>
+                </div>
+
+                <div class="link-box">
+                    <a href="#" id="directLink" class="link-text" target="_blank"></a>
+                    <button class="copy-btn" id="copyBtn" onclick="copyLink()">Copy</button>
+                </div>
+
+                <button class="action-btn" onclick="resetUploader()">Share Another File</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const resultSection = document.getElementById('resultSection');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressPct = document.getElementById('progressPct');
+        const statusLabel = document.getElementById('statusLabel');
+        const errorMessage = document.getElementById('errorMessage');
+        const qrcodeContainer = document.getElementById('qrcode');
+        const resFilename = document.getElementById('resFilename');
+        const resSize = document.getElementById('resSize');
+        const directLink = document.getElementById('directLink');
+
+        let qrcodeInstance = null;
+
+        // Trigger file select on drop-zone click
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // File drag and drop listeners
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleUpload(fileInput.files[0]);
+            }
+        });
+
+        function handleUpload(file) {
+            errorMessage.style.display = 'none';
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressPct.innerText = '0%';
+            statusLabel.innerText = 'Uploading to server...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            // Upload progress tracking
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = pct + '%';
+                    progressPct.innerText = pct + '%';
+                    if (pct === 100) {
+                        statusLabel.innerText = 'Generating QR code...';
+                    }
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.success) {
+                            displayQRCode(data);
+                        } else {
+                            showError('Upload failed: Server returned unsuccessful status.');
+                        }
+                    } catch (err) {
+                        showError('Invalid server response.');
+                    }
+                } else {
+                    let errDetail = 'Upload failed.';
+                    try {
+                        const errObj = JSON.parse(xhr.responseText);
+                        if (errObj.detail) errDetail = errObj.detail;
+                    } catch (_) {}
+                    showError(errDetail);
+                }
+            };
+
+            xhr.onerror = () => {
+                showError('Network error occurred during upload.');
+            };
+
+            xhr.send(formData);
+        }
+
+        function displayQRCode(data) {
+            uploadSection.style.display = 'none';
+            resultSection.style.display = 'block';
+
+            resFilename.innerText = data.original_filename;
+            resSize.innerText = `${data.size_mb} MB • Ready for mobile download`;
+            directLink.href = data.download_link;
+            directLink.innerText = data.download_link;
+
+            // Clear previous QR code
+            qrcodeContainer.innerHTML = '';
+
+            // Generate clean QR code via qrcode.js
+            qrcodeInstance = new QRCode(qrcodeContainer, {
+                text: data.download_link,
+                width: 220,
+                height: 220,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        function copyLink() {
+            const link = directLink.href;
+            navigator.clipboard.writeText(link).then(() => {
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.innerText = 'Copied!';
+                setTimeout(() => copyBtn.innerText = 'Copy', 2000);
+            });
+        }
+
+        function showError(msg) {
+            progressContainer.style.display = 'none';
+            errorMessage.innerText = msg;
+            errorMessage.style.display = 'block';
+        }
+
+        function resetUploader() {
+            fileInput.value = '';
+            uploadSection.style.display = 'block';
+            resultSection.style.display = 'none';
+            progressContainer.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
