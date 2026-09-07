@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Download,
   RotateCcw,
@@ -8,6 +8,8 @@ import {
   FileText,
   Copy,
   CheckCheck,
+  Share2,
+  ExternalLink,
 } from 'lucide-react';
 import { CompressionResult } from '../types';
 import { formatBytes, downloadBlob } from '../utils/formatters';
@@ -23,11 +25,62 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
 }) => {
   const [downloaded, setDownloaded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (!result?.compressedBlob) return;
+    try {
+      const url = URL.createObjectURL(result.compressedBlob);
+      setDownloadUrl(url);
+      return () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      };
+    } catch (err) {
+      console.warn('Failed to construct object URL for compressed blob:', err);
+    }
+  }, [result?.compressedBlob]);
 
   const handleDownload = () => {
-    downloadBlob(result.compressedBlob, result.compressedName);
+    try {
+      if (result?.compressedBlob) {
+        downloadBlob(result.compressedBlob, result.compressedName);
+      } else if (result?.serverDownloadUrl) {
+        window.open(result.serverDownloadUrl, '_blank');
+      }
+    } catch (err) {
+      console.error('Download execution error:', err);
+    }
     setDownloaded(true);
-    setTimeout(() => setDownloaded(false), 3000);
+    setTimeout(() => setDownloaded(false), 3500);
+  };
+
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function' && !!result?.compressedBlob;
+
+  const handleShare = async () => {
+    if (!canShare) return;
+    try {
+      const file = new File([result.compressedBlob], result.compressedName, {
+        type: result.compressedBlob.type || 'application/octet-stream',
+      });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: result.compressedName,
+          text: `Compressed file (${result.savedPercentage}% saved) via ZipStream`,
+        });
+      } else {
+        await navigator.share({
+          title: result.compressedName,
+          url: result.serverDownloadUrl || window.location.href,
+        });
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        handleDownload();
+      }
+    }
   };
 
   const handleCopyName = () => {
@@ -202,12 +255,15 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
 
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          {/* Download Button */}
-          <button
-            type="button"
+          {/* Primary Download Anchor Button */}
+          <a
             id="download-compressed-file-btn"
+            href={downloadUrl || result.serverDownloadUrl || '#'}
+            download={result.compressedName}
             onClick={handleDownload}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0062c4] text-white font-medium text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0062c4] text-white font-medium text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer no-underline select-none text-center"
           >
             {downloaded ? (
               <>
@@ -220,7 +276,20 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
                 <span>Save to Device ({formatBytes(result.compressedSize)})</span>
               </>
             )}
-          </button>
+          </a>
+
+          {/* Web Share API for Mobile Devices (iOS Safari, Android) */}
+          {canShare && (
+            <button
+              type="button"
+              id="share-compressed-file-btn"
+              onClick={handleShare}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-[#f0f6ff] dark:bg-[#182635] hover:bg-[#e1effe] dark:hover:bg-[#1e3247] text-[#0071e3] dark:text-[#2997ff] font-medium text-[14px] border border-[#0071e3]/20 dark:border-[#2997ff]/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share / Save</span>
+            </button>
+          )}
 
           {/* Compress Another */}
           <button
@@ -233,6 +302,22 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
             <span>Compress Another File</span>
           </button>
         </div>
+
+        {/* Alternate Direct Server Link if available */}
+        {result.serverDownloadUrl && (
+          <div className="text-center pt-1">
+            <a
+              href={result.serverDownloadUrl}
+              download={result.compressedName}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12px] text-[#0071e3] dark:text-[#2997ff] hover:underline font-medium"
+            >
+              <span>Alternative: Direct Server Download Link</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

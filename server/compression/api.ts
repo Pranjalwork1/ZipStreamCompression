@@ -366,9 +366,10 @@ router.get('/download/:jobId', async (req: Request, res: Response) => {
 
     res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
     res.setHeader('Content-Length', String(stat.size));
+    const cleanAsciiName = downloadName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}`
+      `attachment; filename="${cleanAsciiName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`
     );
     res.setHeader('X-Original-Size', String(result.originalSize));
     res.setHeader('X-Compressed-Size', String(result.compressedSize));

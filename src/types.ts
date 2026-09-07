@@ -99,6 +99,7 @@ export interface CompressionResult {
   reductionRatio: string;
   processingTimeSec: number;
   compressedPreviewUrl?: string;
+  serverDownloadUrl?: string;
   settings: CompressionSettings;
   timestamp: number;
   pdfPageCount?: number;

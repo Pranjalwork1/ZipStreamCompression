@@ -455,7 +455,9 @@ async function compressOnServerUnified(
       const statusData = await statusRes.json();
       if (statusData.status === 'completed') {
         onProgress?.(96, 'Downloading optimized file…');
-        const downloadRes = await fetch(`${backend}${statusData.result.downloadUrl}`, {
+        const downloadPath = statusData.result?.downloadUrl || `/api/compress/download/${jobId}`;
+        const directUrl = `${backend}${downloadPath}`;
+        const downloadRes = await fetch(directUrl, {
           signal: controller.signal,
         });
         if (!downloadRes.ok) throw new Error('Download failed');
@@ -466,6 +468,7 @@ async function compressOnServerUnified(
         return {
           blob,
           previewUrl: URL.createObjectURL(blob),
+          downloadUrl: directUrl,
         };
       }
 
@@ -490,7 +493,7 @@ async function compressPdfReal(
   file: File,
   settings: CompressionSettings,
   onPageProgress?: (current: number, total: number, stepText: string, progressPct: number) => void
-): Promise<{ blob: Blob; previewUrl?: string; pageCount: number }> {
+): Promise<{ blob: Blob; previewUrl?: string; pageCount: number; downloadUrl?: string }> {
   const originalSize = file.size;
 
   // Production-first path: Railway + Ghostscript gives real PDF object/image
@@ -506,6 +509,7 @@ async function compressPdfReal(
           blob: remote.blob,
           pageCount: remote.pageCount || 1,
           previewUrl: remote.previewUrl || URL.createObjectURL(remote.blob),
+          downloadUrl: remote.downloadUrl,
         };
       }
     } catch (remoteError) {
@@ -1116,6 +1120,7 @@ export async function processCompression(
   let activeStepText = steps[0];
   let compressedBlob: Blob;
   let compressedPreviewUrl: string | undefined;
+  let serverDownloadUrl: string | undefined;
   let pdfPageCount: number | undefined;
 
   let currentPercentage = 8;
@@ -1141,7 +1146,7 @@ export async function processCompression(
       stepIndex: maxStepReached,
       totalSteps,
       elapsedMs: elapsed,
-      speedMBps: Math.max(12.5, parseFloat(speed) || 18.4),
+      speedMBps: Math.max(14.5, parseFloat(speed) || 18.4),
     });
   };
 
@@ -1177,6 +1182,7 @@ export async function processCompression(
       if (remote) {
         compressedBlob = remote.blob;
         compressedPreviewUrl = remote.previewUrl;
+        serverDownloadUrl = remote.downloadUrl;
       } else {
         const realResult = await compressImageReal(fileInfo.file, settings, (pct, txt) => {
           setMilestone(pct, txt);
@@ -1196,6 +1202,9 @@ export async function processCompression(
       compressedBlob = realResult.blob;
       compressedPreviewUrl = realResult.previewUrl;
       pdfPageCount = realResult.pageCount;
+      if (realResult.downloadUrl) {
+        serverDownloadUrl = realResult.downloadUrl;
+      }
     } else if (fileInfo.category === 'audio') {
       setMilestone(25, 'Analyzing audio waveform & resampling PCM channels...');
       const realResult = await compressAudioReal(fileInfo.file, settings, (pct, txt) => setMilestone(pct, txt));
@@ -1236,7 +1245,7 @@ export async function processCompression(
     fileInfo.size > 0 ? Math.round((savedBytes / fileInfo.size) * 1000) / 10 : 0;
   const reductionRatio = `${(fileInfo.size / Math.max(1, finalSize)).toFixed(1)}x`;
   const processingTimeSec = parseFloat(((performance.now() - startTime) / 1000).toFixed(2));
-  const compressedName = generateCompressedFilename(fileInfo.name, settings.outputFormat);
+  const compressedName = generateCompressedFilename(fileInfo.name, settings.outputFormat, compressedBlob.type);
 
   return {
     id: `comp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -1249,6 +1258,7 @@ export async function processCompression(
     processingTimeSec,
     compressedName,
     compressedPreviewUrl,
+    serverDownloadUrl,
     settings,
     timestamp: Date.now(),
     pdfPageCount,

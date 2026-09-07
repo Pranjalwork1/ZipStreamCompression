@@ -83,7 +83,13 @@ async function startServer() {
 
   app.disable('x-powered-by');
   // REST API is called by the Vercel frontend in production.
-  app.use(cors({ origin: true, methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'X-Target-Size-Bytes', 'X-Compression-Level'] }));
+  app.use(cors({
+    origin: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-Target-Size-Bytes', 'X-Compression-Level'],
+    exposedHeaders: ['Content-Disposition', 'Content-Length', 'X-Original-Size', 'X-Compressed-Size', 'X-Reduction-Percentage', 'X-Compression-Engine', 'X-Compression-Status'],
+    credentials: true,
+  }));
   // Parse bodies before API routes; room documents are uploaded as base64 JSON.
   app.use(express.json({ limit: '70mb' }));
   app.use(express.urlencoded({ extended: true, limit: '70mb' }));

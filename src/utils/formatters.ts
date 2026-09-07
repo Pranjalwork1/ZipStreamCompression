@@ -82,12 +82,23 @@ export function getAcceptedExtensions(category: FileCategory): string {
   }
 }
 
-export function generateCompressedFilename(originalName: string, targetFormat?: string): string {
+export function generateCompressedFilename(originalName: string, targetFormat?: string, actualMimeType?: string): string {
   const lastDotIndex = originalName.lastIndexOf('.');
-  const baseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
+  const rawBaseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
+  const safeBase = rawBaseName.replace(/[\\/:*?"<>|#%&{}]/g, '_').trim() || 'file';
   let extension = lastDotIndex !== -1 ? originalName.substring(lastDotIndex) : '';
 
-  if (targetFormat && targetFormat !== 'original') {
+  // Determine extension from actual output MIME type if available
+  if (actualMimeType) {
+    if (actualMimeType === 'image/webp') extension = '.webp';
+    else if (actualMimeType === 'image/jpeg') extension = '.jpg';
+    else if (actualMimeType === 'image/png') extension = '.png';
+    else if (actualMimeType === 'application/pdf') extension = '.pdf';
+    else if (actualMimeType === 'audio/wav') extension = '.wav';
+    else if (actualMimeType === 'audio/mpeg' || actualMimeType === 'audio/mp3') extension = '.mp3';
+    else if (actualMimeType === 'video/webm') extension = '.webm';
+    else if (actualMimeType === 'video/mp4') extension = '.mp4';
+  } else if (targetFormat && targetFormat !== 'original') {
     if (targetFormat === 'image/webp') extension = '.webp';
     else if (targetFormat === 'image/jpeg') extension = '.jpg';
     else if (targetFormat === 'image/png') extension = '.png';
@@ -95,30 +106,80 @@ export function generateCompressedFilename(originalName: string, targetFormat?: 
     else if (targetFormat === 'audio/wav') extension = '.wav';
   }
 
-  return `${baseName}_compressed${extension}`;
+  return `${safeBase}_compressed${extension}`;
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
+  if (!blob) {
+    console.error('downloadBlob: Blob is missing or invalid');
+    return;
+  }
+
+  // Ensure safe filename for local filesystem
+  const safeFilename = filename.replace(/[\\/:*?"<>|]/g, '_').trim() || 'compressed_file';
+
+  // Support legacy Microsoft browsers (IE / older Edge)
+  if (typeof (window.navigator as any)?.msSaveOrOpenBlob === 'function') {
+    try {
+      (window.navigator as any).msSaveOrOpenBlob(blob, safeFilename);
+      return;
+    } catch (e) {
+      console.warn('msSaveOrOpenBlob failed, proceeding with anchor download:', e);
+    }
+  }
+
+  const safeBlob = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(safeBlob);
+
   const anchor = document.createElement('a');
+  anchor.style.position = 'fixed';
+  anchor.style.top = '-9999px';
+  anchor.style.left = '-9999px';
+  anchor.style.opacity = '0';
   anchor.href = url;
-  anchor.download = filename;
+  anchor.download = safeFilename;
+  anchor.rel = 'noopener noreferrer';
+  anchor.target = '_blank'; // Helpful fallback if browser ignores download attribute
+
   document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+  try {
+    const clickEvent = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+    });
+    anchor.dispatchEvent(clickEvent);
+  } catch {
+    anchor.click();
+  }
+
+  // Retain anchor in DOM briefly: removing synchronously cancels the download in Chrome, Firefox, and WebKit
+  setTimeout(() => {
+    try {
+      if (anchor.parentNode) {
+        anchor.parentNode.removeChild(anchor);
+      }
+    } catch {}
+  }, 2000);
+
+  // Keep object URL alive for 60 seconds to ensure the browser finishes streaming the payload
+  setTimeout(() => {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {}
+  }, 60000);
 }
 
 /**
  * Zips multiple compressed results into a single convenient archive download
  */
-export async function downloadBatchZip(results: CompressionResult[], zipFilename = 'Compressed_Files.zip'): Promise<void> {
+export async function downloadBatchZip(results: any[], zipFilename = 'Compressed_Files.zip'): Promise<void> {
   const zip = new JSZip();
-  results.forEach((res, index) => {
-    // Prevent duplicate filenames in zip
-    const name = results.filter((r) => r.compressedName === res.compressedName).length > 1
-      ? `${index + 1}_${res.compressedName}`
-      : res.compressedName;
+  results.forEach((item, index) => {
+    const res: CompressionResult = item?.result || item;
+    if (!res?.compressedBlob) return;
+    const name = res.compressedName || `compressed_file_${index + 1}`;
     zip.file(name, res.compressedBlob);
   });
 
