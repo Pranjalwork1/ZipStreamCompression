@@ -40,18 +40,18 @@ export async function processImage(
   // Quality & Resolution tuning according to iLoveIMG / iLovePDF presets
   let quality = 75;
   let maxWidth = 2560;
-  let effort = 4;
+  let effort = 3;
 
   if (level === 'high') {
     // Smaller / Extreme
     quality = 50;
     maxWidth = 1920;
-    effort = 5;
+    effort = 4;
   } else if (level === 'low') {
     // Less / Best Quality
     quality = 85;
     maxWidth = 3840;
-    effort = 3;
+    effort = 2;
   }
 
   // 1. Auto-rotate based on EXIF orientation first, then strip all EXIF / ICC / XMP metadata

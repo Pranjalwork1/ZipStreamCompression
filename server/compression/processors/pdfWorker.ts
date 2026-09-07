@@ -37,65 +37,78 @@ async function compressPdfInStream(
 
   const context = pdfDoc.context;
   const indirectObjects = context.enumerateIndirectObjects();
-  const totalObjects = indirectObjects.length;
-  let processedObjects = 0;
+  
+  // 1. Rapidly collect candidate raster image streams
+  interface ImageTask {
+    obj: any;
+    dict: any;
+    origBuffer: Buffer;
+  }
+  const imageTasks: ImageTask[] = [];
 
   for (const [ref, obj] of indirectObjects) {
-    processedObjects++;
-    if (processedObjects % 25 === 0 && onProgress) {
-      const pct = Math.min(85, 30 + Math.floor((processedObjects / totalObjects) * 55));
-      await onProgress(pct);
-    }
-
     if (obj instanceof PDFRawStream) {
       const dict = obj.dict;
       const subtype = dict.get(PDFName.of('Subtype'));
       if (subtype === PDFName.of('Image')) {
         const filterStr = dict.get(PDFName.of('Filter'))?.toString() || '';
-        const isDct = filterStr.includes('DCTDecode');
-        const isFlate = filterStr.includes('FlateDecode');
-
-        // Only process supported raster images
-        if (isDct || isFlate) {
-          const origBuffer = Buffer.from(obj.contents);
-          try {
-            // Attempt sharp recompression
-            let pipeline = sharp(origBuffer, { failOn: 'none' })
-              .resize({
-                width: maxDimension,
-                height: maxDimension,
-                fit: 'inside',
-                withoutEnlargement: true,
-              })
-              .jpeg({
-                quality: jpegQuality,
-                mozjpeg: true,
-                chromaSubsampling: level === 'high' ? '4:2:0' : '4:4:4',
-              });
-
-            const recompressed = await pipeline.toBuffer();
-
-            // Only substitute if recompression actually reduced the image byte size
-            if (recompressed.length < origBuffer.length) {
-              (obj as any).contents = new Uint8Array(recompressed);
-              dict.set(PDFName.of('Length'), PDFNumber.of(recompressed.length));
-              dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
-              // Remove ColorTransform or decode parameters if conflicting
-              dict.delete(PDFName.of('DecodeParms'));
-
-              const meta = await sharp(recompressed).metadata();
-              if (meta.width) dict.set(PDFName.of('Width'), PDFNumber.of(meta.width));
-              if (meta.height) dict.set(PDFName.of('Height'), PDFNumber.of(meta.height));
-            }
-          } catch {
-            // If image decompression fails (e.g. specialized CMYK or vector mask), keep original intact
-          }
+        if (filterStr.includes('DCTDecode') || filterStr.includes('FlateDecode')) {
+          imageTasks.push({
+            obj,
+            dict,
+            origBuffer: Buffer.from(obj.contents),
+          });
         }
       }
     }
   }
 
-  const compressedBytes = await pdfDoc.save({ useObjectStreams: true, addDefaultPage: false });
+  // 2. Process image tasks with high-throughput concurrency
+  const totalTasks = imageTasks.length;
+  let completedTasks = 0;
+  const BATCH_SIZE = 6;
+
+  for (let i = 0; i < totalTasks; i += BATCH_SIZE) {
+    const chunk = imageTasks.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      chunk.map(async ({ obj, dict, origBuffer }) => {
+        try {
+          const recompressed = await sharp(origBuffer, { failOn: 'none' })
+            .resize({
+              width: maxDimension,
+              height: maxDimension,
+              fit: 'inside',
+              withoutEnlargement: true,
+            })
+            .jpeg({
+              quality: jpegQuality,
+              mozjpeg: true,
+              chromaSubsampling: level === 'high' ? '4:2:0' : '4:4:4',
+            })
+            .toBuffer();
+
+          if (recompressed.length < origBuffer.length) {
+            obj.contents = new Uint8Array(recompressed);
+            dict.set(PDFName.of('Length'), PDFNumber.of(recompressed.length));
+            dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
+            dict.delete(PDFName.of('DecodeParms'));
+
+            const meta = await sharp(recompressed).metadata();
+            if (meta.width) dict.set(PDFName.of('Width'), PDFNumber.of(meta.width));
+            if (meta.height) dict.set(PDFName.of('Height'), PDFNumber.of(meta.height));
+          }
+        } catch {}
+      })
+    );
+
+    completedTasks += chunk.length;
+    if (onProgress && totalTasks > 0) {
+      const pct = Math.min(88, 30 + Math.floor((completedTasks / totalTasks) * 55));
+      await onProgress(pct);
+    }
+  }
+
+  const compressedBytes = await pdfDoc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 100 });
   await fs.writeFile(outputFilePath, compressedBytes);
   return compressedBytes.length;
 }
@@ -149,7 +162,7 @@ export async function processPdf(
     '-dBATCH',
     '-dSAFER',
     '-dBufferSpace=1000000000',
-    '-dNumRenderingThreads=2',
+    '-dNumRenderingThreads=4',
     '-dDetectDuplicateImages=true',
     '-dCompressFonts=true',
     '-dSubsetFonts=true',
