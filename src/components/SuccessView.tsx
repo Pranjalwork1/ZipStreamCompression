@@ -25,32 +25,36 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
 }) => {
   const [downloaded, setDownloaded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState<string>('');
 
-  useEffect(() => {
-    if (!result?.compressedBlob) return;
+  // Synchronously compute object URL so it is immediately available on first render
+  const downloadUrl = React.useMemo(() => {
+    if (!result?.compressedBlob) return '';
     try {
-      const url = URL.createObjectURL(result.compressedBlob);
-      setDownloadUrl(url);
-      return () => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch {}
-      };
+      return URL.createObjectURL(result.compressedBlob);
     } catch (err) {
       console.warn('Failed to construct object URL for compressed blob:', err);
+      return '';
     }
   }, [result?.compressedBlob]);
 
-  const handleDownload = () => {
-    try {
-      if (result?.compressedBlob) {
-        downloadBlob(result.compressedBlob, result.compressedName);
-      } else if (result?.serverDownloadUrl) {
-        window.open(result.serverDownloadUrl, '_blank');
+  useEffect(() => {
+    return () => {
+      if (downloadUrl) {
+        try {
+          URL.revokeObjectURL(downloadUrl);
+        } catch {}
       }
-    } catch (err) {
-      console.error('Download execution error:', err);
+    };
+  }, [downloadUrl]);
+
+  const handleDownload = () => {
+    // Only dispatch synthetic download if direct anchor href is missing
+    if (!downloadUrl && !result?.serverDownloadUrl && result?.compressedBlob) {
+      try {
+        downloadBlob(result.compressedBlob, result.compressedName);
+      } catch (err) {
+        console.error('Download execution error:', err);
+      }
     }
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 3500);
@@ -261,7 +265,6 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
             href={downloadUrl || result.serverDownloadUrl || '#'}
             download={result.compressedName}
             onClick={handleDownload}
-            target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0062c4] text-white font-medium text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer no-underline select-none text-center"
           >

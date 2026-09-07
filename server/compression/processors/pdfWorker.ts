@@ -128,7 +128,7 @@ export async function processPdf(
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
   const gsPath = process.env.GHOSTSCRIPT_PATH || 'gs';
-  const timeoutMs = Number(process.env.PDF_TIMEOUT_MS) || 180000;
+  const timeoutMs = Number(process.env.PDF_TIMEOUT_MS) || 15000;
   const level = job.options?.level || 'medium';
 
   if (onProgress) await onProgress(10);
@@ -137,20 +137,17 @@ export async function processPdf(
   let pdfSettings = '/ebook';
   let dpi = 144;
   let monoDpi = 240;
-  let jpegQ = 70;
 
   if (level === 'high') {
     // Extreme / Smaller
     pdfSettings = '/screen';
     dpi = 72;
     monoDpi = 150;
-    jpegQ = 50;
   } else if (level === 'low') {
     // Less / Best Quality
     pdfSettings = '/printer';
     dpi = 200;
     monoDpi = 300;
-    jpegQ = 85;
   }
 
   const args = [
@@ -161,26 +158,16 @@ export async function processPdf(
     '-dQUIET',
     '-dBATCH',
     '-dSAFER',
-    '-dBufferSpace=1000000000',
-    '-dNumRenderingThreads=4',
     '-dDetectDuplicateImages=true',
     '-dCompressFonts=true',
     '-dSubsetFonts=true',
-    '-dAutoRotatePages=/PageByPage',
+    '-dAutoRotatePages=/None',
     '-dDownsampleColorImages=true',
     '-dDownsampleGrayImages=true',
     '-dDownsampleMonoImages=true',
-    '-dColorImageDownsampleType=/Bicubic',
-    '-dGrayImageDownsampleType=/Bicubic',
-    '-dMonoImageDownsampleType=/Subsample',
     `-dColorImageResolution=${dpi}`,
     `-dGrayImageResolution=${dpi}`,
     `-dMonoImageResolution=${monoDpi}`,
-    '-dAutoFilterColorImages=false',
-    '-dColorImageFilter=/DCTEncode',
-    '-dAutoFilterGrayImages=false',
-    '-dGrayImageFilter=/DCTEncode',
-    `-dJPEGQ=${jpegQ}`,
     `-sOutputFile=${job.outputFilePath}`,
     job.inputFilePath,
   ];
@@ -194,29 +181,12 @@ export async function processPdf(
       maxBuffer: 16 * 1024 * 1024,
     });
   } catch (err: any) {
-    if (err.code === 'ENOENT') {
-      console.warn(`[PDFWorker] Ghostscript ('${gsPath}') not found on system PATH. Activating native in-stream image optimizer...`);
-      usedFallback = true;
-      try {
-        await compressPdfInStream(job.inputFilePath, job.outputFilePath, level, onProgress);
-      } catch (fallbackErr: any) {
-        throw new Error(`PDF compression failed: ${fallbackErr.message}`);
-      }
-    } else if (err.killed || err.signal === 'SIGTERM') {
-      throw new Error(`PDF compression timed out after ${Math.round(timeoutMs / 1000)} seconds.`);
-    } else {
-      const stderr = err.stderr ? err.stderr.toString() : '';
-      if (stderr.includes('Unrecoverable error') || stderr.includes('Error:') || err.code) {
-        console.warn(`[PDFWorker] Ghostscript error (${stderr || err.message}). Falling back to native in-stream optimizer...`);
-        usedFallback = true;
-        try {
-          await compressPdfInStream(job.inputFilePath, job.outputFilePath, level, onProgress);
-        } catch (fallbackErr: any) {
-          throw new Error(`Ghostscript failed and fallback optimizer failed: ${fallbackErr.message}`);
-        }
-      } else {
-        throw err;
-      }
+    console.warn(`[PDFWorker] Ghostscript not used or timed out (${err.message}). Running native in-stream optimizer...`);
+    usedFallback = true;
+    try {
+      await compressPdfInStream(job.inputFilePath, job.outputFilePath, level, onProgress);
+    } catch (fallbackErr: any) {
+      throw new Error(`PDF compression failed: ${fallbackErr.message}`);
     }
   }
 

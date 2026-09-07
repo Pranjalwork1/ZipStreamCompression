@@ -139,7 +139,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
   anchor.href = url;
   anchor.download = safeFilename;
   anchor.rel = 'noopener noreferrer';
-  anchor.target = '_blank'; // Helpful fallback if browser ignores download attribute
 
   document.body.appendChild(anchor);
 
