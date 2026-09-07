@@ -85,11 +85,37 @@ async function startServer() {
   // REST API is called by the Vercel frontend in production.
   app.use(cors({
     origin: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-Target-Size-Bytes', 'X-Compression-Level'],
-    exposedHeaders: ['Content-Disposition', 'Content-Length', 'X-Original-Size', 'X-Compressed-Size', 'X-Reduction-Percentage', 'X-Compression-Engine', 'X-Compression-Status'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'X-Target-Size-Bytes',
+      'X-Compression-Level',
+      'X-File-Name',
+      'X-File-Type',
+      'X-File-Sha256',
+      'X-File-Size',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    exposedHeaders: [
+      'Content-Disposition',
+      'Content-Length',
+      'Content-Type',
+      'X-Original-Size',
+      'X-Compressed-Size',
+      'X-Reduction-Percentage',
+      'X-Compression-Engine',
+      'X-Compression-Status',
+      'X-File-Name',
+      'X-File-Type',
+      'X-File-Sha256',
+      'X-File-Size',
+    ],
     credentials: true,
   }));
+  app.options('*', cors());
   // Parse bodies before API routes; room documents are uploaded as base64 JSON.
   app.use(express.json({ limit: '70mb' }));
   app.use(express.urlencoded({ extended: true, limit: '70mb' }));
@@ -375,6 +401,7 @@ async function startServer() {
           page: activeDoc.page || 1,
           zoom: activeDoc.zoom || 1.0,
           scrollRatio: activeDoc.scrollRatio || 0,
+          sha256: activeDoc.sha256,
         });
       }
     });
@@ -491,8 +518,8 @@ async function startServer() {
     if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
 
     let rawBuffer: Buffer;
-    let fileName = String(req.header('x-file-name') || 'Shared File');
-    let fileType = req.header('x-file-type') || req.header('content-type') || 'application/octet-stream';
+    let rawFileName = String(req.query.fileName || req.header('x-file-name') || 'Shared File');
+    let fileType = String(req.query.fileType || req.header('x-file-type') || req.header('content-type') || 'application/octet-stream');
     let page = 1, zoom = 1, scrollRatio = 0;
 
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
@@ -502,7 +529,7 @@ async function startServer() {
         const parsed = JSON.parse(body.toString('utf8'));
         if (typeof parsed.dataBase64 === 'string') {
           rawBuffer = Buffer.from(parsed.dataBase64, 'base64');
-          fileName = parsed.fileName || fileName;
+          rawFileName = parsed.fileName || rawFileName;
           fileType = parsed.fileType || fileType;
           page = Number(parsed.page) || 1;
           zoom = Number(parsed.zoom) || 1;
@@ -512,7 +539,12 @@ async function startServer() {
     } else {
       rawBuffer = body;
     }
-    fileName = decodeURIComponent(fileName).replace(/[\\/]/g, '_').slice(0, 240) || 'Shared File';
+    let fileName: string;
+    try {
+      fileName = decodeURIComponent(rawFileName).replace(/[\\/]/g, '_').slice(0, 240) || 'Shared File';
+    } catch {
+      fileName = rawFileName.replace(/[\\/]/g, '_').slice(0, 240) || 'Shared File';
+    }
 
     if (!rawBuffer?.length) return res.status(400).json({ error: 'File body is empty' });
     if (rawBuffer.length > MAX_ROOM_DOCUMENT_BYTES) return res.status(413).json({ error: `File exceeds the ${Math.round(MAX_ROOM_DOCUMENT_BYTES / 1024 / 1024)}MB room limit` });
