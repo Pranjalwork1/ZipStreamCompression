@@ -13,6 +13,7 @@ import {
   Eye,
   SlidersHorizontal,
   Maximize2,
+  Minimize2,
   X,
   Plus,
   ArrowLeft,
@@ -22,6 +23,10 @@ import {
   Archive,
   Smartphone,
   Check,
+  Crop,
+  Zap,
+  ZapOff,
+  Move,
 } from 'lucide-react';
 import { ScannedPage, ScanFilterMode } from '../types';
 import {
@@ -42,6 +47,15 @@ interface PageAdjustmentState {
   contrast: number;
 }
 
+export interface CropBox {
+  x: number; // percentage from left [0, 100]
+  y: number; // percentage from top [0, 100]
+  w: number; // width percentage [0, 100]
+  h: number; // height percentage [0, 100]
+}
+
+const DEFAULT_CROP_BOX: CropBox = { x: 10, y: 8, w: 80, h: 84 };
+
 export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome }) => {
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
@@ -52,6 +66,18 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   const [isFlashing, setIsFlashing] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
+
+  // Document Viewfinder Crop Box & Mobile Enhancements
+  const [cropBox, setCropBox] = useState<CropBox>(DEFAULT_CROP_BOX);
+  const [cropPreset, setCropPreset] = useState<'a4' | 'receipt' | 'idcard' | 'full' | 'custom'>('a4');
+  const [isCameraFullscreen, setIsCameraFullscreen] = useState<boolean>(false);
+  const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
+  const [hasTorch, setHasTorch] = useState<boolean>(false);
+
+  // Post-capture Crop Modal state for editing existing pages
+  const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
+  const [modalCropBox, setModalCropBox] = useState<CropBox>({ x: 5, y: 5, w: 90, h: 90 });
+  const [isModalCropping, setIsModalCropping] = useState<boolean>(false);
 
   // PDF Export Settings
   const [pdfPageSize, setPdfPageSize] = useState<'a4' | 'fit'>('a4');
@@ -69,6 +95,8 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   const streamRef = useRef<MediaStream | null>(null);
   const mobileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraContainerRef = useRef<HTMLDivElement | null>(null);
+  const modalCropContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Safely attach stream to video element whenever node mounts or stream updates
   const setVideoRef = useCallback((node: HTMLVideoElement | null) => {
@@ -98,6 +126,36 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     };
   }, []);
 
+  // Apply Document Viewfinder Preset
+  const applyCropPreset = (preset: 'a4' | 'receipt' | 'idcard' | 'full') => {
+    setCropPreset(preset);
+    if (preset === 'a4') {
+      setCropBox({ x: 12, y: 8, w: 76, h: 84 });
+    } else if (preset === 'receipt') {
+      setCropBox({ x: 22, y: 4, w: 56, h: 92 });
+    } else if (preset === 'idcard') {
+      setCropBox({ x: 10, y: 22, w: 80, h: 56 });
+    } else if (preset === 'full') {
+      setCropBox({ x: 2, y: 2, w: 96, h: 96 });
+    }
+  };
+
+  // Toggle device torch (flashlight) if supported
+  const toggleTorch = async () => {
+    if (streamRef.current) {
+      const track = streamRef.current.getVideoTracks()[0];
+      if (track) {
+        try {
+          const nextTorch = !isTorchOn;
+          await (track as any).applyConstraints({ advanced: [{ torch: nextTorch }] });
+          setIsTorchOn(nextTorch);
+        } catch (err) {
+          console.warn('Torch toggle error:', err);
+        }
+      }
+    }
+  };
+
   // Stop Camera Stream
   const stopCamera = () => {
     if (streamRef.current) {
@@ -108,6 +166,8 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       videoRef.current.srcObject = null;
     }
     setIsCameraActive(false);
+    setIsTorchOn(false);
+    setIsCameraFullscreen(false);
   };
 
   // Start Camera Stream with robust fallback handling
@@ -147,6 +207,12 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       setCameraFacing(targetFacing);
       setIsCameraActive(true);
 
+      // Check device torch capability
+      const track = stream.getVideoTracks()[0];
+      const caps = (track?.getCapabilities?.() || {}) as any;
+      setHasTorch(Boolean(caps?.torch));
+      setIsTorchOn(false);
+
       // If video element is already mounted, attach immediately
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -171,23 +237,311 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     startCamera(nextFacing);
   };
 
-  // Capture photo from live camera with shutter flash animation
+  // Drag handler for Camera Viewfinder Corner Handles
+  const handleStartCropDrag = (
+    handle: 'tl' | 'tr' | 'bl' | 'br' | 'center',
+    e: React.PointerEvent
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!cameraContainerRef.current) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialBox = { ...cropBox };
+    const rect = cameraContainerRef.current.getBoundingClientRect();
+
+    const handlePointerMove = (moveEvt: PointerEvent) => {
+      moveEvt.preventDefault();
+      const deltaXPercent = ((moveEvt.clientX - startX) / rect.width) * 100;
+      const deltaYPercent = ((moveEvt.clientY - startY) / rect.height) * 100;
+
+      setCropBox((prev) => {
+        let { x, y, w, h } = initialBox;
+
+        if (handle === 'center') {
+          const nextX = Math.max(0, Math.min(100 - w, x + deltaXPercent));
+          const nextY = Math.max(0, Math.min(100 - h, y + deltaYPercent));
+          return { ...prev, x: nextX, y: nextY };
+        }
+
+        if (handle === 'tl') {
+          const maxLeft = x + w - 15;
+          const maxTop = y + h - 15;
+          const nextX = Math.max(0, Math.min(maxLeft, x + deltaXPercent));
+          const nextY = Math.max(0, Math.min(maxTop, y + deltaYPercent));
+          return {
+            x: nextX,
+            y: nextY,
+            w: w - (nextX - x),
+            h: h - (nextY - y),
+          };
+        }
+
+        if (handle === 'tr') {
+          const maxTop = y + h - 15;
+          const nextY = Math.max(0, Math.min(maxTop, y + deltaYPercent));
+          const nextW = Math.max(15, Math.min(100 - x, w + deltaXPercent));
+          return {
+            ...prev,
+            y: nextY,
+            w: nextW,
+            h: h - (nextY - y),
+          };
+        }
+
+        if (handle === 'bl') {
+          const maxLeft = x + w - 15;
+          const maxTop = y + h - 15;
+          const nextX = Math.max(0, Math.min(maxLeft, x + deltaXPercent));
+          const nextH = Math.max(15, Math.min(100 - y, h + deltaYPercent));
+          return {
+            ...prev,
+            x: nextX,
+            w: w - (nextX - x),
+            h: nextH,
+          };
+        }
+
+        if (handle === 'br') {
+          const nextW = Math.max(15, Math.min(100 - x, w + deltaXPercent));
+          const nextH = Math.max(15, Math.min(100 - y, h + deltaYPercent));
+          return {
+            ...prev,
+            w: nextW,
+            h: nextH,
+          };
+        }
+
+        return prev;
+      });
+      setCropPreset('custom');
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Drag handler for Post-Capture Modal Cropping
+  const handleStartModalCropDrag = (
+    handle: 'tl' | 'tr' | 'bl' | 'br' | 'center',
+    e: React.PointerEvent
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!modalCropContainerRef.current) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialBox = { ...modalCropBox };
+    const rect = modalCropContainerRef.current.getBoundingClientRect();
+
+    const handlePointerMove = (moveEvt: PointerEvent) => {
+      moveEvt.preventDefault();
+      const deltaXPercent = ((moveEvt.clientX - startX) / rect.width) * 100;
+      const deltaYPercent = ((moveEvt.clientY - startY) / rect.height) * 100;
+
+      setModalCropBox((prev) => {
+        let { x, y, w, h } = initialBox;
+
+        if (handle === 'center') {
+          const nextX = Math.max(0, Math.min(100 - w, x + deltaXPercent));
+          const nextY = Math.max(0, Math.min(100 - h, y + deltaYPercent));
+          return { ...prev, x: nextX, y: nextY };
+        }
+
+        if (handle === 'tl') {
+          const maxLeft = x + w - 10;
+          const maxTop = y + h - 10;
+          const nextX = Math.max(0, Math.min(maxLeft, x + deltaXPercent));
+          const nextY = Math.max(0, Math.min(maxTop, y + deltaYPercent));
+          return {
+            x: nextX,
+            y: nextY,
+            w: w - (nextX - x),
+            h: h - (nextY - y),
+          };
+        }
+
+        if (handle === 'tr') {
+          const maxTop = y + h - 10;
+          const nextY = Math.max(0, Math.min(maxTop, y + deltaYPercent));
+          const nextW = Math.max(10, Math.min(100 - x, w + deltaXPercent));
+          return {
+            ...prev,
+            y: nextY,
+            w: nextW,
+            h: h - (nextY - y),
+          };
+        }
+
+        if (handle === 'bl') {
+          const maxLeft = x + w - 10;
+          const maxTop = y + h - 10;
+          const nextX = Math.max(0, Math.min(maxLeft, x + deltaXPercent));
+          const nextH = Math.max(10, Math.min(100 - y, h + deltaYPercent));
+          return {
+            ...prev,
+            x: nextX,
+            w: w - (nextX - x),
+            h: nextH,
+          };
+        }
+
+        if (handle === 'br') {
+          const nextW = Math.max(10, Math.min(100 - x, w + deltaXPercent));
+          const nextH = Math.max(10, Math.min(100 - y, h + deltaYPercent));
+          return {
+            ...prev,
+            w: nextW,
+            h: nextH,
+          };
+        }
+
+        return prev;
+      });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Apply post-capture crop to current page
+  const handleApplyPageCrop = async () => {
+    if (pages.length === 0 || activePageIndex >= pages.length) return;
+    const currentPage = pages[activePageIndex];
+    setIsModalCropping(true);
+
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = currentPage.originalDataUrl;
+      });
+
+      const srcW = img.width;
+      const srcH = img.height;
+
+      const sx = Math.max(0, Math.round((modalCropBox.x / 100) * srcW));
+      const sy = Math.max(0, Math.round((modalCropBox.y / 100) * srcH));
+      const sw = Math.min(srcW - sx, Math.max(20, Math.round((modalCropBox.w / 100) * srcW)));
+      const sh = Math.min(srcH - sy, Math.max(20, Math.round((modalCropBox.h / 100) * srcH)));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context unavailable');
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.94);
+
+      const adj = pageAdjustments[currentPage.id] || { brightness: 0, contrast: 0 };
+      const filtered = await processDocumentFilter(
+        croppedDataUrl,
+        currentPage.filter,
+        currentPage.rotation,
+        adj
+      );
+
+      setPages((prev) => {
+        const copy = [...prev];
+        copy[activePageIndex] = {
+          ...copy[activePageIndex],
+          originalDataUrl: croppedDataUrl,
+          dataUrl: filtered.dataUrl,
+          blob: filtered.blob,
+          width: filtered.width,
+          height: filtered.height,
+        };
+        return copy;
+      });
+
+      setIsCropModalOpen(false);
+    } catch (cropErr) {
+      console.error('Failed to crop page:', cropErr);
+      alert('Failed to crop page.');
+    } finally {
+      setIsModalCropping(false);
+    }
+  };
+
+  // Capture photo from live camera strictly inside the document border lines
   const capturePhoto = async () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
+    const container = cameraContainerRef.current;
 
     // Trigger visual shutter flash
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 180);
 
+    // Haptic feedback for mobile phones
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(40);
+    }
+
+    const W_v = video.videoWidth || 1280;
+    const H_v = video.videoHeight || 720;
+
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceW = W_v;
+    let sourceH = H_v;
+
+    // Map screen crop coordinates exactly to video resolution
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const W_c = rect.width;
+      const H_c = rect.height;
+
+      const containerAspect = W_c / H_c;
+      const videoAspect = W_v / H_v;
+
+      let scale: number;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (containerAspect > videoAspect) {
+        scale = W_c / W_v;
+        offsetY = (H_v * scale - H_c) / 2;
+      } else {
+        scale = H_c / H_v;
+        offsetX = (W_v * scale - W_c) / 2;
+      }
+
+      const cropLeft = (cropBox.x / 100) * W_c;
+      const cropTop = (cropBox.y / 100) * H_c;
+      const cropWidth = (cropBox.w / 100) * W_c;
+      const cropHeight = (cropBox.h / 100) * H_c;
+
+      sourceX = Math.max(0, Math.round((cropLeft + offsetX) / scale));
+      sourceY = Math.max(0, Math.round((cropTop + offsetY) / scale));
+      sourceW = Math.min(W_v - sourceX, Math.max(20, Math.round(cropWidth / scale)));
+      sourceH = Math.min(H_v - sourceY, Math.max(20, Math.round(cropHeight / scale)));
+    }
+
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    canvas.width = sourceW;
+    canvas.height = sourceH;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    // Extract strictly the area inside the border line
+    ctx.drawImage(video, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.94);
 
     await addScannedPageFromDataUrl(dataUrl);
   };
@@ -697,9 +1051,16 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             : 'border-black/[0.08] dark:border-white/[0.08]'
         } shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 transition-all`}
       >
-        {/* Camera Live Viewfinder / Capture Section */}
+        {/* Camera Live Viewfinder / Capture Section with Corner Points & Document Border Line */}
         {isCameraActive ? (
-          <div className="relative rounded-[20px] overflow-hidden bg-black aspect-4/3 max-h-[460px] flex items-center justify-center shadow-lg border border-white/10">
+          <div
+            ref={cameraContainerRef}
+            className={`${
+              isCameraFullscreen
+                ? 'fixed inset-0 z-50 bg-black flex flex-col justify-between p-2 sm:p-4'
+                : 'relative rounded-[24px] overflow-hidden bg-black h-[68vh] sm:h-[520px] max-h-[640px] flex items-center justify-center shadow-2xl border border-white/10'
+            } select-none transition-all`}
+          >
             {/* Live Video Stream Element */}
             <video
               ref={setVideoRef}
@@ -711,28 +1072,171 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
 
             {/* Visual Shutter Flash Overlay */}
             {isFlashing && (
-              <div className="absolute inset-0 bg-white z-20 pointer-events-none transition-opacity duration-150" />
+              <div className="absolute inset-0 bg-white z-40 pointer-events-none transition-opacity duration-150" />
             )}
 
-            {/* Viewfinder Alignment Frame */}
-            <div className="absolute inset-6 sm:inset-10 border border-white/30 rounded-2xl pointer-events-none flex flex-col justify-between p-4">
-              <div className="flex justify-between">
-                <span className="w-5 h-5 border-t-3 border-l-3 border-[#34c759]" />
-                <span className="w-5 h-5 border-t-3 border-r-3 border-[#34c759]" />
+            {/* Dark Mask Overlays: Masks out unwanted background outside document border lines */}
+            <div
+              className="absolute top-0 left-0 right-0 bg-black/55 backdrop-blur-[1px] pointer-events-none transition-all z-10"
+              style={{ height: `${cropBox.y}%` }}
+            />
+            <div
+              className="absolute left-0 right-0 bottom-0 bg-black/55 backdrop-blur-[1px] pointer-events-none transition-all z-10"
+              style={{ top: `${cropBox.y + cropBox.h}%` }}
+            />
+            <div
+              className="absolute left-0 bg-black/55 backdrop-blur-[1px] pointer-events-none transition-all z-10"
+              style={{
+                top: `${cropBox.y}%`,
+                height: `${cropBox.h}%`,
+                width: `${cropBox.x}%`,
+              }}
+            />
+            <div
+              className="absolute right-0 bg-black/55 backdrop-blur-[1px] pointer-events-none transition-all z-10"
+              style={{
+                top: `${cropBox.y}%`,
+                height: `${cropBox.h}%`,
+                width: `${Math.max(0, 100 - (cropBox.x + cropBox.w))}%`,
+              }}
+            />
+
+            {/* Illuminated Document Border Line with 4 Corner Points */}
+            <div
+              className="absolute border-2 border-[#34c759] shadow-[0_0_20px_rgba(52,199,89,0.45)] z-20 select-none"
+              style={{
+                left: `${cropBox.x}%`,
+                top: `${cropBox.y}%`,
+                width: `${cropBox.w}%`,
+                height: `${cropBox.h}%`,
+              }}
+            >
+              {/* L-shaped Bold Corner Brackets */}
+              <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#34c759] rounded-tl pointer-events-none shadow-sm" />
+              <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#34c759] rounded-tr pointer-events-none shadow-sm" />
+              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-[#34c759] rounded-bl pointer-events-none shadow-sm" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-[#34c759] rounded-br pointer-events-none shadow-sm" />
+
+              {/* 1. Top-Left Corner Point Handle */}
+              <div
+                onPointerDown={(e) => handleStartCropDrag('tl', e)}
+                className="absolute -top-5 -left-5 w-10 h-10 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                title="Drag Corner Point"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="w-5 h-5 border-b-3 border-l-3 border-[#34c759]" />
-                <span className="w-5 h-5 border-b-3 border-r-3 border-[#34c759]" />
+
+              {/* 2. Top-Right Corner Point Handle */}
+              <div
+                onPointerDown={(e) => handleStartCropDrag('tr', e)}
+                className="absolute -top-5 -right-5 w-10 h-10 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                title="Drag Corner Point"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              </div>
+
+              {/* 3. Bottom-Left Corner Point Handle */}
+              <div
+                onPointerDown={(e) => handleStartCropDrag('bl', e)}
+                className="absolute -bottom-5 -left-5 w-10 h-10 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                title="Drag Corner Point"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              </div>
+
+              {/* 4. Bottom-Right Corner Point Handle */}
+              <div
+                onPointerDown={(e) => handleStartCropDrag('br', e)}
+                className="absolute -bottom-5 -right-5 w-10 h-10 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                title="Drag Corner Point"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              </div>
+
+              {/* Center Move Handle & Indicator */}
+              <div
+                onPointerDown={(e) => handleStartCropDrag('center', e)}
+                className="absolute inset-0 flex items-center justify-center cursor-move touch-none"
+              >
+                <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white/90 shadow-md flex items-center gap-1.5 pointer-events-none">
+                  <Move className="w-3 h-3 text-[#34c759]" />
+                  <span>Document Border (Only inside captured)</span>
+                </div>
               </div>
             </div>
 
             {/* Top Toolbar overlay inside camera */}
-            <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10">
-              <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[12px] font-medium border border-white/10">
-                {pages.length === 0 ? 'Point at document' : `${pages.length} page${pages.length > 1 ? 's' : ''} captured`}
+            <div className="absolute top-3 inset-x-3 sm:top-4 sm:inset-x-4 flex items-center justify-between z-30 gap-2">
+              {/* Document Type Preset Buttons */}
+              <div className="flex items-center gap-1 p-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 overflow-x-auto max-w-[65%] sm:max-w-none">
+                <button
+                  type="button"
+                  onClick={() => applyCropPreset('a4')}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    cropPreset === 'a4'
+                      ? 'bg-[#34c759] text-white shadow-xs'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  📄 A4 Doc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyCropPreset('receipt')}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    cropPreset === 'receipt'
+                      ? 'bg-[#34c759] text-white shadow-xs'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  🧾 Receipt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyCropPreset('idcard')}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    cropPreset === 'idcard'
+                      ? 'bg-[#34c759] text-white shadow-xs'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  🪪 ID Card
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyCropPreset('full')}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap hidden sm:inline ${
+                    cropPreset === 'full'
+                      ? 'bg-[#34c759] text-white shadow-xs'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  ⛶ Full
+                </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Utility Buttons: Torch, Flip, Fullscreen, Close */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {hasTorch && (
+                  <button
+                    type="button"
+                    onClick={toggleTorch}
+                    className={`p-2.5 rounded-full backdrop-blur-md transition-colors cursor-pointer border border-white/10 ${
+                      isTorchOn ? 'bg-[#ff9500] text-white shadow-[0_0_12px_#ff9500]' : 'bg-black/60 text-white hover:bg-black/80'
+                    }`}
+                    title={isTorchOn ? 'Turn Flashlight Off' : 'Turn Flashlight On'}
+                  >
+                    {isTorchOn ? <Zap className="w-4 h-4" /> : <ZapOff className="w-4 h-4" />}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={toggleCameraFacing}
@@ -740,6 +1244,14 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   title="Switch Front/Rear Camera"
                 >
                   <RotateCw className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCameraFullscreen((prev) => !prev)}
+                  className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10"
+                  title={isCameraFullscreen ? 'Exit Fullscreen' : 'Fullscreen Camera'}
+                >
+                  {isCameraFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
                 <button
                   type="button"
@@ -753,37 +1265,49 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Bottom Shutter Controls */}
-            <div className="absolute bottom-5 inset-x-0 flex items-center justify-center gap-6 z-10">
-              {pages.length > 0 && (
+            <div className="absolute bottom-4 sm:bottom-6 inset-x-0 flex items-center justify-center gap-6 sm:gap-10 z-30 px-4">
+              {pages.length > 0 ? (
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="px-4 py-2 rounded-full bg-black/60 hover:bg-black/80 text-white text-[13px] font-semibold backdrop-blur-md transition-colors cursor-pointer border border-white/10"
+                  className="px-4 py-2 rounded-full bg-black/70 hover:bg-black/90 text-white text-[13px] font-semibold backdrop-blur-md transition-colors cursor-pointer border border-white/15"
                 >
                   Done ({pages.length})
                 </button>
+              ) : (
+                <div className="w-16" />
               )}
 
+              {/* Shutter Button with tactile feedback */}
               <button
                 type="button"
                 id="camera-snap-btn"
                 onClick={capturePhoto}
                 disabled={isProcessing}
-                className="w-18 h-18 rounded-full bg-white border-4 border-[#34c759] shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer hover:shadow-[#34c759]/30"
-                title="Snap Document Photo"
+                className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-white border-4 border-[#34c759] shadow-[0_0_24px_rgba(52,199,89,0.5)] flex items-center justify-center active:scale-90 transition-transform cursor-pointer hover:scale-105"
+                title="Capture Document Inside Border"
               >
-                <div className="w-13 h-13 rounded-full bg-[#34c759] hover:bg-[#2fb350] transition-colors flex items-center justify-center">
+                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#34c759] hover:bg-[#2fb350] transition-colors flex items-center justify-center shadow-inner">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
               </button>
 
-              {pages.length > 0 && (
+              {pages.length > 0 ? (
                 <div className="w-16 flex justify-center">
-                  <span className="px-2.5 py-1 rounded-full bg-[#34c759] text-white text-[11px] font-bold shadow-xs">
+                  <span className="px-2.5 py-1 rounded-full bg-[#34c759] text-white text-[12px] font-bold shadow-md">
                     +{pages.length}
                   </span>
                 </div>
+              ) : (
+                <div className="w-16" />
               )}
+            </div>
+
+            {/* Mobile Touch Guidance Tip */}
+            <div className="absolute bottom-20 sm:bottom-24 inset-x-0 text-center pointer-events-none z-20">
+              <span className="px-3 py-1 rounded-full bg-black/60 text-white/80 text-[11px] font-medium backdrop-blur-xs border border-white/10 shadow-xs">
+                Drag green corner points to fit document
+              </span>
             </div>
           </div>
         ) : (
@@ -923,6 +1447,20 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   title="Fine-tune Brightness & Contrast"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  id="page-crop-btn"
+                  onClick={() => {
+                    setModalCropBox({ x: 5, y: 5, w: 90, h: 90 });
+                    setIsCropModalOpen(true);
+                  }}
+                  className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer flex items-center gap-1"
+                  title="Crop Document Borders & Corners"
+                >
+                  <Crop className="w-4 h-4 text-[#34c759]" />
+                  <span className="hidden sm:inline text-[12px] font-medium">Crop</span>
                 </button>
 
                 <button
@@ -1279,6 +1817,164 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 alt="Document Preview"
                 className="max-w-full max-h-full object-contain rounded-lg shadow-md"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Post-Capture Page Crop Modal with 4 Corner Points */}
+      {isCropModalOpen && activePage && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-[#1c1c1e] text-white rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-white/10 max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-2">
+                <Crop className="w-5 h-5 text-[#34c759]" />
+                <h3 className="text-base font-bold">Crop & Trim Document Borders</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCropModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Interactive Crop Workspace */}
+            <div className="relative p-4 flex-1 flex items-center justify-center overflow-hidden bg-black/90 min-h-[300px] max-h-[60vh]">
+              <div
+                ref={modalCropContainerRef}
+                className="relative inline-block max-w-full max-h-full select-none"
+              >
+                {/* Image element */}
+                <img
+                  src={activePage.originalDataUrl}
+                  alt="Original Document"
+                  className="max-h-[55vh] max-w-full object-contain pointer-events-none rounded-lg"
+                />
+
+                {/* Dark Mask outside crop borders */}
+                <div
+                  className="absolute top-0 left-0 right-0 bg-black/60 backdrop-blur-[1px] pointer-events-none"
+                  style={{ height: `${modalCropBox.y}%` }}
+                />
+                <div
+                  className="absolute left-0 right-0 bottom-0 bg-black/60 backdrop-blur-[1px] pointer-events-none"
+                  style={{ top: `${modalCropBox.y + modalCropBox.h}%` }}
+                />
+                <div
+                  className="absolute left-0 bg-black/60 backdrop-blur-[1px] pointer-events-none"
+                  style={{
+                    top: `${modalCropBox.y}%`,
+                    height: `${modalCropBox.h}%`,
+                    width: `${modalCropBox.x}%`,
+                  }}
+                />
+                <div
+                  className="absolute right-0 bg-black/60 backdrop-blur-[1px] pointer-events-none"
+                  style={{
+                    top: `${modalCropBox.y}%`,
+                    height: `${modalCropBox.h}%`,
+                    width: `${Math.max(0, 100 - (modalCropBox.x + modalCropBox.w))}%`,
+                  }}
+                />
+
+                {/* Crop Box with 4 Corner Points */}
+                <div
+                  className="absolute border-2 border-[#34c759] shadow-[0_0_20px_rgba(52,199,89,0.5)] z-20"
+                  style={{
+                    left: `${modalCropBox.x}%`,
+                    top: `${modalCropBox.y}%`,
+                    width: `${modalCropBox.w}%`,
+                    height: `${modalCropBox.h}%`,
+                  }}
+                >
+                  {/* Corner brackets */}
+                  <div className="absolute -top-1 -left-1 w-5 h-5 border-t-3 border-l-3 border-[#34c759] pointer-events-none" />
+                  <div className="absolute -top-1 -right-1 w-5 h-5 border-t-3 border-r-3 border-[#34c759] pointer-events-none" />
+                  <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-3 border-l-3 border-[#34c759] pointer-events-none" />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-3 border-r-3 border-[#34c759] pointer-events-none" />
+
+                  {/* Corner handles */}
+                  <div
+                    onPointerDown={(e) => handleStartModalCropDrag('tl', e)}
+                    className="absolute -top-4 -left-4 w-8 h-8 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                  >
+                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                  </div>
+
+                  <div
+                    onPointerDown={(e) => handleStartModalCropDrag('tr', e)}
+                    className="absolute -top-4 -right-4 w-8 h-8 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                  >
+                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                  </div>
+
+                  <div
+                    onPointerDown={(e) => handleStartModalCropDrag('bl', e)}
+                    className="absolute -bottom-4 -left-4 w-8 h-8 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                  >
+                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                  </div>
+
+                  <div
+                    onPointerDown={(e) => handleStartModalCropDrag('br', e)}
+                    className="absolute -bottom-4 -right-4 w-8 h-8 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                  >
+                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                  </div>
+
+                  {/* Center drag handle */}
+                  <div
+                    onPointerDown={(e) => handleStartModalCropDrag('center', e)}
+                    className="absolute inset-0 flex items-center justify-center cursor-move touch-none"
+                  >
+                    <div className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-xs border border-white/20 text-[10px] font-semibold text-white/90 shadow-md flex items-center gap-1">
+                      <Move className="w-3 h-3 text-[#34c759]" />
+                      <span>Drag to reposition</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Controls */}
+            <div className="flex items-center justify-between px-5 py-4 border-t border-white/10 bg-[#252528] shrink-0">
+              <button
+                type="button"
+                onClick={() => setModalCropBox({ x: 5, y: 5, w: 90, h: 90 })}
+                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[13px] font-medium transition-colors cursor-pointer"
+              >
+                Reset to Full
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCropModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-white/70 hover:text-white text-[13px] font-medium transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyPageCrop}
+                  disabled={isModalCropping}
+                  className="px-5 py-2 rounded-xl bg-[#34c759] hover:bg-[#2fb350] text-white text-[13px] font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isModalCropping ? 'Cropping...' : 'Apply Crop'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
