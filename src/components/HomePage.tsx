@@ -1170,7 +1170,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-[#FAF7F2] dark:bg-[#162244] border border-[#0C162C]/5 dark:border-white/5 space-y-2.5">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#162244] border border-[#0C162C]/8 dark:border-white/5 space-y-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Lock className="w-4 h-4" />
             </div>
@@ -1182,7 +1182,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </p>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#FAF7F2] dark:bg-[#162244] border border-[#0C162C]/5 dark:border-white/5 space-y-2.5">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#162244] border border-[#0C162C]/8 dark:border-white/5 space-y-2.5">
             <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-[#FF5722] flex items-center justify-center">
               <Zap className="w-4 h-4" />
             </div>
@@ -1194,7 +1194,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </p>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#FAF7F2] dark:bg-[#162244] border border-[#0C162C]/5 dark:border-white/5 space-y-2.5">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#162244] border border-[#0C162C]/8 dark:border-white/5 space-y-2.5">
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-[#af52de] flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
@@ -1206,7 +1206,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </p>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#FAF7F2] dark:bg-[#162244] border border-[#0C162C]/5 dark:border-white/5 space-y-2.5">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#162244] border border-[#0C162C]/8 dark:border-white/5 space-y-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-[#FFCB70] flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
