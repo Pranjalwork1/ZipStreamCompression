@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   FileText,
   FilePlus,
@@ -699,9 +699,23 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(0);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Filter tools based on tab & live search query
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter tools based on tab & live search query for grid
   const filteredTools = useMemo(() => {
     return HOME_TOOLS.filter((tool) => {
       // Category Tab Filter
@@ -720,6 +734,50 @@ export const HomePage: React.FC<HomePageProps> = ({
       return true;
     });
   }, [selectedCategoryTab, searchQuery]);
+
+  // Live search results specifically for the search dropdown
+  const searchDropdownResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return HOME_TOOLS.filter((tool) => {
+      const matchName = tool.name.toLowerCase().includes(q);
+      const matchDesc = tool.description.toLowerCase().includes(q);
+      const matchKeywords = tool.keywords.some((k) => k.toLowerCase().includes(q));
+      const matchCategory = tool.categoryLabel.toLowerCase().includes(q);
+      return matchName || matchDesc || matchKeywords || matchCategory;
+    });
+  }, [searchQuery]);
+
+  // Keyboard navigation for search dropdown
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!searchQuery.trim() || searchDropdownResults.length === 0) {
+      if (e.key === 'Escape') {
+        setIsSearchDropdownOpen(false);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIsSearchDropdownOpen(true);
+      setSearchSelectedIndex((prev) => (prev + 1) % searchDropdownResults.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIsSearchDropdownOpen(true);
+      setSearchSelectedIndex((prev) => (prev - 1 + searchDropdownResults.length) % searchDropdownResults.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const selected = searchDropdownResults[searchSelectedIndex] || searchDropdownResults[0];
+      if (selected) {
+        onSelectTool(selected.id, selected.targetCategory);
+        setIsSearchDropdownOpen(false);
+        setSearchQuery('');
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsSearchDropdownOpen(false);
+    }
+  };
 
   const categories = [
     { id: 'all', label: 'All Tools', count: HOME_TOOLS.length },
@@ -799,22 +857,35 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
-        {/* Nomu Friendly Search Input */}
-        <div className="max-w-2xl mx-auto pt-2">
+        {/* Nomu Friendly Search Input with Interactive Dropdown */}
+        <div ref={searchContainerRef} className="max-w-2xl mx-auto pt-2 relative">
           <div className="relative flex items-center rounded-full bg-white dark:bg-[#111C38] border-2 border-[#0C162C]/10 dark:border-white/10 transition-all focus-within:border-[#FF5722] focus-within:shadow-[0_8px_30px_rgba(255,87,34,0.15)] shadow-sm">
             <Search className="w-4 h-4 text-[#0C162C]/40 dark:text-white/40 shrink-0 ml-4" />
             <input
               type="text"
               id="home-search-input"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (searchQuery.trim()) setIsSearchDropdownOpen(true);
+              }}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsSearchDropdownOpen(true);
+                setSearchSelectedIndex(0);
+              }}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search 25+ tools (e.g. Word, Excel, Compress, Redact, Sign)..."
               className="w-full px-3.5 py-3.5 bg-transparent text-sm text-[#0C162C] dark:text-white placeholder:text-[#5C6479]/60 dark:placeholder:text-white/35 focus:outline-none font-medium"
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setIsSearchDropdownOpen(false);
+                }}
                 className="p-1.5 mr-2 rounded-full text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer"
+                title="Clear search"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -823,6 +894,82 @@ export const HomePage: React.FC<HomePageProps> = ({
               {filteredTools.length} tools
             </span>
           </div>
+
+          {/* Interactive Search Tool Dropdown Menu */}
+          {isSearchDropdownOpen && searchQuery.trim() && (
+            <div
+              id="home-search-dropdown-menu"
+              className="absolute left-0 right-0 top-full mt-2 z-50 bg-white dark:bg-[#111C38] rounded-2xl border border-[#0C162C]/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden max-h-[380px] overflow-y-auto divide-y divide-[#0C162C]/5 dark:divide-white/5 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-md"
+            >
+              {searchDropdownResults.length === 0 ? (
+                <div className="p-6 text-center text-sm text-[#5C6479] dark:text-white/50 space-y-1">
+                  <p className="font-semibold text-[#0C162C] dark:text-white">
+                    No tools matching &ldquo;{searchQuery}&rdquo;
+                  </p>
+                  <p className="text-xs">
+                    Try searching: &ldquo;word&rdquo;, &ldquo;scan&rdquo;, &ldquo;compress&rdquo;, &ldquo;merge&rdquo;, or &ldquo;invoice&rdquo;
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="px-4 py-2 bg-[#FAF7F2] dark:bg-white/[0.03] text-[11px] font-bold uppercase tracking-wider text-[#5C6479] dark:text-white/40 flex items-center justify-between">
+                    <span>{searchDropdownResults.length} matching tool{searchDropdownResults.length > 1 ? 's' : ''}</span>
+                    <span className="text-[10px] lowercase text-[#5C6479]/60 dark:text-white/30">click or press Enter</span>
+                  </div>
+                  {searchDropdownResults.map((tool, idx) => {
+                    const isSelected = idx === searchSelectedIndex;
+                    const toolHref = TOOL_CANONICAL_PATHS[tool.id] || `/${tool.id.replace(/_/g, '-')}`;
+                    return (
+                      <a
+                        key={`home-search-dropdown-${tool.id}-${idx}`}
+                        id={`home-search-result-${tool.id}`}
+                        href={toolHref}
+                        onMouseEnter={() => setSearchSelectedIndex(idx)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onSelectTool(tool.id, tool.targetCategory);
+                          setIsSearchDropdownOpen(false);
+                          setSearchQuery('');
+                        }}
+                        className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors cursor-pointer text-left ${
+                          isSelected
+                            ? 'bg-[#FF5722]/8 dark:bg-[#FF5722]/15 text-[#FF5722]'
+                            : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.04] text-[#0C162C] dark:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-[#FFF4EE] dark:bg-[#FF5722]/15 text-[#FF5722] flex items-center justify-center shrink-0">
+                            {tool.icon}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm truncate">{tool.name}</span>
+                              {tool.badge && (
+                                <span className="px-2 py-0.5 rounded-full bg-[#FF5722]/10 text-[#FF5722] text-[10px] font-bold">
+                                  {tool.badge}
+                                </span>
+                              )}
+                              <span className="text-[11px] text-[#5C6479]/60 dark:text-white/30 hidden sm:inline">
+                                • {tool.categoryLabel}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[#5C6479] dark:text-white/60 truncate max-w-md mt-0.5">
+                              {tool.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 text-xs font-bold text-[#FF5722]">
+                          <span className="hidden sm:inline">Open</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
+                      </a>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

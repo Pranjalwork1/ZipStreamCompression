@@ -52,7 +52,39 @@ const DEFAULT_SETTINGS: CompressionSettings = {
   audioBitrate: 128,
 };
 
-const TOOL_PATHS: Record<string, ToolMode> = {
+export const TOOL_CANONICAL_PATHS: Record<ToolMode, string> = {
+  compress: '/compress-pdf',
+  merge_pdf: '/merge-pdf',
+  split_pdf: '/split-pdf',
+  images_to_pdf: '/images-to-pdf',
+  scan_document: '/scan-document',
+  watermark_pdf: '/watermark-pdf',
+  pdf_to_word: '/pdf-to-word',
+  pdf_to_excel: '/pdf-to-excel',
+  pdf_to_powerpoint: '/pdf-to-powerpoint',
+  pdf_to_jpg: '/pdf-to-jpg',
+  extract_text: '/extract-text',
+  pdf_to_html: '/pdf-to-html',
+  pdf_to_audio: '/pdf-to-audio',
+  pdf_to_epub: '/pdf-to-epub',
+  encrypt_pdf: '/protect-pdf',
+  unlock_pdf: '/unlock-pdf',
+  auto_redact_pii: '/redact-pdf',
+  privacy_scanner: '/privacy-scanner',
+  fingerprint_gen: '/file-fingerprint',
+  chat_pdf: '/chat-pdf',
+  ai_summarize: '/summarize-pdf',
+  searchable_pdf: '/ocr-pdf',
+  compare_pdfs: '/compare-pdf',
+  repair_pdf: '/repair-pdf',
+  gst_invoice: '/gst-invoice',
+  pos_billing: '/pos-billing',
+  gst_filing_prep: '/gst-filing-prep',
+  p2p_share: '/p2p-share',
+  collab_whiteboard: '/collaborative-whiteboard',
+};
+
+export const TOOL_PATHS: Record<string, ToolMode> = {
   '/compress-pdf': 'compress',
   '/merge-pdf': 'merge_pdf',
   '/split-pdf': 'split_pdf',
@@ -63,6 +95,23 @@ const TOOL_PATHS: Record<string, ToolMode> = {
   '/pdf-to-excel': 'pdf_to_excel',
   '/pdf-to-powerpoint': 'pdf_to_powerpoint',
   '/pdf-to-jpg': 'pdf_to_jpg',
+  '/extract-text': 'extract_text',
+  '/pdf-to-html': 'pdf_to_html',
+  '/pdf-to-audio': 'pdf_to_audio',
+  '/pdf-to-epub': 'pdf_to_epub',
+  '/protect-pdf': 'encrypt_pdf',
+  '/unlock-pdf': 'unlock_pdf',
+  '/redact-pdf': 'auto_redact_pii',
+  '/privacy-scanner': 'privacy_scanner',
+  '/file-fingerprint': 'fingerprint_gen',
+  '/chat-pdf': 'chat_pdf',
+  '/summarize-pdf': 'ai_summarize',
+  '/ocr-pdf': 'searchable_pdf',
+  '/compare-pdf': 'compare_pdfs',
+  '/repair-pdf': 'repair_pdf',
+  '/gst-invoice': 'gst_invoice',
+  '/pos-billing': 'pos_billing',
+  '/gst-filing-prep': 'gst_filing_prep',
   '/p2p-share': 'p2p_share',
   '/collaborative-whiteboard': 'collab_whiteboard',
 };
@@ -78,14 +127,31 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/pdf-to-excel': { title: 'PDF to Excel Converter | ZipStream', description: 'Extract PDF tables into spreadsheet formats with ZipStream.' },
   '/pdf-to-powerpoint': { title: 'PDF to PowerPoint Converter | ZipStream', description: 'Convert PDF pages into PowerPoint presentations with ZipStream.' },
   '/pdf-to-jpg': { title: 'PDF to JPG Converter | ZipStream', description: 'Convert PDF pages into JPG images in your browser.' },
-  '/p2p-share': { title: 'P2P File Share Online — Direct, Encrypted & Zero Cloud | ZipStream', description: 'Share files and documents directly peer-to-peer with zero cloud storage, QR camera pairing, and live synchronization.' },
+  '/extract-text': { title: 'Extract Text from PDF | ZipStream', description: 'Extract selectable text and Markdown from PDF documents online.' },
+  '/pdf-to-html': { title: 'PDF to HTML Converter | ZipStream', description: 'Convert PDF content into responsive HTML for web publishing.' },
+  '/pdf-to-audio': { title: 'PDF to Audio Reader | ZipStream', description: 'Listen to PDF text read aloud with browser speech tools.' },
+  '/pdf-to-epub': { title: 'PDF to EPUB Converter | ZipStream', description: 'Convert documents into digital ebooks for e-readers.' },
+  '/protect-pdf': { title: 'Protect PDF with Password | ZipStream', description: 'Add password protection and encryption to PDF documents.' },
+  '/unlock-pdf': { title: 'Unlock PDF Online | ZipStream', description: 'Remove password security from authorized PDF documents.' },
+  '/redact-pdf': { title: 'Redact Sensitive PDF Information | ZipStream', description: 'Find and blackout sensitive PII data before sharing a PDF.' },
+  '/privacy-scanner': { title: 'Scan PDF Privacy Metadata | ZipStream', description: 'Audit and remove hidden metadata, authors, and GPS coordinates.' },
+  '/file-fingerprint': { title: 'Generate File Fingerprint | ZipStream', description: 'Generate cryptographic SHA-256 and SHA-512 hashes for documents.' },
+  '/chat-pdf': { title: 'Chat with PDF | ZipStream', description: 'Ask questions and converse with PDF documents using document AI.' },
+  '/summarize-pdf': { title: 'Summarize PDF Online | ZipStream', description: 'Generate concise executive summaries and bullet points from PDFs.' },
+  '/ocr-pdf': { title: 'Searchable PDF (OCR) | ZipStream', description: 'Add searchable OCR text layers to scanned document pages.' },
+  '/compare-pdf': { title: 'Compare PDF Documents | ZipStream', description: 'Review side-by-side visual differences between two PDF versions.' },
+  '/repair-pdf': { title: 'Repair PDF Online | ZipStream', description: 'Recover and repair damaged or corrupted PDF documents.' },
+  '/gst-invoice': { title: 'Create GST Invoice Online | ZipStream', description: 'Build professional GST invoices with tax calculations and PDF export.' },
+  '/pos-billing': { title: 'Create POS Billing Slip | ZipStream', description: 'Generate thermal POS receipts with dynamic UPI QR payment support.' },
+  '/gst-filing-prep': { title: 'GST Filing & Return Preparation | ZipStream', description: 'Prepare and organize GST sales summaries and return files.' },
+  '/p2p-share': { title: 'P2P File Share Online — Direct, Encrypted & Zero Cloud | ZipStream', description: 'Share files directly peer-to-peer with zero cloud storage, QR pairing, and live sync.' },
   '/collaborative-whiteboard': { title: 'Collaborative Whiteboard Online | ZipStream', description: 'Real-time collaborative whiteboard for sketches, diagrams, and visual brainstorming.' },
 };
 
 function toolFromPath(path: string): ToolMode | null {
   const normalized = path.replace(/\/$/, '') || '/';
   if (normalized === '/') return 'compress';
-  return getToolPage(normalized)?.tool || TOOL_PATHS[normalized] || null;
+  return TOOL_PATHS[normalized] || getToolPage(normalized)?.tool || null;
 }
 
 export default function App() {
@@ -302,16 +368,23 @@ export default function App() {
   // Tool selection handler from Search or Navbar or Homepage
   const handleSelectTool = (tool: ToolMode, category?: FileCategory) => {
     if (tool === 'compress') {
-      if (category) setActiveCategory(category);
+      if (category && category !== 'all' && category !== 'pdf') {
+        setActiveCategory(category);
+        if (currentPath !== '/') {
+          navigateTo('/');
+        } else {
+          setStage('upload');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
+      setActiveCategory('pdf');
       navigateTo('/compress-pdf', 'compress');
       return;
     }
-    const page = getToolPageForTool(tool);
-    if (page) {
-      navigateTo(page.path, tool);
-    } else {
-      setActiveTool(tool);
-    }
+
+    const targetPath = TOOL_CANONICAL_PATHS[tool] || getToolPageForTool(tool)?.path || `/${tool.replace(/_/g, '-')}`;
+    navigateTo(targetPath, tool);
   };
 
   // Reset back to upload dropzone / homepage
