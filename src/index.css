@@ -2,12 +2,12 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* WCAG AAA & AA high-contrast foreground colours for optimal SEO, accessibility, and readability.
-   Brand accents and text are calibrated for maximum contrast against warm beige light surfaces. */
+/* WCAG AAA & AA high-contrast foreground colours for optimal SEO, accessibility, and Google PageSpeed scores.
+   Brand accents and text are calibrated for maximum contrast against crisp white light surfaces. */
 .text-\[\#FF5722\] { color: #B93815; }
 .text-\[\#ff3b30\] { color: #C9281A; }
 .text-\[\#FF9500\] { color: #9A5B00; }
-.text-emerald-600 { color: #03694f; }
+.text-emerald-600 { color: #047857; }
 .bg-\[\#FF5722\] { background-color: #B93815; }
 .hover\:bg-\[\#FF6838\]:hover { background-color: #932E11; }
 
@@ -16,37 +16,37 @@
 .dark .text-\[\#FF9500\] { color: #FFC36B; }
 .dark .text-emerald-600 { color: #34D399; }
 
-/* Light Theme Beige Palette & Optimal SEO Text Contrast Overrides */
+/* Light Theme Pure White Palette & Optimal SEO Text Contrast Overrides */
 :where(html:not(.dark)) .text-\[\#0C162C\] {
-  color: #1C1917;
+  color: #0F172A; /* Slate-900: 17.4:1 Contrast on #FFFFFF (WCAG AAA >= 7:1) */
 }
 
 :where(html:not(.dark)) .text-\[\#5C6479\] {
-  color: #443E38;
+  color: #334155; /* Slate-700: 10.1:1 Contrast on #FFFFFF (WCAG AAA >= 7:1) */
 }
 
 :where(html:not(.dark)) .bg-\[\#FAF7F2\] {
-  background-color: #F5EFE6;
+  background-color: #F8FAFC; /* Clean ultra-subtle slate tint for light surfaces */
 }
 
 :where(html:not(.dark)) .hover\:bg-\[\#F2EDE4\]:hover {
-  background-color: #EBE3D7;
+  background-color: #F1F5F9;
 }
 
 :where(html:not(.dark)) .border-\[\#0C162C\]\/5 {
-  border-color: rgba(28, 25, 23, 0.05);
+  border-color: rgba(15, 23, 42, 0.05);
 }
 
 :where(html:not(.dark)) .border-\[\#0C162C\]\/8 {
-  border-color: rgba(28, 25, 23, 0.08);
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 :where(html:not(.dark)) .border-\[\#0C162C\]\/10 {
-  border-color: rgba(28, 25, 23, 0.10);
+  border-color: rgba(15, 23, 42, 0.10);
 }
 
 :where(html:not(.dark)) .border-\[\#0C162C\]\/20 {
-  border-color: rgba(28, 25, 23, 0.20);
+  border-color: rgba(15, 23, 42, 0.18);
 }
 
 @layer base {
@@ -55,8 +55,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background-color: #F5EFE6;
-    color: #1C1917;
+    background-color: #FFFFFF;
+    color: #0F172A;
   }
 
   html.dark {
@@ -75,9 +75,9 @@
   }
 }
 
-/* Nomu.store Signature Subtle Texture on Beige Canvas */
+/* Nomu.store Signature Subtle Texture on Crisp White Canvas */
 .nomu-dot-grid {
-  background-image: radial-gradient(rgba(45, 36, 30, 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -88,13 +88,13 @@
 
 /* Nomu Tactile Card Shadows & Transitions */
 .nomu-card {
-  box-shadow: 0 4px 20px -2px rgba(45, 36, 30, 0.05), 0 2px 6px -1px rgba(45, 36, 30, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nomu-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px -4px rgba(45, 36, 30, 0.10), 0 4px 10px -2px rgba(45, 36, 30, 0.04);
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.09), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
 }
 
 .dark .nomu-card {
@@ -147,7 +147,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(45, 36, 30, 0.18);
+  background: rgba(15, 23, 42, 0.15);
   border-radius: 9999px;
 }
 
@@ -156,7 +156,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(45, 36, 30, 0.35);
+  background: rgba(15, 23, 42, 0.30);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {

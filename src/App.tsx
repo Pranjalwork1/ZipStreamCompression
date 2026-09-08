@@ -529,7 +529,7 @@ export default function App() {
   const activeFeaturePage = getToolPage(currentPath) || getToolPageForTool(activeTool);
 
   return (
-    <div className="min-h-screen relative bg-[#F5EFE6] dark:bg-[#0B132B] text-[#1C1917] dark:text-[#F3F4F6] flex flex-col font-sans selection:bg-[#FF5722] selection:text-white transition-colors duration-200">
+    <div className="min-h-screen relative bg-white dark:bg-[#0B132B] text-[#0F172A] dark:text-[#F3F4F6] flex flex-col font-sans selection:bg-[#FF5722] selection:text-white transition-colors duration-200">
       {/* Background Subtle Texture */}
       <div className="fixed inset-0 nomu-dot-grid pointer-events-none opacity-60 z-0"></div>
 
