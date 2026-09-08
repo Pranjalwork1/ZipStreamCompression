@@ -162,8 +162,20 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
   const originalFileName = req.file.originalname || 'file';
 
   try {
-    // 1. Detect true MIME type and category using magic bytes inspection
-    const detected = await detectMimeFromPath(tempFilePath);
+    // 1. Detect true MIME type and category using magic bytes inspection with extension fallback
+    let detected = await detectMimeFromPath(tempFilePath);
+    if (!detected) {
+      const ext = path.extname(originalFileName).toLowerCase().replace('.', '');
+      if (['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'wmv', 'flv', '3gp', 'ts'].includes(ext)) {
+        detected = { mime: ext === 'webm' ? 'video/webm' : 'video/mp4', ext: ext === 'webm' ? 'webm' : 'mp4', category: 'video' };
+      } else if (['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg', 'wma'].includes(ext)) {
+        detected = { mime: ext === 'wav' ? 'audio/wav' : 'audio/mpeg', ext, category: 'audio' };
+      } else if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'].includes(ext)) {
+        detected = { mime: `image/${ext === 'jpg' ? 'jpeg' : ext}`, ext, category: 'image' };
+      } else if (ext === 'pdf') {
+        detected = { mime: 'application/pdf', ext: 'pdf', category: 'pdf' };
+      }
+    }
 
     if (!detected) {
       await fs.rm(tempFilePath, { force: true }).catch(() => undefined);

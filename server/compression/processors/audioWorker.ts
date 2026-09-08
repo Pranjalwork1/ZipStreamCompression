@@ -28,21 +28,20 @@ async function probeAudio(ffprobePath: string, filePath: string): Promise<number
   }
 }
 
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffprobeInstaller from '@ffprobe-installer/ffprobe';
+
 function getFfmpegPath(): string {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
-  try {
-    const installer = require('@ffmpeg-installer/ffmpeg');
-    if (installer?.path) return installer.path;
-  } catch {}
+  const p = (ffmpegInstaller as any)?.path || (ffmpegInstaller as any)?.default?.path;
+  if (p) return p;
   return 'ffmpeg';
 }
 
 function getFfprobePath(): string {
   if (process.env.FFPROBE_PATH) return process.env.FFPROBE_PATH;
-  try {
-    const installer = require('@ffprobe-installer/ffprobe');
-    if (installer?.path) return installer.path;
-  } catch {}
+  const p = (ffprobeInstaller as any)?.path || (ffprobeInstaller as any)?.default?.path;
+  if (p) return p;
   return 'ffprobe';
 }
 

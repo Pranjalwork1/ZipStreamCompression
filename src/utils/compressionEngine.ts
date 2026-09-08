@@ -407,8 +407,9 @@ async function compressOnServerUnified(
   if (!backend) return null;
 
   const controller = new AbortController();
-  // Responsive 45-second timeout to prevent stalling
-  const timeoutMs = Math.min(45_000, Number((import.meta as any).env?.VITE_COMPRESSION_TIMEOUT_MS) || 45_000);
+  const isMedia = file.type?.startsWith('video/') || file.type?.startsWith('audio/') || /\.(mp4|mov|mkv|webm|avi|mp3|wav|flac)$/i.test(file.name);
+  const defaultTimeout = isMedia ? 120_000 : 45_000;
+  const timeoutMs = Number((import.meta as any).env?.VITE_COMPRESSION_TIMEOUT_MS) || defaultTimeout;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -435,9 +436,9 @@ async function compressOnServerUnified(
 
     onProgress?.(25, 'Processing with specialized CLI worker…');
 
-    // Poll status until complete or failed (max 60s polling)
+    // Poll status until complete or failed
     const startTime = Date.now();
-    while (Date.now() - startTime < 60_000) {
+    while (Date.now() - startTime < timeoutMs) {
       await new Promise(r => setTimeout(r, 400));
       if (controller.signal.aborted) throw new Error('Compression timed out');
 
@@ -882,125 +883,175 @@ async function compressVideoReal(
   settings: CompressionSettings,
   onProgress?: (pct: number, text: string) => void
 ): Promise<{ blob: Blob; previewUrl?: string }> {
-  // Try backend FFmpeg worker first!
-  const remote = await compressOnServerUnified(file, settings, onProgress);
-  if (remote) return remote;
-  return new Promise(async (resolve) => {
+  // 1. Try high-performance backend FFmpeg worker first
+  try {
+    const remote = await compressOnServerUnified(file, settings, onProgress);
+    if (remote && remote.blob && remote.blob.size > 0) {
+      return remote;
+    }
+  } catch (err: any) {
+    console.warn('[VideoCompression] Backend FFmpeg worker unavailable, switching to browser engine:', err.message);
+  }
+
+  // 2. Hardware-accelerated browser MediaRecorder transcode engine
+  return new Promise(async (resolve, reject) => {
+    let cleanup = () => {};
     try {
       const video = document.createElement('video');
       video.muted = true;
       video.playsInline = true;
-      video.preload = 'metadata';
+      video.preload = 'auto';
       const fileUrl = URL.createObjectURL(file);
       video.src = fileUrl;
 
-      const timeout = setTimeout(async () => {
-        cleanup();
-        const rawBuffer = await file.arrayBuffer();
-        resolve({
-          blob: new Blob([rawBuffer], { type: file.type || 'video/mp4' }),
-          previewUrl: fileUrl,
-        });
-      }, 3500);
-
-      const cleanup = () => {
-        clearTimeout(timeout);
+      let timer: any = null;
+      cleanup = () => {
+        if (timer) clearTimeout(timer);
         video.pause();
         video.removeAttribute('src');
         video.load();
+        try {
+          URL.revokeObjectURL(fileUrl);
+        } catch {}
       };
 
       video.onloadedmetadata = async () => {
         try {
-          const duration = video.duration;
-          if (duration && duration > 0 && duration <= 30 && typeof MediaRecorder !== 'undefined') {
-            const scale = (settings.scalePercent || 100) / 100;
-            const targetWidth = Math.max(160, Math.round((video.videoWidth || 640) * scale));
-            const targetHeight = Math.max(90, Math.round((video.videoHeight || 360) * scale));
+          const duration = video.duration && !isNaN(video.duration) && isFinite(video.duration) ? video.duration : 10;
+          const maxWaitMs = Math.max(90000, Math.ceil(duration * 4000));
+          timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('Video compression timed out. Please try a shorter clip or adjust compression settings.'));
+          }, maxWaitMs);
 
-            const canvas = document.createElement('canvas');
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            const ctx = canvas.getContext('2d');
+          onProgress?.(15, 'Analyzing video dimensions & keyframe intervals…');
 
-            if (!ctx || !canvas.captureStream) {
-              throw new Error('Canvas capture not available');
+          const userScale = (settings.scalePercent || 100) / 100;
+          let widthScale = userScale;
+          let targetBitrate = 650000;
+
+          if (settings.targetSizeBytes && settings.targetSizeBytes > 0 && duration > 0) {
+            const calculatedBps = Math.floor((settings.targetSizeBytes * 8) / duration);
+            targetBitrate = Math.min(2500000, Math.max(150000, calculatedBps));
+            widthScale = Math.min(widthScale, targetBitrate < 400000 ? 0.5 : targetBitrate < 900000 ? 0.75 : 1.0);
+          } else if (settings.level === 'high') {
+            targetBitrate = 320000;
+            widthScale = Math.min(widthScale, 0.55);
+          } else if (settings.level === 'low') {
+            targetBitrate = 1400000;
+            widthScale = Math.min(widthScale, 0.9);
+          } else {
+            // medium / balanced
+            targetBitrate = 650000;
+            widthScale = Math.min(widthScale, 0.75);
+          }
+
+          const origW = video.videoWidth || 640;
+          const origH = video.videoHeight || 360;
+          const targetWidth = Math.max(160, Math.round((origW * widthScale) / 2) * 2);
+          const targetHeight = Math.max(90, Math.round((origH * widthScale) / 2) * 2);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d', { alpha: false });
+
+          if (!ctx || !canvas.captureStream) {
+            throw new Error('In-browser video transcoding is not supported in this browser environment.');
+          }
+
+          const stream = canvas.captureStream(24);
+
+          // Retain audio track if captureStream is supported on video element
+          try {
+            const capStream = (video as any).captureStream
+              ? (video as any).captureStream()
+              : (video as any).mozCaptureStream
+              ? (video as any).mozCaptureStream()
+              : null;
+            if (capStream) {
+              const audioTracks = capStream.getAudioTracks();
+              if (audioTracks && audioTracks.length > 0) {
+                stream.addTrack(audioTracks[0]);
+              }
             }
+          } catch {}
 
-            const stream = canvas.captureStream(24);
-            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
-              ? 'video/webm;codecs=vp8'
-              : MediaRecorder.isTypeSupported('video/webm')
-              ? 'video/webm'
-              : 'video/mp4';
+          const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+            ? 'video/webm;codecs=vp9'
+            : MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
+            ? 'video/webm;codecs=vp8'
+            : MediaRecorder.isTypeSupported('video/webm')
+            ? 'video/webm'
+            : 'video/mp4';
 
-            let targetBitrate = 700000;
-            if (settings.level === 'low') targetBitrate = 1200000;
-            if (settings.level === 'high') targetBitrate = 350000;
+          const recorder = new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond: targetBitrate,
+          });
 
-            const recorder = new MediaRecorder(stream, {
-              mimeType,
-              videoBitsPerSecond: targetBitrate,
-            });
+          const chunks: Blob[] = [];
+          recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) chunks.push(e.data);
+          };
 
-            const chunks: Blob[] = [];
-            recorder.ondataavailable = (e) => {
-              if (e.data && e.data.size > 0) chunks.push(e.data);
-            };
-
-            recorder.onstop = () => {
-              cleanup();
-              const compressedBlob = new Blob(chunks, { type: mimeType.split(';')[0] });
+          recorder.onstop = () => {
+            cleanup();
+            const compressedBlob = new Blob(chunks, { type: mimeType.split(';')[0] });
+            if (compressedBlob.size > 0) {
               resolve({
                 blob: compressedBlob,
                 previewUrl: URL.createObjectURL(compressedBlob),
               });
-            };
+            } else {
+              reject(new Error('Video transcoding produced an empty output.'));
+            }
+          };
 
-            recorder.start();
-            video.currentTime = 0;
-            await video.play();
+          recorder.start(250);
 
-            const drawLoop = () => {
-              if (video.paused || video.ended) {
+          // Fast playback acceleration (2.0x) so encoding finishes in half the runtime
+          try {
+            video.playbackRate = 2.0;
+          } catch {}
+
+          video.currentTime = 0;
+          await video.play();
+
+          let animId: number;
+          const drawLoop = () => {
+            if (video.paused || video.ended) {
+              cancelAnimationFrame(animId);
+              if (recorder.state === 'recording') {
                 recorder.stop();
-                return;
               }
-              ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-              requestAnimationFrame(drawLoop);
-            };
-            drawLoop();
-          } else {
-            cleanup();
-            const rawBuffer = await file.arrayBuffer();
-            resolve({
-              blob: new Blob([rawBuffer], { type: file.type || 'video/mp4' }),
-              previewUrl: fileUrl,
-            });
-          }
-        } catch {
+              return;
+            }
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const currentPct = Math.min(94, Math.max(20, Math.floor((video.currentTime / duration) * 75) + 20));
+            onProgress?.(currentPct, `Transcoding video frames (${Math.round((video.currentTime / duration) * 100)}%)...`);
+            animId = requestAnimationFrame(drawLoop);
+          };
+          animId = requestAnimationFrame(drawLoop);
+
+          video.onended = () => {
+            if (recorder.state === 'recording') {
+              recorder.stop();
+            }
+          };
+        } catch (procErr: any) {
           cleanup();
-          const rawBuffer = await file.arrayBuffer();
-          resolve({
-            blob: new Blob([rawBuffer], { type: file.type || 'video/mp4' }),
-            previewUrl: fileUrl,
-          });
+          reject(new Error(`Browser video compression failed: ${procErr.message}`));
         }
       };
 
-      video.onerror = async () => {
+      video.onerror = () => {
         cleanup();
-        const rawBuffer = await file.arrayBuffer();
-        resolve({
-          blob: new Blob([rawBuffer], { type: file.type || 'video/mp4' }),
-          previewUrl: fileUrl,
-        });
+        reject(new Error('Browser could not decode the selected video container. Please ensure the file is a valid video format.'));
       };
-    } catch {
-      const rawBuffer = await file.arrayBuffer();
-      resolve({
-        blob: new Blob([rawBuffer], { type: file.type || 'video/mp4' }),
-      });
+    } catch (err: any) {
+      cleanup();
+      reject(err);
     }
   });
 }
