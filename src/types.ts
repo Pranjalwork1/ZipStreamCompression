@@ -15,7 +15,7 @@ export type ToolMode =
   | 'images_to_pdf'
   | 'split_pdf'
   | 'watermark_pdf'
-  // Convert -> Other
+  // Convert -> Other (PDF from Other)
   | 'pdf_to_word'
   | 'pdf_to_jpg'
   | 'pdf_to_excel'
@@ -24,6 +24,11 @@ export type ToolMode =
   | 'pdf_to_html'
   | 'pdf_to_audio'
   | 'pdf_to_epub'
+  // Convert to PDF
+  | 'word_to_pdf'
+  | 'pptx_to_pdf'
+  | 'xlsx_to_pdf'
+  | 'html_to_pdf'
   // Security & Privacy
   | 'encrypt_pdf'
   | 'unlock_pdf'

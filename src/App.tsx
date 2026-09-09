@@ -41,6 +41,7 @@ const SecurityToolsView = lazy(() => import('./components/views/SecurityToolsVie
 const AiToolsView = lazy(() => import('./components/views/AiToolsView').then(module => ({ default: module.AiToolsView })));
 const BusinessToolsView = lazy(() => import('./components/views/BusinessToolsView').then(module => ({ default: module.BusinessToolsView })));
 const CollaborateToolsView = lazy(() => import('./components/views/CollaborateToolsView').then(module => ({ default: module.CollaborateToolsView })));
+const ConvertToPdfView = lazy(() => import('./components/views/ConvertToPdfView').then(module => ({ default: module.ConvertToPdfView })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -67,6 +68,11 @@ export const TOOL_CANONICAL_PATHS: Record<ToolMode, string> = {
   pdf_to_html: '/pdf-to-html',
   pdf_to_audio: '/pdf-to-audio',
   pdf_to_epub: '/pdf-to-epub',
+  // Convert to PDF
+  word_to_pdf: '/word-to-pdf',
+  pptx_to_pdf: '/powerpoint-to-pdf',
+  xlsx_to_pdf: '/excel-to-pdf',
+  html_to_pdf: '/html-to-pdf',
   encrypt_pdf: '/protect-pdf',
   unlock_pdf: '/unlock-pdf',
   auto_redact_pii: '/redact-pdf',
@@ -89,6 +95,7 @@ export const TOOL_PATHS: Record<string, ToolMode> = {
   '/merge-pdf': 'merge_pdf',
   '/split-pdf': 'split_pdf',
   '/images-to-pdf': 'images_to_pdf',
+  '/jpg-to-pdf': 'images_to_pdf',  // alias
   '/scan-document': 'scan_document',
   '/watermark-pdf': 'watermark_pdf',
   '/pdf-to-word': 'pdf_to_word',
@@ -99,6 +106,11 @@ export const TOOL_PATHS: Record<string, ToolMode> = {
   '/pdf-to-html': 'pdf_to_html',
   '/pdf-to-audio': 'pdf_to_audio',
   '/pdf-to-epub': 'pdf_to_epub',
+  // Convert to PDF
+  '/word-to-pdf': 'word_to_pdf',
+  '/powerpoint-to-pdf': 'pptx_to_pdf',
+  '/excel-to-pdf': 'xlsx_to_pdf',
+  '/html-to-pdf': 'html_to_pdf',
   '/protect-pdf': 'encrypt_pdf',
   '/unlock-pdf': 'unlock_pdf',
   '/redact-pdf': 'auto_redact_pii',
@@ -121,6 +133,7 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/merge-pdf': { title: 'Merge PDF Files Online | ZipStream', description: 'Combine PDF files in your browser with ZipStream.' },
   '/split-pdf': { title: 'Split PDF Online | ZipStream', description: 'Extract and split PDF pages with ZipStream.' },
   '/images-to-pdf': { title: 'Images to PDF Online | ZipStream', description: 'Convert JPG and PNG images into a PDF in your browser.' },
+  '/jpg-to-pdf': { title: 'JPG to PDF Converter Free Online | ZipStream', description: 'Convert JPG, PNG, WebP and other images to PDF online free. Fast, private, no upload required.' },
   '/scan-document': { title: 'Scan Documents Online | ZipStream', description: 'Scan documents with your camera and create clean PDFs.' },
   '/watermark-pdf': { title: 'Watermark PDF Online | ZipStream', description: 'Add a watermark to PDF documents in your browser.' },
   '/pdf-to-word': { title: 'PDF to Word Converter | ZipStream', description: 'Convert PDF documents to editable Word files with ZipStream.' },
@@ -131,6 +144,11 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/pdf-to-html': { title: 'PDF to HTML Converter | ZipStream', description: 'Convert PDF content into responsive HTML for web publishing.' },
   '/pdf-to-audio': { title: 'PDF to Audio Reader | ZipStream', description: 'Listen to PDF text read aloud with browser speech tools.' },
   '/pdf-to-epub': { title: 'PDF to EPUB Converter | ZipStream', description: 'Convert documents into digital ebooks for e-readers.' },
+  // Convert to PDF
+  '/word-to-pdf': { title: 'Word to PDF Converter Free Online | ZipStream', description: 'Convert Word DOCX and DOC files to PDF online for free. 100% private — files never leave your browser.' },
+  '/powerpoint-to-pdf': { title: 'PowerPoint to PDF Converter Free Online | ZipStream', description: 'Convert PowerPoint PPTX presentations to PDF online free. All slides exported, no signup required.' },
+  '/excel-to-pdf': { title: 'Excel to PDF Converter Free Online | ZipStream', description: 'Convert Excel XLSX spreadsheets to PDF free online. Clean, printable PDF from any spreadsheet.' },
+  '/html-to-pdf': { title: 'HTML to PDF Converter Free Online | ZipStream', description: 'Convert HTML files or paste HTML code to PDF free. 100% browser-based, instant download.' },
   '/protect-pdf': { title: 'Protect PDF with Password | ZipStream', description: 'Add password protection and encryption to PDF documents.' },
   '/unlock-pdf': { title: 'Unlock PDF Online | ZipStream', description: 'Remove password security from authorized PDF documents.' },
   '/redact-pdf': { title: 'Redact Sensitive PDF Information | ZipStream', description: 'Find and blackout sensitive PII data before sharing a PDF.' },
@@ -492,6 +510,13 @@ export default function App() {
     'pdf_to_epub',
   ].includes(activeTool);
 
+  const isConvertToPdfTool = [
+    'word_to_pdf',
+    'pptx_to_pdf',
+    'xlsx_to_pdf',
+    'html_to_pdf',
+  ].includes(activeTool);
+
   const isSecurityTool = [
     'encrypt_pdf',
     'unlock_pdf',
@@ -706,6 +731,15 @@ export default function App() {
               />
             )}
 
+            {/* 2b. Convert to PDF Tools */}
+            {isConvertToPdfTool && (
+              <ConvertToPdfView
+                key={activeTool}
+                initialTool={activeTool}
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
             {/* 3. Security & Privacy Tools */}
             {isSecurityTool && (
               <SecurityToolsView
@@ -895,6 +929,52 @@ export default function App() {
                     className="hover:text-[#FF5722] transition-colors"
                   >
                     Images to PDF
+                  </a>
+                </li>
+                {/* Convert to PDF links */}
+                <li>
+                  <a
+                    href="/jpg-to-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/jpg-to-pdf', 'images_to_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    JPG to PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/word-to-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/word-to-pdf', 'word_to_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Word to PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/powerpoint-to-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/powerpoint-to-pdf', 'pptx_to_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    PowerPoint to PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/excel-to-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/excel-to-pdf', 'xlsx_to_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    Excel to PDF
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/html-to-pdf"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/html-to-pdf', 'html_to_pdf'); }}
+                    className="hover:text-[#FF5722] transition-colors"
+                  >
+                    HTML to PDF
                   </a>
                 </li>
                 <li>

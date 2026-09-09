@@ -191,6 +191,53 @@ export const ALL_TOOLS: SearchToolItem[] = [
     iconName: 'BookOpen',
   },
 
+  // Convert to PDF
+  {
+    id: 'images_to_pdf',
+    name: 'JPG to PDF (Image to PDF)',
+    category: 'Convert to PDF',
+    description: 'Convert JPG, PNG, WebP, and image files into a single multi-page PDF.',
+    badge: 'Free',
+    keywords: ['jpg to pdf', 'jpeg to pdf', 'image to pdf', 'png to pdf', 'photo to pdf', 'pictures to pdf', 'convert image to pdf', 'ilovepdf jpg'],
+    iconName: 'ImageIcon',
+  },
+  {
+    id: 'word_to_pdf',
+    name: 'Word to PDF',
+    category: 'Convert to PDF',
+    description: 'Convert Microsoft Word DOCX and DOC files to PDF entirely in your browser.',
+    badge: 'DOCX',
+    keywords: ['word to pdf', 'docx to pdf', 'doc to pdf', 'word document to pdf', 'convert word', 'microsoft word pdf', 'ilovepdf word'],
+    iconName: 'FileText',
+  },
+  {
+    id: 'pptx_to_pdf',
+    name: 'PowerPoint to PDF',
+    category: 'Convert to PDF',
+    description: 'Export every slide of your PowerPoint PPTX presentation as a PDF document.',
+    badge: 'PPTX',
+    keywords: ['powerpoint to pdf', 'pptx to pdf', 'ppt to pdf', 'presentation to pdf', 'slides to pdf', 'ilovepdf powerpoint'],
+    iconName: 'Presentation',
+  },
+  {
+    id: 'xlsx_to_pdf',
+    name: 'Excel to PDF',
+    category: 'Convert to PDF',
+    description: 'Turn Excel XLSX and XLS spreadsheet data into a clean, printable PDF.',
+    badge: 'XLSX',
+    keywords: ['excel to pdf', 'xlsx to pdf', 'xls to pdf', 'spreadsheet to pdf', 'convert excel', 'ilovepdf excel'],
+    iconName: 'FileSpreadsheet',
+  },
+  {
+    id: 'html_to_pdf',
+    name: 'HTML to PDF',
+    category: 'Convert to PDF',
+    description: 'Convert any HTML file or paste HTML code directly into a PDF document.',
+    badge: 'HTML5',
+    keywords: ['html to pdf', 'webpage to pdf', 'web page to pdf', 'html file to pdf', 'paste html pdf', 'code to pdf', 'ilovepdf html'],
+    iconName: 'Code',
+  },
+
   // Security & Privacy
   {
     id: 'encrypt_pdf',
