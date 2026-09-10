@@ -145,7 +145,7 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/pdf-to-audio': { title: 'PDF to Audio Reader | ZipStream', description: 'Listen to PDF text read aloud with browser speech tools.' },
   '/pdf-to-epub': { title: 'PDF to EPUB Converter | ZipStream', description: 'Convert documents into digital ebooks for e-readers.' },
   // Convert to PDF
-  '/word-to-pdf': { title: 'Word to PDF Converter Free Online | ZipStream', description: 'Convert Word DOCX and DOC files to PDF online for free. 100% private — files never leave your browser.' },
+  '/word-to-pdf': { title: 'Word to PDF Converter Free Online | ZipStream', description: 'Convert Word DOCX and DOC files to PDF with full layout fidelity, vector text, and tables. Processed in an isolated container and automatically deleted.' },
   '/powerpoint-to-pdf': { title: 'PowerPoint to PDF Converter Free Online | ZipStream', description: 'Convert PowerPoint PPTX presentations to PDF online free. All slides exported, no signup required.' },
   '/excel-to-pdf': { title: 'Excel to PDF Converter Free Online | ZipStream', description: 'Convert Excel XLSX spreadsheets to PDF free online. Clean, printable PDF from any spreadsheet.' },
   '/html-to-pdf': { title: 'HTML to PDF Converter Free Online | ZipStream', description: 'Convert HTML files or paste HTML code to PDF free. 100% browser-based, instant download.' },
@@ -264,7 +264,7 @@ export default function App() {
     description.setAttribute(
       'content',
       isUnknownRoute
-        ? 'The requested page or tool could not be found. Explore 25+ free online PDF and file tools on ZipStream.'
+        ? 'The requested page or tool could not be found. Explore 35+ free online PDF and file tools on ZipStream.'
         : metadata?.description || page?.description || 'ZipStream is a free, privacy-first online tool to compress, merge, split, and convert PDFs and files directly in your browser. No file upload or signup needed.'
     );
 

@@ -152,7 +152,7 @@ const ADDITIONAL_TOOL_PAGES: ToolPageDefinition[] = [
   ['collaborative-whiteboard', 'collab_whiteboard', 'Collaborative Whiteboard', 'Open a browser-based collaborative whiteboard for visual work.'],
   // Convert to PDF
   ['jpg-to-pdf', 'images_to_pdf', 'JPG to PDF Converter', 'Convert JPG, PNG, WebP and other images into a PDF online. Free and private — no upload needed.'],
-  ['word-to-pdf', 'word_to_pdf', 'Word to PDF Converter', 'Convert Word DOCX and DOC files to PDF online free. Preserves text and structure entirely in your browser.'],
+  ['word-to-pdf', 'word_to_pdf', 'Word to PDF Converter', 'Convert Word DOCX and DOC files to PDF with full layout fidelity, vector text, tables, and images. Private containerized conversion.'],
   ['powerpoint-to-pdf', 'pptx_to_pdf', 'PowerPoint to PDF Converter', 'Convert PowerPoint PPTX presentations to PDF online. Every slide exported — no signup required.'],
   ['excel-to-pdf', 'xlsx_to_pdf', 'Excel to PDF Converter', 'Convert Excel XLSX spreadsheets to PDF free online. Clean, printable PDF from any spreadsheet data.'],
   ['html-to-pdf', 'html_to_pdf', 'HTML to PDF Converter', 'Convert any HTML file or paste HTML code to PDF free. 100% browser-based with instant download.'],

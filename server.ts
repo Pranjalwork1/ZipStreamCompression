@@ -14,6 +14,7 @@ import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { startTunnel as startCloudflareTunnel } from 'untun';
 import compressionRouter from './server/compression/api';
+import wordConversionRouter from './server/conversion/wordToPdf/api';
 
 // Shared tunnel state — readable by API routes
 let tunnelUrl: string = '';
@@ -231,6 +232,9 @@ async function startServer() {
  
   // Distributed multi-format compression engine (PDF, Image, Video, Audio)
   app.use('/api/compress', compressionRouter);
+
+  // High-fidelity Office Word-to-PDF conversion engine (LibreOffice headless)
+  app.use('/api/convert', wordConversionRouter);
 
   app.post('/api/compress/pdf', express.raw({
     type: ['application/pdf', 'application/octet-stream'],

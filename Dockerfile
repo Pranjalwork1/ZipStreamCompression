@@ -4,10 +4,14 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
      ghostscript \
      ffmpeg \
+     libreoffice-writer \
+     libreoffice-core \
+     fonts-liberation \
+     fonts-dejavu-core \
      ca-certificates \
      curl \
   && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p /data/storage/uploads /data/storage/compressed
+  && mkdir -p /data/storage/uploads /data/storage/compressed /data/storage/word-uploads /data/storage/word-converted
 
 WORKDIR /app
 COPY package*.json ./

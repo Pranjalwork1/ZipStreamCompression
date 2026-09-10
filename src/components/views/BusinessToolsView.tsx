@@ -386,7 +386,7 @@ export const BusinessToolsView: React.FC<BusinessToolsViewProps> = ({
           className="flex items-center gap-2 text-[14px] font-semibold text-[#0071e3] dark:text-[#2997ff] hover:opacity-80 transition-opacity cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to All 25+ Tools</span>
+          <span>Back to All 35+ Tools</span>
         </button>
 
         <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ Location: Greater Noida, Uttar Pradesh, India
 
 ## What ZipStream Does
 
-ZipStream provides 25+ free online document and file processing tools:
+ZipStream provides 35+ free online document and file processing tools:
 
 ### PDF Tools
 - Compress PDF (reduce file size without quality loss)

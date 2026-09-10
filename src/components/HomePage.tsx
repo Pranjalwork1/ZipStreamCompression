@@ -950,7 +950,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Air-Gapped Privacy
             </span>
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#111C38] border border-[#0C162C]/10 dark:border-white/10 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-[#FFCB70]" /> 25+ Built-in Tools
+              <Sparkles className="w-3.5 h-3.5 text-[#FFCB70]" /> 35+ Built-in Tools
             </span>
           </div>
         </div>
@@ -972,7 +972,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 setSearchSelectedIndex(0);
               }}
               onKeyDown={handleSearchKeyDown}
-              placeholder="Search 25+ tools (e.g. Word, Excel, Compress, Redact, Sign)..."
+              placeholder="Search 35+ tools (e.g. Word, Excel, Compress, Redact, Sign)..."
               className="w-full px-3.5 py-3.5 bg-transparent text-sm text-[#0C162C] dark:text-white placeholder:text-[#5C6479]/60 dark:placeholder:text-white/35 focus:outline-none font-medium"
             />
             {searchQuery && (

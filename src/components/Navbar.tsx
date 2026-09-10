@@ -12,6 +12,7 @@ import {
   Moon,
 } from 'lucide-react';
 import { FileCategory, ToolMode } from '../types';
+import { ALL_TOOLS } from './SearchCommandPalette';
 
 interface NavbarProps {
   activeTool: ToolMode;
@@ -25,6 +26,7 @@ interface NavbarProps {
   onOpenSearch?: () => void;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  toolsCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,7 +40,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSearch,
   theme = 'light',
   onToggleTheme,
+  toolsCount,
 }) => {
+  const totalTools = toolsCount ?? ALL_TOOLS.length;
+  const toolsLabel = `${Math.floor(totalTools / 5) * 5}+ Tools`;
+
   const categories: {
     id: FileCategory;
     label: string;
@@ -155,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onOpenSearch}
             className="flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold text-[#FF5722] bg-[#FF5722]/10 hover:bg-[#FF5722]/20 transition-all cursor-pointer"
           >
-            <span>25+ Tools</span>
+            <span>{toolsLabel}</span>
           </button>
         </div>
 

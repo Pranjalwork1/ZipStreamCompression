@@ -118,7 +118,7 @@
 | Tool | URL | Input |
 |------|-----|-------|
 | **JPG to PDF** | `/jpg-to-pdf` | JPG, PNG, WebP, GIF, BMP → Multi-page PDF |
-| **Word to PDF** | `/word-to-pdf` | DOCX, DOC → PDF (mammoth.js + html2canvas) |
+| **Word to PDF** | `/word-to-pdf` | DOCX, DOC → PDF (LibreOffice headless / Office engine) |
 | **PowerPoint to PDF** | `/powerpoint-to-pdf` | PPTX, PPT → PDF (slide-by-slide extraction) |
 | **Excel to PDF** | `/excel-to-pdf` | XLSX, XLS → PDF (SheetJS table render) |
 | **HTML to PDF** | `/html-to-pdf` | HTML file or paste code → PDF |

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   FileImage,
   FileText,
@@ -58,9 +58,9 @@ const SUB_TOOLS: ConvertSubTool[] = [
     icon: <FileText className="w-4 h-4" />,
     accept: ".docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword",
     acceptLabel: "DOCX, DOC",
-    badge: "DOCX",
+    badge: "Office Engine",
     badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    description: "Convert Microsoft Word documents to PDF while preserving text and formatting.",
+    description: "Convert Microsoft Word documents (.docx and .doc) to PDF with full layout fidelity, vector text, tables, and images.",
     maxFiles: 1,
   },
   {
@@ -101,7 +101,7 @@ const SUB_TOOLS: ConvertSubTool[] = [
   },
 ];
 
-type Stage = "idle" | "uploading" | "converting" | "done" | "error";
+type Stage = "idle" | "uploading" | "queued" | "converting" | "validating" | "done" | "error";
 
 interface PreviewItem {
   id: string;
@@ -242,20 +242,120 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool,
   };
 
   const convertWordToPdf = async (file: File) => {
-    setProgressMsg("Parsing Word document structure...");
-    setProgress(15);
-    const mammoth = await import("mammoth");
-    setProgress(25);
-    const arrayBuffer = await file.arrayBuffer();
-    setProgressMsg("Extracting text and formatting...");
-    setProgress(40);
-    const result = await mammoth.convertToHtml({ arrayBuffer });
-    const html = `<!DOCTYPE html><html><head><style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;line-height:1.7;color:#1a1a1a;}h1,h2,h3{color:#0f172a;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #e2e8f0;padding:8px;}</style></head><body>${result.value}</body></html>`;
-    setProgress(55);
-    setProgressMsg("Rendering document layout...");
-    await renderHtmlToPdfBlob(html, file.name.replace(/\.[^/.]+$/, ""), (p) => {
-      setProgress(55 + Math.round(p * 40));
+    // 1. Client-side pre-flight checks
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext !== "docx" && ext !== "doc") {
+      throw new Error("Unsupported Word document. Only Microsoft Word (.docx and .doc) files are supported.");
+    }
+    if (file.size === 0) {
+      throw new Error("The selected Word file is empty (0 bytes).");
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      throw new Error("Document exceeds the maximum file size limit of 100MB.");
+    }
+
+    setStage("uploading");
+    setProgress(5);
+    setProgressMsg("Uploading document to conversion engine...");
+
+    // 2. Upload file via XMLHttpRequest to monitor real progress
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const uploadResponse = await new Promise<{ jobId: string; statusUrl: string; downloadUrl: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/convert/word-to-pdf");
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const pct = Math.round((event.loaded / event.total) * 15);
+          setProgress(Math.max(5, pct));
+          setProgressMsg(`Uploading document... ${Math.round((event.loaded / event.total) * 100)}%`);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve(data);
+          } catch {
+            reject(new Error("Invalid response received from conversion server."));
+          }
+        } else {
+          try {
+            const errData = JSON.parse(xhr.responseText);
+            reject(new Error(errData.error || `Server returned error (${xhr.status})`));
+          } catch {
+            reject(new Error(`Upload failed with status code ${xhr.status}.`));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Word conversion service unavailable. Could not connect to server."));
+      xhr.ontimeout = () => reject(new Error("Upload timed out. Please check your connection."));
+      xhr.timeout = 120000;
+
+      xhr.send(formData);
     });
+
+    const { jobId } = uploadResponse;
+    setStage("queued");
+    setProgress(20);
+    setProgressMsg("Queued in Office conversion engine...");
+
+    // 3. Poll /api/convert/jobs/:jobId
+    const pollInterval = 800;
+    const maxPollAttempts = 150; // 2 minutes maximum
+    let attempts = 0;
+
+    while (attempts < maxPollAttempts) {
+      await new Promise((r) => setTimeout(r, pollInterval));
+      attempts++;
+
+      const res = await fetch(`/api/convert/jobs/${jobId}`);
+      if (!res.ok) {
+        if (res.status === 404) throw new Error("Conversion job expired or was cancelled.");
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to query conversion status.");
+      }
+
+      const data = await res.json();
+
+      if (data.status === "completed") {
+        setStage("validating");
+        setProgress(95);
+        setProgressMsg("Finalizing validated PDF document...");
+
+        const dlRes = await fetch(data.result?.downloadUrl || `/api/convert/download/${jobId}`);
+        if (!dlRes.ok) throw new Error("Failed to download validated PDF from server.");
+        const blob = await dlRes.blob();
+
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        finalize(blob, `${baseName}.pdf`);
+        return;
+      }
+
+      if (data.status === "failed") {
+        throw new Error(data.error || "Word document conversion failed.");
+      }
+
+      if (data.status === "validating") {
+        setStage("validating");
+        setProgress(Math.max(75, data.progress || 80));
+        setProgressMsg(data.message || "Validating PDF document structure...");
+      } else if (data.status === "processing") {
+        setStage("converting");
+        setProgress(Math.max(25, Math.min(74, data.progress || 45)));
+        setProgressMsg(data.message || "Converting document with Office engine...");
+      } else if (data.status === "queued") {
+        setStage("queued");
+        setProgress(Math.max(15, Math.min(24, data.progress || 20)));
+        setProgressMsg(data.message || "Waiting in conversion queue...");
+      }
+    }
+
+    throw new Error("Conversion timed out. Please try again.");
   };
 
   const convertPptxToPdf = async (file: File) => {
@@ -483,9 +583,9 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool,
                 </p>
               </div>
               <div className="flex items-center gap-4 text-[11px] text-[#9AA3B0] dark:text-white/35 font-medium">
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> 100% Private</span>
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> No Upload</span>
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> Free</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> Private Sandbox</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> {activeSubTool === "word_to_pdf" ? "Auto-Deleted" : "No Upload"}</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> 100% Free</span>
               </div>
             </div>
           )}
@@ -542,12 +642,14 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool,
       )}
 
       {/* Converting Progress */}
-      {stage === "converting" && (
+      {(stage === "converting" || stage === "queued" || stage === "validating") && (
         <div className="space-y-5 p-6 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-[#0C162C]/8 dark:border-white/8">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full border-2 border-[#FF5722] border-t-transparent animate-spin" />
             <div>
-              <div className="text-sm font-bold text-[#0C162C] dark:text-white">Converting to PDF...</div>
+              <div className="text-sm font-bold text-[#0C162C] dark:text-white">
+                {stage === "queued" ? "Queued in conversion engine..." : stage === "validating" ? "Validating PDF output..." : "Converting to PDF..."}
+              </div>
               <div className="text-xs text-[#5C6479] dark:text-white/50 mt-0.5">{progressMsg}</div>
             </div>
             <span className="ml-auto text-sm font-bold text-[#FF5722]">{progress}%</span>
@@ -556,7 +658,9 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool,
             <div className="h-full rounded-full bg-gradient-to-r from-[#FF5722] to-[#FF9A76] transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
           <div className="text-[11px] text-[#9AA3B0] dark:text-white/35 text-center">
-            All processing happens in your browser - your files never leave your device
+            {activeSubTool === "word_to_pdf"
+              ? "Private Sandboxed Worker · Document is processed in an isolated container and automatically deleted after conversion"
+              : "All processing happens in your browser · Your files never leave your device"}
           </div>
         </div>
       )}
