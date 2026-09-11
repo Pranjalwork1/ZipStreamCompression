@@ -41,6 +41,8 @@ interface NavbarProps {
   hasActiveFile: boolean;
   onOpenReportIssue?: () => void;
   onOpenSearch?: () => void;
+  onOpenAbout?: () => void;
+  isAboutPage?: boolean;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
   toolsCount?: number;
@@ -54,6 +56,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onReset,
   onOpenReportIssue,
   onOpenSearch,
+  onOpenAbout,
+  isAboutPage = false,
   theme = 'light',
   onToggleTheme,
 }) => {
@@ -506,6 +510,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
           </div>
+
+          {/* 4. About Navigation Button */}
+          <button
+            id="nav-about-btn"
+            type="button"
+            onClick={() => {
+              setActiveDropdown(null);
+              setIsMobileMenuOpen(false);
+              onOpenAbout?.();
+            }}
+            className={`px-3 py-1.5 rounded-xl text-[13px] font-medium transition-all duration-150 cursor-pointer ${
+              isAboutPage
+                ? 'text-[#FF5722] bg-[#FF5722]/10 font-semibold shadow-2xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-[#0C162C] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+            }`}
+            aria-label="About ZipStream"
+          >
+            About
+          </button>
         </nav>
 
         {/* ─── RIGHT: Search, Theme Toggle, Primary CTA & Mobile Toggle ─────── */}
@@ -728,6 +751,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Mobile About Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenAbout?.();
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl border text-left text-xs font-semibold cursor-pointer transition-colors ${
+                  isAboutPage
+                    ? 'border-[#FF5722]/40 bg-[#FF5722]/10 text-[#FF5722]'
+                    : 'border-black/[0.06] dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-[#FF5722]" />
+                  <span>About ZipStream &amp; Architecture</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
 
               {/* Mobile Actions: Theme & Primary CTA */}
               <div className="pt-1.5 flex items-center gap-2">

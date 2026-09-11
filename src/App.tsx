@@ -42,6 +42,7 @@ const AiToolsView = lazy(() => import('./components/views/AiToolsView').then(mod
 const BusinessToolsView = lazy(() => import('./components/views/BusinessToolsView').then(module => ({ default: module.BusinessToolsView })));
 const CollaborateToolsView = lazy(() => import('./components/views/CollaborateToolsView').then(module => ({ default: module.CollaborateToolsView })));
 const ConvertToPdfView = lazy(() => import('./components/views/ConvertToPdfView').then(module => ({ default: module.ConvertToPdfView })));
+const AboutView = lazy(() => import('./components/views/AboutView').then(module => ({ default: module.AboutView })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -164,6 +165,7 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/gst-filing-prep': { title: 'GST Filing & Return Preparation | ZipStream', description: 'Prepare and organize GST sales summaries and return files.' },
   '/p2p-share': { title: 'P2P File Share Online — Direct, Encrypted & Zero Cloud | ZipStream', description: 'Share files directly peer-to-peer with zero cloud storage, QR pairing, and live sync.' },
   '/collaborative-whiteboard': { title: 'Collaborative Whiteboard Online | ZipStream', description: 'Real-time collaborative whiteboard for sketches, diagrams, and visual brainstorming.' },
+  '/about': { title: 'About ZipStream — Mission, Architecture & Features | ZipStream', description: 'Learn how ZipStream was built, our 100% client-side privacy architecture, comparison with other platforms, and our 35+ tools.' },
 };
 
 function toolFromPath(path: string): ToolMode | null {
@@ -238,6 +240,7 @@ export default function App() {
 
     const isUnknownRoute =
       normalized !== '/' &&
+      normalized !== '/about' &&
       normalized !== '/p2p-share' &&
       !getToolPage(normalized) &&
       !TOOL_PATHS[normalized] &&
@@ -245,6 +248,8 @@ export default function App() {
 
     if (normalized === '/') {
       document.title = 'Compress PDF Online Free — Fast & Private | ZipStream';
+    } else if (normalized === '/about') {
+      document.title = 'About ZipStream — Mission, Architecture & Features | ZipStream';
     } else if (isUnknownRoute) {
       document.title = '404 — Page Not Found | ZipStream';
     } else if (metadata?.title) {
@@ -546,6 +551,7 @@ export default function App() {
 
   const isNotFound =
     currentPath !== '/' &&
+    currentPath !== '/about' &&
     currentPath !== '/p2p-share' &&
     !getToolPage(currentPath) &&
     !TOOL_PATHS[currentPath] &&
@@ -569,6 +575,8 @@ export default function App() {
         hasActiveFile={stage !== 'upload'}
         onOpenReportIssue={() => setIsReportModalOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenAbout={() => navigateTo('/about')}
+        isAboutPage={currentPath === '/about'}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
@@ -631,6 +639,12 @@ export default function App() {
               )}
             </div>
           )
+        ) : currentPath === '/about' ? (
+          /* DEDICATED ABOUT VIEW (AccessGrid Inspired) */
+          <AboutView
+            onBackToHome={() => navigateTo('/')}
+            onSelectTool={handleSelectTool}
+          />
         ) : isNotFound ? (
           /* CUSTOM IN-APP 404 PAGE NOT FOUND */
           <div className="w-full max-w-2xl mx-auto text-center py-12 px-4 space-y-6 animate-in fade-in duration-200">
@@ -866,8 +880,19 @@ export default function App() {
               <p className="text-xs text-[#5C6479] dark:text-white/65 leading-relaxed">
                 Free, privacy-first online PDF and document processing. Files are handled directly in your browser using client-side WebAssembly — zero cloud uploads.
               </p>
-              <div className="pt-1 text-xs text-[#5C6479] dark:text-white/50">
-                Created by <a href="https://www.linkedin.com/in/pranjal-singh-02aba0363/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] underline underline-offset-2 transition-colors">Pranjal Singh</a>
+              <div className="pt-1 text-xs text-[#5C6479] dark:text-white/50 space-y-1">
+                <div>
+                  Created by <a href="https://www.linkedin.com/in/pranjal-singh-02aba0363/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] underline underline-offset-2 transition-colors">Pranjal Singh</a>
+                </div>
+                <div>
+                  <a
+                    href="/about"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/about'); }}
+                    className="text-[#FF5722] hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <span>About ZipStream &amp; Architecture →</span>
+                  </a>
+                </div>
               </div>
             </div>
 
