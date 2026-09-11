@@ -160,11 +160,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     >
       <div
         ref={navContainerRef}
-        className={`pointer-events-auto max-w-[1140px] w-full mx-auto rounded-[20px] sm:rounded-[22px] transition-all duration-200 ${
+        className={`pointer-events-auto max-w-[1140px] w-full mx-auto rounded-[22px] transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 dark:bg-[#0F172A]/95 shadow-[0_8px_30px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur-xl'
-            : 'bg-white/85 dark:bg-[#0F172A]/85 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.07)] backdrop-blur-md'
-        } border border-black/[0.06] dark:border-white/[0.08] h-14 sm:h-[58px] px-3.5 sm:px-5 flex items-center justify-between gap-3 relative`}
+            ? 'bg-white/75 dark:bg-[#0B132B]/75 shadow-[0_16px_40px_-6px_rgba(15,23,42,0.1),0_0_0_1px_rgba(255,255,255,0.95)_inset] dark:shadow-[0_20px_48px_-8px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.12)_inset]'
+            : 'bg-white/60 dark:bg-[#0B132B]/60 shadow-[0_10px_30px_-6px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_14px_36px_-6px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.08)_inset,0_1px_2px_0_rgba(255,255,255,0.12)_inset]'
+        } backdrop-blur-2xl border border-white/70 dark:border-white/[0.12] h-14 sm:h-[58px] px-3.5 sm:px-5 flex items-center justify-between gap-3 relative`}
       >
         {/* ─── LEFT: Refined ZipStream SaaS Brandmark ───────────────────────── */}
         <div className="flex items-center gap-3 shrink-0">
@@ -262,7 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 role="menu"
                 aria-label="Tools Menu"
               >
-                <div className="bg-white/98 dark:bg-[#0F172A]/98 backdrop-blur-2xl rounded-2xl border border-black/[0.08] dark:border-white/[0.1] shadow-[0_16px_36px_-10px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_36px_-10px_rgba(0,0,0,0.7)] p-4">
+                <div className="bg-white/80 dark:bg-[#0B132B]/80 backdrop-blur-3xl rounded-2xl border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4">
                   <div className="grid grid-cols-2 gap-3">
                     
                     {/* Column 1: PDF Essentials */}
@@ -375,7 +375,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 role="menu"
                 aria-label="Solutions Menu"
               >
-                <div className="bg-white/98 dark:bg-[#0F172A]/98 backdrop-blur-2xl rounded-2xl border border-black/[0.08] dark:border-white/[0.1] shadow-[0_16px_36px_-10px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_36px_-10px_rgba(0,0,0,0.7)] p-4 space-y-3">
+                <div className="bg-white/80 dark:bg-[#0B132B]/80 backdrop-blur-3xl rounded-2xl border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4 space-y-3">
                   
                   {/* Security */}
                   <div className="space-y-1">
@@ -467,10 +467,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 role="menu"
                 aria-label="Resources Menu"
               >
-                <div className="bg-white/98 dark:bg-[#0F172A]/98 backdrop-blur-2xl rounded-2xl border border-black/[0.08] dark:border-white/[0.1] shadow-[0_16px_36px_-10px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_16px_36px_-10px_rgba(0,0,0,0.7)] p-4 space-y-2">
+                <div className="bg-white/80 dark:bg-[#0B132B]/80 backdrop-blur-3xl rounded-2xl border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4 space-y-2">
                   
                   {/* Privacy Statement */}
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+                  <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] backdrop-blur-sm border border-black/[0.04] dark:border-white/[0.06]">
                     <div className="flex items-center gap-2 text-[#047857] dark:text-emerald-400 text-xs font-semibold">
                       <Shield className="w-3.5 h-3.5" />
                       <span>100% Private Architecture</span>
@@ -603,7 +603,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* ─── DETACHED MOBILE FLOATING DRAWER CARD ──────────────────────────── */}
         {isMobileMenuOpen && (
           <div
-            className="md:hidden absolute top-[calc(100%+8px)] inset-x-0 bg-white/98 dark:bg-[#0F172A]/98 backdrop-blur-2xl rounded-[20px] border border-black/[0.08] dark:border-white/[0.1] shadow-2xl p-4 max-h-[calc(100vh-80px)] overflow-y-auto animate-in slide-in-from-top-2 duration-150 z-50"
+            className="md:hidden absolute top-[calc(100%+8px)] inset-x-0 bg-white/85 dark:bg-[#0B132B]/85 backdrop-blur-3xl rounded-[22px] border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.2),0_0_0_1px_rgba(255,255,255,0.85)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4 max-h-[calc(100vh-80px)] overflow-y-auto animate-in slide-in-from-top-2 duration-150 z-50"
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation"
