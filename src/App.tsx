@@ -575,7 +575,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <Suspense fallback={<div className="min-h-[240px]" aria-busy="true" aria-label="Loading selected tool" />}>
-      <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center">
+      <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-2 sm:pt-4 pb-8 sm:pb-12 flex flex-col justify-center">
         {currentPath === '/' ? (
           /* HOMEPAGE - PURE, NEVER WRAPPED IN TOOL LANDING PAGE */
           stage === 'upload' ? (
