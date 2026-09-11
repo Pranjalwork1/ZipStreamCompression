@@ -16,9 +16,12 @@ import {
   Server,
   Share2,
   EyeOff,
-  FileSpreadsheet,
   QrCode,
   Terminal,
+  Clock,
+  HardDrive,
+  Users,
+  Compass,
 } from 'lucide-react';
 import { ToolMode } from '../../types';
 
@@ -40,16 +43,16 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         </button>
 
         <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-[#00ff87] animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-[#055EFE] animate-pulse"></span>
           <span>100% Client-Side Private</span>
         </div>
       </div>
 
       {/* ─── HERO SECTION: AccessGrid Editorial Layout with Dashed Guide Rails ─ */}
-      <div className="relative pt-12 sm:pt-16 pb-14 sm:pb-20 text-center px-4">
-        {/* Subtle decorative dashed side guides */}
-        <div className="hidden md:block absolute top-0 left-6 bottom-0 w-px border-l border-dashed border-slate-300 dark:border-white/15 pointer-events-none"></div>
-        <div className="hidden md:block absolute top-0 right-6 bottom-0 w-px border-r border-dashed border-slate-300 dark:border-white/15 pointer-events-none"></div>
+      <div className="relative pt-12 sm:pt-16 pb-12 sm:pb-16 text-center px-4">
+        {/* Subtle decorative vertical dashed side guides (AccessGrid Signature) */}
+        <div className="hidden md:block absolute top-0 left-4 bottom-0 w-px border-l border-dashed border-slate-300 dark:border-white/15 pointer-events-none"></div>
+        <div className="hidden md:block absolute top-0 right-4 bottom-0 w-px border-r border-dashed border-slate-300 dark:border-white/15 pointer-events-none"></div>
 
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#055EFE]/10 border border-[#055EFE]/20 text-[#055EFE] text-xs font-bold uppercase tracking-wider mb-6">
           <Sparkles className="w-3.5 h-3.5" />
@@ -63,14 +66,14 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         </h1>
 
         <p className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          We believe modern document processing should run where your files already live: directly inside your browser. No cloud surveillance, zero queues, and infinite document fidelity.
+          We believe modern document processing should run where your files already live: directly inside your browser. No cloud surveillance, zero queues, no artificial paywalls, and infinite document fidelity.
         </p>
 
         {/* Quick Hero CTAs */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <button
-            onClick={() => onSelectTool ? onSelectTool('compress') : onBackToHome()}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0C162C] dark:bg-white text-white dark:text-[#0C162C] hover:bg-[#1E293B] dark:hover:bg-slate-100 font-semibold text-sm shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => (onSelectTool ? onSelectTool('compress') : onBackToHome())}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#055EFE] hover:bg-[#004ACC] text-white font-semibold text-sm shadow-md shadow-[#055EFE]/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
           >
             <span>Start Using Tools Free</span>
             <ArrowRight className="w-4 h-4" />
@@ -86,6 +89,28 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
             <span>Connect on LinkedIn</span>
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
           </a>
+        </div>
+
+        {/* AccessGrid-Inspired Architectural Geometric Grid Banner */}
+        <div className="relative mt-12 w-full max-w-3xl mx-auto overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02] p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div className="p-3">
+              <div className="text-2xl sm:text-3xl font-black text-[#055EFE]">0 MB</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Cloud Data Uploaded</div>
+            </div>
+            <div className="p-3">
+              <div className="text-2xl sm:text-3xl font-black text-[#0C162C] dark:text-white">35+</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Document Tools</div>
+            </div>
+            <div className="p-3">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">100%</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Client-Side Privacy</div>
+            </div>
+            <div className="p-3">
+              <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400">0s</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Server Queue Wait</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -117,14 +142,14 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
               Standard PDF operations (compression, page splitting, merging, watermarking, and rasterization) execute in isolated WebAssembly memory spaces via <strong>PDF-Lib</strong>, <strong>Web Workers</strong>, and <strong>Pica GPU scaling</strong>. Your bytes never leave your device’s RAM.
             </p>
             <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/[0.06] flex items-center gap-2 text-[11px] font-mono text-slate-500">
-              <Terminal className="w-3.5 h-3.5 text-emerald-500" />
+              <Terminal className="w-3.5 h-3.5 text-[#055EFE]" />
               <span>Multi-threaded WASM compilation</span>
             </div>
           </div>
 
           {/* Pillar 2 */}
-          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-[#00ff87]/40 group">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-[#055EFE]/40 group">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Server className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-[#0C162C] dark:text-white">
@@ -134,14 +159,14 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
               For complex Word (.docx), Excel (.xlsx), and PowerPoint (.pptx) conversions where desktop typography and table indentations must achieve 100% fidelity, we engineered an isolated headless LibreOffice sandbox with ephemeral RAM storage that auto-purges files after conversion.
             </p>
             <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/[0.06] flex items-center gap-2 text-[11px] font-mono text-slate-500">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
               <span>Zero persistent disk storage</span>
             </div>
           </div>
 
           {/* Pillar 3 */}
-          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-blue-500/40 group">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-[#055EFE]/40 group">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Share2 className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-[#0C162C] dark:text-white">
@@ -151,14 +176,14 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
               Our P2P File Transfer creates direct, end-to-end encrypted WebRTC channels between your browser and the recipient’s device. Gigabytes of confidential documents transfer seamlessly with zero cloud intermediaries or file size limits.
             </p>
             <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/[0.06] flex items-center gap-2 text-[11px] font-mono text-slate-500">
-              <Lock className="w-3.5 h-3.5 text-blue-500" />
+              <Lock className="w-3.5 h-3.5 text-indigo-500" />
               <span>End-to-end encrypted peer stream</span>
             </div>
           </div>
 
           {/* Pillar 4 */}
-          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-purple-500/40 group">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-[#055EFE]/40 group">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <EyeOff className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-[#0C162C] dark:text-white">
@@ -175,10 +200,76 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         </div>
       </div>
 
-      {/* ─── SECTION 2: HOW WE ARE DIFFERENT (Comparison Matrix) ────────────── */}
+      {/* ─── SECTION 2: ACCESSGRID-INSPIRED CULTURAL & ENGINEERING PRINCIPLES ─── */}
+      <div className="my-12 p-8 sm:p-12 rounded-3xl bg-[#0C162C] text-white relative overflow-hidden shadow-2xl border border-white/10">
+        {/* Subtle decorative guide lines */}
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-80 h-80 bg-[#055EFE]/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10">
+          <div className="max-w-2xl mb-10">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#00ff87]">
+              Our Guiding Tenets
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-2 tracking-tight">
+              Engineering principles we practice every single day
+            </h2>
+            <p className="mt-2 text-sm text-slate-300 leading-relaxed">
+              Inspired by minimalist engineering cultures, we hold ourselves to rigorous standards so you never have to second-guess using ZipStream for your most critical documents.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+            {/* Principle 1 */}
+            <div className="space-y-2 border-t border-white/15 pt-5">
+              <div className="flex items-center gap-2.5 text-white font-bold text-sm">
+                <ShieldCheck className="w-4 h-4 text-[#00ff87]" />
+                <span>Privacy is a civil right, not a paid tier</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                We never store, log, or train models on your files. Document metadata, passwords, and private records belong exclusively to you.
+              </p>
+            </div>
+
+            {/* Principle 2 */}
+            <div className="space-y-2 border-t border-white/15 pt-5">
+              <div className="flex items-center gap-2.5 text-white font-bold text-sm">
+                <Zap className="w-4 h-4 text-[#055EFE]" />
+                <span>Speed is respect</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Waiting 45 seconds for a remote server to upload and process a 2-page document is unacceptable. We compile directly to client-side WebAssembly for instantaneous local execution.
+              </p>
+            </div>
+
+            {/* Principle 3 */}
+            <div className="space-y-2 border-t border-white/15 pt-5">
+              <div className="flex items-center gap-2.5 text-white font-bold text-sm">
+                <HardDrive className="w-4 h-4 text-purple-400" />
+                <span>Zero dark patterns or forced watermarks</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                We will never stamp your finished work with our branding or lock your files behind artificial 2-operation daily paywalls.
+              </p>
+            </div>
+
+            {/* Principle 4 */}
+            <div className="space-y-2 border-t border-white/15 pt-5">
+              <div className="flex items-center gap-2.5 text-white font-bold text-sm">
+                <Compass className="w-4 h-4 text-blue-400" />
+                <span>Craftsmanship down to every single pixel</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Whether rendering a PDF preview, calibrating contrast on a scanned document, or calculating UPI QR codes, every interaction is crafted for fluid delight.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── SECTION 3: HOW WE ARE DIFFERENT (Comparison Matrix) ────────────── */}
       <div className="py-12 border-t border-slate-200/80 dark:border-white/10">
         <div className="max-w-3xl mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#00ff87]">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#055EFE]">
             Direct Comparison
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0C162C] dark:text-white mt-1.5 tracking-tight">
@@ -285,7 +376,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         </div>
       </div>
 
-      {/* ─── SECTION 3: SPECIAL FEATURES & HIGHLIGHTS OF ZIPSTREAM ─────────── */}
+      {/* ─── SECTION 4: SPECIAL FEATURES & HIGHLIGHTS OF ZIPSTREAM ─────────── */}
       <div className="py-12 border-t border-slate-200/80 dark:border-white/10">
         <div className="max-w-3xl mb-8">
           <span className="text-xs font-bold uppercase tracking-wider text-[#055EFE]">
@@ -305,7 +396,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
               title: 'Multi-Target PDF Compression',
               desc: 'Select your exact desired file size (e.g. 100 KB, 200 KB) or choose custom quality percentages with visual before/after preview.',
               tool: 'compress',
-              icon: <Zap className="w-4 h-4 text-amber-500" />,
+              icon: <Zap className="w-4 h-4 text-[#055EFE]" />,
             },
             {
               title: 'Batch Word to PDF Converter',
@@ -323,13 +414,13 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
               title: 'Direct P2P Encrypted File Share',
               desc: 'Send multi-gigabyte files directly between devices without cloud uploads using end-to-end encrypted WebRTC peer streams.',
               tool: 'p2p_share',
-              icon: <Share2 className="w-4 h-4 text-emerald-500" />,
+              icon: <Share2 className="w-4 h-4 text-indigo-500" />,
             },
             {
               title: 'Smart Document Camera Scanner',
               desc: 'Turn physical receipts and contracts into crisp, deskewed PDFs right from your mobile camera with intelligent contrast enhancement.',
               tool: 'scan_document',
-              icon: <Layers className="w-4 h-4 text-indigo-500" />,
+              icon: <Layers className="w-4 h-4 text-emerald-500" />,
             },
             {
               title: 'POS Quick Billing with UPI QR',
@@ -370,11 +461,11 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         </div>
       </div>
 
-      {/* ─── SECTION 4: CREATOR SPOTLIGHT — PRANJAL SINGH ───────────────────── */}
+      {/* ─── SECTION 5: CREATOR SPOTLIGHT — PRANJAL SINGH ───────────────────── */}
       <div className="my-12 p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#0C162C] to-[#1E293B] text-white relative overflow-hidden shadow-xl border border-white/10">
         {/* Background glow & subtle geometric lines */}
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-[#055EFE]/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-[#00ff87]/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-[#0077FF]/15 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div className="space-y-3 max-w-xl">
@@ -438,7 +529,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         </p>
         <div className="mt-4">
           <button
-            onClick={() => onSelectTool ? onSelectTool('compress') : onBackToHome()}
+            onClick={() => (onSelectTool ? onSelectTool('compress') : onBackToHome())}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white font-bold text-sm shadow-md shadow-[#055efe]/25 transition-all cursor-pointer hover:scale-105"
           >
             <span>Explore All 35+ Tools</span>
