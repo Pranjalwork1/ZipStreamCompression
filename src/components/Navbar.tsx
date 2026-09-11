@@ -166,9 +166,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         ref={navContainerRef}
         className={`pointer-events-auto max-w-[1140px] w-full mx-auto rounded-[22px] transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/75 dark:bg-[#0B132B]/75 shadow-[0_16px_40px_-6px_rgba(15,23,42,0.1),0_0_0_1px_rgba(255,255,255,0.95)_inset] dark:shadow-[0_20px_48px_-8px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.12)_inset]'
-            : 'bg-white/60 dark:bg-[#0B132B]/60 shadow-[0_10px_30px_-6px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_14px_36px_-6px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.08)_inset,0_1px_2px_0_rgba(255,255,255,0.12)_inset]'
-        } backdrop-blur-2xl border border-white/70 dark:border-white/[0.12] h-14 sm:h-[58px] px-3.5 sm:px-5 flex items-center justify-between gap-3 relative`}
+            ? 'bg-[#F1F3F6]/95 dark:bg-[#131D36]/95 shadow-[0_2px_4px_0_rgba(38,38,43,0.08),0_4px_18px_-4px_rgba(38,38,43,0.18)] dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.1)]'
+            : 'bg-[#F5F6F8]/90 dark:bg-[#11192E]/90 shadow-[0_1px_1px_0_rgba(38,38,43,0.10),0_0_0_1px_rgba(38,38,43,0.04),0_2px_12px_-4px_rgba(38,38,43,0.16)] dark:shadow-[0_1px_1px_0_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.08),0_4px_16px_-4px_rgba(0,0,0,0.6)]'
+        } backdrop-blur-md border border-black/[0.06] dark:border-white/[0.1] h-14 sm:h-[58px] px-3.5 sm:px-5 flex items-center justify-between gap-3 relative`}
       >
         {/* ─── LEFT: Refined ZipStream SaaS Brandmark ───────────────────────── */}
         <div className="flex items-center gap-3 shrink-0">
@@ -608,7 +608,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* ─── DETACHED MOBILE FLOATING DRAWER CARD ──────────────────────────── */}
         {isMobileMenuOpen && (
           <div
-            className="md:hidden absolute top-[calc(100%+8px)] inset-x-0 bg-white dark:bg-[#0B132B] rounded-[22px] border border-slate-200/90 dark:border-white/10 shadow-2xl p-4 max-h-[calc(100vh-80px)] overflow-y-auto animate-in slide-in-from-top-2 duration-150 z-50"
+            className="md:hidden absolute top-[calc(100%+8px)] inset-x-0 bg-[#F5F6F8]/95 dark:bg-[#11192E]/95 backdrop-blur-md rounded-[22px] border border-black/[0.06] dark:border-white/10 shadow-2xl p-4 max-h-[calc(100vh-80px)] overflow-y-auto animate-in slide-in-from-top-2 duration-150 z-50"
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation"
