@@ -221,13 +221,13 @@ export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({
           <button
             type="button"
             onClick={onBackToHome}
-            className="inline-flex items-center gap-1.5 font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] dark:hover:text-[#FF9A76] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 font-semibold text-[#0C162C] dark:text-white hover:text-[#055EFE] dark:hover:text-[#528BFF] transition-colors cursor-pointer"
           >
             <Home className="w-3.5 h-3.5" />
             <span>Home</span>
           </button>
           <ChevronRight className="w-3.5 h-3.5 text-[#5C6479]/40 dark:text-white/30" />
-          <span className="font-semibold text-[#FF5722] dark:text-[#FF9A76] truncate max-w-[200px] sm:max-w-md">
+          <span className="font-semibold text-[#055EFE] dark:text-[#528BFF] truncate max-w-[200px] sm:max-w-md">
             {page.title}
           </span>
         </div>
@@ -243,8 +243,8 @@ export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({
 
       {/* Hero Header */}
       <header className="max-w-3xl space-y-4">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#FF5722]/20 bg-[#FF5722]/8 px-3.5 py-1.5 text-xs font-bold text-[#D84315] dark:text-[#FF9A76]">
-          <Zap className="h-3.5 w-3.5 text-[#FF5722]" /> ZipStream browser tool
+        <div className="inline-flex items-center gap-2 rounded-full border border-[#055EFE]/20 bg-[#055EFE]/8 px-3.5 py-1.5 text-xs font-bold text-[#055EFE] dark:text-[#528BFF]">
+          <Zap className="h-3.5 w-3.5 text-[#055EFE]" /> ZipStream browser tool
         </div>
         <h1 className="text-3xl font-black tracking-tight text-[#0C162C] dark:text-white sm:text-4xl lg:text-5xl">
           {page.title}
@@ -293,7 +293,7 @@ export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({
           <ol className="space-y-3">
             {page.steps.map((step, index) => (
               <li key={step} className="flex gap-3 text-sm text-[#5C6479] dark:text-white/70">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF5722] text-xs font-bold text-white shadow-xs">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#0077ff] to-[#055efe] text-xs font-bold text-white shadow-xs">
                   {index + 1}
                 </span>
                 <span className="pt-0.5">{step}</span>
@@ -331,7 +331,7 @@ export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({
               >
                 <summary className="cursor-pointer text-sm font-bold text-[#0C162C] dark:text-white flex items-center justify-between list-none">
                   <span>{faq.question}</span>
-                  <span className="text-[#FF5722] group-open:rotate-180 transition-transform text-lg">▼</span>
+                  <span className="text-[#055EFE] group-open:rotate-180 transition-transform text-lg">▼</span>
                 </summary>
                 <p className="mt-3 text-sm leading-relaxed text-[#5C6479] dark:text-white/70 border-t border-[#0C162C]/5 dark:border-white/5 pt-3">
                   {faq.answer}
@@ -354,7 +354,7 @@ export const ToolLandingPage: React.FC<ToolLandingPageProps> = ({
                 key={path}
                 type="button"
                 onClick={() => handleToolClick(path)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#FF5722]/20 bg-white/70 dark:bg-white/5 px-4 py-2 text-xs font-bold text-[#D84315] hover:bg-[#FF5722]/10 dark:text-[#FF9A76] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#055EFE]/20 bg-white/70 dark:bg-white/5 px-4 py-2 text-xs font-bold text-[#055EFE] hover:bg-[#055EFE]/10 dark:text-[#528BFF] transition-colors cursor-pointer"
               >
                 <span>{path.slice(1).replaceAll('-', ' ')}</span>
                 <ArrowRight className="h-3 w-3" />

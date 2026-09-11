@@ -2,19 +2,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* WCAG AAA & AA high-contrast foreground colours for optimal SEO, accessibility, and Google PageSpeed scores.
-   Brand accents and text are calibrated for maximum contrast against crisp white light surfaces. */
-.text-\[\#FF5722\] { color: #B93815; }
-.text-\[\#ff3b30\] { color: #C9281A; }
-.text-\[\#FF9500\] { color: #9A5B00; }
-.text-emerald-600 { color: #047857; }
-.bg-\[\#FF5722\] { background-color: #B93815; }
-.hover\:bg-\[\#FF6838\]:hover { background-color: #932E11; }
+/* AccessGrid Electric Blue Brand Theme (#055EFE / #0077FF)
+   Calibrated for high contrast, WCAG AAA readability, and premium SaaS aesthetics */
+.text-\[\#FF5722\], .text-\[\#055EFE\] { color: #055EFE; }
+.text-\[\#ff3b30\] { color: #055EFE; }
+.text-\[\#FF9500\] { color: #0284C7; }
+.bg-\[\#FF5722\], .bg-\[\#055EFE\] { background-color: #055EFE; }
+.hover\:bg-\[\#FF6838\]:hover, .hover\:bg-\[\#f4511e\]:hover { background-color: #044ECC; }
 
-.dark .text-\[\#FF5722\] { color: #FF9A76; }
-.dark .text-\[\#ff3b30\] { color: #FF6961; }
-.dark .text-\[\#FF9500\] { color: #FFC36B; }
-.dark .text-emerald-600 { color: #34D399; }
+.dark .text-\[\#FF5722\], .dark .text-\[\#055EFE\] { color: #528BFF; }
+.dark .text-\[\#ff3b30\] { color: #528BFF; }
+.dark .text-\[\#FF9500\] { color: #38BDF8; }
+.dark .bg-\[\#FF5722\], .dark .bg-\[\#055EFE\] { background-color: #055EFE; }
 
 /* Light Theme Pure White Palette & Optimal SEO Text Contrast Overrides */
 :where(html:not(.dark)) .text-\[\#0C162C\] {

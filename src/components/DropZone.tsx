@@ -40,7 +40,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
         return {
           title: 'Drop PDF document here',
           subtitle: 'Compress scanned documents, portfolios, reports, and multi-page books.',
-          icon: <FileText className="w-10 h-10 text-[#ff3b30]" />,
+          icon: <FileText className="w-10 h-10 text-[#055EFE] dark:text-[#528BFF]" />,
           badge: 'PDF Document',
           extensions: ['.pdf'],
         };
@@ -190,14 +190,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
         onClick={handleBrowseClick}
         className={`relative w-full rounded-[28px] p-8 sm:p-12 md:p-14 text-center cursor-pointer transition-all duration-200 bg-white dark:bg-[#111C38] border-2 border-dashed ${
           isDragOver
-            ? 'border-[#FF5722] ring-4 ring-[#FF5722]/20 bg-[#FFF9F6] dark:bg-[#FF5722]/10 shadow-[0_16px_40px_rgba(255,87,34,0.15)] scale-[1.01]'
-            : 'border-[#0C162C]/15 dark:border-white/15 hover:border-[#FF5722] shadow-[0_10px_35px_rgba(12,22,44,0.05)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.4)]'
+            ? 'border-[#055EFE] ring-4 ring-[#055EFE]/20 bg-[#F0F6FF] dark:bg-[#055EFE]/10 shadow-[0_16px_40px_rgba(5,94,254,0.15)] scale-[1.01]'
+            : 'border-[#0C162C]/15 dark:border-white/15 hover:border-[#055EFE] shadow-[0_10px_35px_rgba(12,22,44,0.05)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.4)]'
         }`}
       >
         {/* Top Badges Inside DropZone */}
         <div className="flex items-center justify-between mb-6 pb-3 border-b border-[#0C162C]/8 dark:border-white/8 text-xs font-semibold text-[#5C6479] dark:text-white/60">
-          <span className="flex items-center gap-1.5 text-[#FF5722]">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#FF5722] animate-pulse"></span>
+          <span className="flex items-center gap-1.5 text-[#055EFE]">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#055EFE] animate-pulse"></span>
             Instant Processing
           </span>
           <span className="px-2.5 py-0.5 rounded-full bg-[#0C162C]/5 dark:bg-white/10 text-[11px] font-bold text-[#0C162C] dark:text-white">
@@ -207,7 +207,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
         </div>
 
         {/* Centerpiece Icon */}
-        <div className="mx-auto mb-5 w-20 h-20 rounded-3xl bg-[#FFF4EE] dark:bg-[#FF5722]/15 border border-[#FF5722]/20 flex items-center justify-center transition-all duration-300 group-hover:scale-105 shadow-sm">
+        <div className="mx-auto mb-5 w-20 h-20 rounded-3xl bg-[#EEF5FF] dark:bg-[#055EFE]/15 border border-[#055EFE]/20 flex items-center justify-center transition-all duration-300 group-hover:scale-105 shadow-sm">
           {currentDetails.icon}
         </div>
 
@@ -224,7 +224,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           </p>
         </div>
 
-        {/* Primary Action Button - Nomu Signature Orange Pill */}
+        {/* Primary Action Button - AccessGrid Electric Blue Gradient Pill */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             type="button"
@@ -233,7 +233,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               e.stopPropagation();
               handleBrowseClick();
             }}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#FF5722] hover:bg-[#FF6838] text-white font-bold text-sm tracking-wide shadow-[0_4px_16px_rgba(255,87,34,0.35)] hover:shadow-[0_6px_22px_rgba(255,87,34,0.45)] transition-all active:scale-[0.98] cursor-pointer"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white font-bold text-sm tracking-wide shadow-[0_4px_16px_rgba(5,94,254,0.35)] hover:shadow-[0_6px_22px_rgba(5,94,254,0.45)] border border-[#0366ff]/80 transition-all active:scale-[0.98] cursor-pointer"
           >
             Choose files from device
           </button>
@@ -251,7 +251,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             </span>
           ))}
           <span className="text-black/20 dark:text-white/20 mx-1">•</span>
-          <span className="font-semibold text-[#FF5722]">Batch upload supported</span>
+          <span className="font-semibold text-[#055EFE]">Batch upload supported</span>
         </div>
 
         {/* Hidden Native File Input */}
@@ -272,7 +272,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           id="upload-error-banner"
           className="w-full mt-4 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-200 text-sm flex items-start gap-3 animate-in fade-in shadow-sm"
         >
-          <AlertCircle className="w-5 h-5 text-[#FF5722] shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-[#055EFE] shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="font-bold">File Unsupported</p>
             <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">{errorMessage}</p>
@@ -299,7 +299,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               onClick={() => handleLoadSample('pdf')}
               className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full bg-[#FAF7F2] dark:bg-[#1A2645] hover:bg-[#F2EDE4] dark:hover:bg-[#202E54] text-[#0C162C] dark:text-white text-xs font-semibold border border-[#0C162C]/10 dark:border-white/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <FileText className="w-3.5 h-3.5 text-[#FF5722]" />
+              <FileText className="w-3.5 h-3.5 text-[#055EFE]" />
               <span>Sample PDF</span>
             </button>
             <button
@@ -330,14 +330,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
         </div>
       </div>
 
-      {/* 3 Core Value Props - Nomu Style Cards */}
+      {/* 3 Core Value Props - AccessGrid Style Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full mt-4 text-left">
-        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all shadow-sm">
+        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#055EFE]/30 transition-all shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-xl bg-orange-500/10 flex items-center justify-center">
-              <Cpu className="w-4 h-4 text-[#FF5722]" />
+            <div className="w-7 h-7 rounded-xl bg-[#055EFE]/10 flex items-center justify-center">
+              <Cpu className="w-4 h-4 text-[#055EFE]" />
             </div>
-            <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">Fast & Local</span>
+            <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">Fast & Local</span>
           </div>
           <h4 className="text-sm font-bold text-[#0C162C] dark:text-white">WebAssembly Engine</h4>
           <p className="text-xs text-[#5C6479] dark:text-white/60 mt-1 leading-relaxed">
@@ -345,7 +345,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           </p>
         </div>
 
-        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all shadow-sm">
+        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-emerald-500/30 transition-all shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center">
               <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -358,12 +358,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
           </p>
         </div>
 
-        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all shadow-sm">
+        <div className="p-4.5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-blue-500/30 transition-all shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Eye className="w-4 h-4 text-[#FFCB70]" />
+            <div className="w-7 h-7 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Eye className="w-4 h-4 text-[#055EFE]" />
             </div>
-            <span className="text-xs font-bold text-[#FF9500] uppercase tracking-wider">Studio Quality</span>
+            <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">Studio Quality</span>
           </div>
           <h4 className="text-sm font-bold text-[#0C162C] dark:text-white">Lossless Fidelity</h4>
           <p className="text-xs text-[#5C6479] dark:text-white/60 mt-1 leading-relaxed">

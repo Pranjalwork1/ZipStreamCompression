@@ -192,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Wordmark */}
             <span className="text-[16px] sm:text-[17px] font-bold tracking-tight text-[#0C162C] dark:text-white transition-colors">
-              zipstream<span className="text-[#FF5722]">.</span>
+              zipstream<span className="text-[#055EFE]">.</span>
             </span>
           </button>
 
@@ -257,7 +257,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         PDF Essentials
                       </span>
                       {[
-                        { id: 'compress', name: 'Compress PDF', icon: <FileText className="w-3.5 h-3.5 text-red-500" /> },
+                        { id: 'compress', name: 'Compress PDF', icon: <FileText className="w-3.5 h-3.5 text-[#055EFE]" /> },
                         { id: 'merge_pdf', name: 'Merge PDF', icon: <FilePlus className="w-3.5 h-3.5 text-blue-500" /> },
                         { id: 'split_pdf', name: 'Split & Extract', icon: <Scissors className="w-3.5 h-3.5 text-amber-500" /> },
                         { id: 'scan_document', name: 'Scan Document', icon: <Camera className="w-3.5 h-3.5 text-emerald-500" /> },
@@ -271,7 +271,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <span className="p-1 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 shrink-0 group-hover:scale-105 transition-transform">
                             {t.icon}
                           </span>
-                          <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FF5722] dark:group-hover:text-[#FF5722] transition-colors">
+                          <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#055EFE] dark:group-hover:text-[#055EFE] transition-colors">
                             {t.name}
                           </span>
                         </button>
@@ -298,7 +298,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <span className="p-1 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 shrink-0 group-hover:scale-105 transition-transform">
                             {t.icon}
                           </span>
-                          <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FF5722] dark:group-hover:text-[#FF5722] transition-colors">
+                          <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#055EFE] dark:group-hover:text-[#055EFE] transition-colors">
                             {t.name}
                           </span>
                         </button>
@@ -317,7 +317,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setActiveDropdown(null);
                         onOpenSearch?.();
                       }}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF5722] hover:text-[#e64a19] transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#055EFE] hover:text-[#044ECC] transition-colors cursor-pointer"
                     >
                       <span>Explore all 30+ tools</span>
                       <ArrowRight className="w-3 h-3" />
@@ -382,7 +382,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span className="p-1 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 shrink-0 group-hover:scale-105 transition-transform">
                           {s.icon}
                         </span>
-                        <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FF5722] dark:group-hover:text-[#FF5722] transition-colors">
+                        <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#055EFE] dark:group-hover:text-[#055EFE] transition-colors">
                           {s.name}
                         </span>
                       </button>
@@ -408,7 +408,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span className="p-1 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 shrink-0 group-hover:scale-105 transition-transform">
                           {s.icon}
                         </span>
-                        <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FF5722] dark:group-hover:text-[#FF5722] transition-colors">
+                        <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#055EFE] dark:group-hover:text-[#055EFE] transition-colors">
                           {s.name}
                         </span>
                       </button>
@@ -478,11 +478,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
                         <HelpCircle className="w-4 h-4" />
                       </span>
-                      <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FF5722] transition-colors">
+                      <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#055EFE] transition-colors">
                         Feedback &amp; Support
                       </span>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#FF5722] transition-colors" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#055EFE] transition-colors" />
                   </button>
 
                   {/* Command Palette Shortcut */}
@@ -497,7 +497,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
                         <Search className="w-4 h-4" />
                       </span>
-                      <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FF5722] transition-colors">
+                      <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#055EFE] transition-colors">
                         Command Palette
                       </span>
                     </div>
@@ -522,7 +522,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             className={`px-3 py-1.5 rounded-xl text-[13px] font-medium transition-all duration-150 cursor-pointer ${
               isAboutPage
-                ? 'text-[#FF5722] bg-[#FF5722]/10 font-semibold shadow-2xs'
+                ? 'text-[#055EFE] bg-[#055EFE]/10 font-semibold shadow-2xs'
                 : 'text-slate-600 dark:text-slate-300 hover:text-[#0C162C] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
             }`}
             aria-label="About ZipStream"
@@ -544,7 +544,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Search tools (Press ⌘K or Ctrl+K)"
               aria-label="Search tools"
             >
-              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#FF5722] transition-colors shrink-0" />
+              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#055EFE] transition-colors shrink-0" />
               <span className="text-[12.5px] font-medium">Search</span>
               <kbd className="inline-flex items-center text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-white/10 px-1.5 py-0.5 rounded-md border border-black/[0.06] dark:border-white/10 shadow-2xs">
                 ⌘K
@@ -582,12 +582,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Primary High-Contrast SaaS CTA */}
+          {/* Primary High-Contrast SaaS CTA (AccessGrid Electric Blue Gradient) */}
           <button
             id="nav-primary-cta-btn"
             type="button"
             onClick={handlePrimaryCta}
-            className="hidden sm:inline-flex items-center justify-center h-8.5 px-3.5 rounded-[12px] bg-[#0C162C] dark:bg-white text-white dark:text-[#0C162C] hover:bg-[#1E293B] dark:hover:bg-slate-100 text-[12.5px] font-semibold tracking-tight shadow-xs transition-all duration-150 cursor-pointer active:scale-98"
+            className="hidden sm:inline-flex items-center justify-center h-8.5 px-3.5 rounded-[12px] bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white text-[12.5px] font-semibold tracking-tight shadow-[inset_0_1px_0.5px_0_rgba(255,255,255,0.25),0_1px_3px_0_rgba(5,94,254,0.35),0_2px_8px_-2px_rgba(5,94,254,0.4)] border border-[#0366ff]/80 transition-all duration-150 cursor-pointer active:scale-98"
           >
             <span>{isHomepage ? 'Start Compressing' : 'All Tools'}</span>
           </button>
@@ -626,7 +626,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="w-full flex items-center justify-between h-10 px-3.5 rounded-xl bg-slate-100/80 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 text-xs font-medium border border-black/[0.04] dark:border-white/[0.06]"
                 >
                   <div className="flex items-center gap-2">
-                    <Search className="w-3.5 h-3.5 text-[#FF5722]" />
+                    <Search className="w-3.5 h-3.5 text-[#055EFE]" />
                     <span>Search all 30+ tools...</span>
                   </div>
                   <kbd className="text-[10px] font-semibold text-slate-500 bg-white dark:bg-white/10 px-1.5 py-0.5 rounded border border-black/[0.06]">
@@ -761,12 +761,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className={`w-full flex items-center justify-between p-3 rounded-xl border text-left text-xs font-semibold cursor-pointer transition-colors ${
                   isAboutPage
-                    ? 'border-[#FF5722]/40 bg-[#FF5722]/10 text-[#FF5722]'
+                    ? 'border-[#055EFE]/40 bg-[#055EFE]/10 text-[#055EFE]'
                     : 'border-black/[0.06] dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-[#FF5722]" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#055EFE]" />
                   <span>About ZipStream &amp; Architecture</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
@@ -788,7 +788,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={handlePrimaryCta}
-                  className="flex-1 h-10 rounded-xl bg-[#0C162C] dark:bg-white text-white dark:text-[#0C162C] font-semibold text-xs shadow-xs"
+                  className="flex-1 h-10 rounded-xl bg-gradient-to-b from-[#0077ff] to-[#055efe] text-white font-semibold text-xs shadow-sm shadow-[#055efe]/30"
                 >
                   <span>{isHomepage ? 'Start Free' : 'Home'}</span>
                 </button>

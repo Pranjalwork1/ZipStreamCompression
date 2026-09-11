@@ -115,15 +115,15 @@ export const HOME_TOOLS: ToolItem[] = [
     badge: 'Popular',
     targetCategory: 'pdf',
     colorScheme: {
-      bg: 'bg-red-500/5 dark:bg-red-500/10',
-      border: 'border-red-500/20 dark:border-red-500/30',
-      iconBg: 'bg-red-500/15 dark:bg-red-500/25',
-      iconColor: 'text-[#ff3b30]',
-      badgeBg: 'bg-red-500/15 text-red-600 dark:text-red-400',
-      badgeColor: 'text-[#ff3b30]',
-      hoverBorder: 'hover:border-red-500/50',
+      bg: 'bg-blue-500/5 dark:bg-[#055EFE]/10',
+      border: 'border-[#055EFE]/20 dark:border-[#055EFE]/30',
+      iconBg: 'bg-[#055EFE]/10 dark:bg-[#055EFE]/20',
+      iconColor: 'text-[#055EFE] dark:text-[#528BFF]',
+      badgeBg: 'bg-[#055EFE]/15 text-[#055EFE] dark:text-[#528BFF]',
+      badgeColor: 'text-[#055EFE]',
+      hoverBorder: 'hover:border-[#055EFE]/50',
     },
-    icon: <FileText className="w-5 h-5 text-[#ff3b30]" />,
+    icon: <FileText className="w-5 h-5 text-[#055EFE] dark:text-[#528BFF]" />,
     keywords: ['compress', 'pdf', 'shrink', 'optimize', 'deflate', 'reduce size'],
   },
   {
@@ -419,15 +419,15 @@ export const HOME_TOOLS: ToolItem[] = [
     description: 'Combine multiple PDF files into one clean, well-ordered document with page drag & drop.',
     badge: 'Popular',
     colorScheme: {
-      bg: 'bg-red-500/5 dark:bg-red-500/10',
-      border: 'border-red-500/20 dark:border-red-500/30',
-      iconBg: 'bg-red-500/15 dark:bg-red-500/25',
-      iconColor: 'text-[#ff3b30]',
-      badgeBg: 'bg-red-500/15 text-red-600 dark:text-red-400',
-      badgeColor: 'text-[#ff3b30]',
-      hoverBorder: 'hover:border-red-500/50',
+      bg: 'bg-blue-500/5 dark:bg-[#055EFE]/10',
+      border: 'border-[#055EFE]/20 dark:border-[#055EFE]/30',
+      iconBg: 'bg-[#055EFE]/10 dark:bg-[#055EFE]/20',
+      iconColor: 'text-[#055EFE] dark:text-[#528BFF]',
+      badgeBg: 'bg-[#055EFE]/15 text-[#055EFE] dark:text-[#528BFF]',
+      badgeColor: 'text-[#055EFE]',
+      hoverBorder: 'hover:border-[#055EFE]/50',
     },
-    icon: <FilePlus className="w-5 h-5 text-[#ff3b30]" />,
+    icon: <FilePlus className="w-5 h-5 text-[#055EFE] dark:text-[#528BFF]" />,
     keywords: ['merge', 'combine', 'join', 'append', 'pages'],
   },
   {
@@ -607,15 +607,15 @@ export const HOME_TOOLS: ToolItem[] = [
     description: 'Blackout SSNs, credit cards, emails, and phone numbers before sharing documents.',
     badge: 'AI Shield',
     colorScheme: {
-      bg: 'bg-red-500/5 dark:bg-red-500/10',
-      border: 'border-red-500/20 dark:border-red-500/30',
-      iconBg: 'bg-red-500/15 dark:bg-red-500/25',
-      iconColor: 'text-[#ff3b30]',
-      badgeBg: 'bg-red-500/15 text-red-600 dark:text-red-400',
-      badgeColor: 'text-[#ff3b30]',
-      hoverBorder: 'hover:border-red-500/50',
+      bg: 'bg-blue-500/5 dark:bg-[#055EFE]/10',
+      border: 'border-[#055EFE]/20 dark:border-[#055EFE]/30',
+      iconBg: 'bg-[#055EFE]/10 dark:bg-[#055EFE]/20',
+      iconColor: 'text-[#055EFE] dark:text-[#528BFF]',
+      badgeBg: 'bg-[#055EFE]/15 text-[#055EFE] dark:text-[#528BFF]',
+      badgeColor: 'text-[#055EFE]',
+      hoverBorder: 'hover:border-[#055EFE]/50',
     },
-    icon: <EyeOff className="w-5 h-5 text-[#ff3b30]" />,
+    icon: <EyeOff className="w-5 h-5 text-[#055EFE] dark:text-[#528BFF]" />,
     keywords: ['redact', 'blackout', 'pii', 'privacy', 'ssn', 'credit card'],
   },
   {
@@ -916,10 +916,10 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Nomu Pill Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-[#111C38] border border-[#0C162C]/10 dark:border-white/10 shadow-xs text-xs font-semibold text-[#0C162C] dark:text-white">
           <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5722] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5722]"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#055EFE] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#055EFE]"></span>
           </span>
-          <span className="text-[#FF5722] font-bold">100% PRIVATE</span>
+          <span className="text-[#055EFE] font-bold">100% PRIVATE</span>
           <span className="text-black/20 dark:text-white/20">•</span>
           <span>ON-DEVICE PROCESSING</span>
           <span className="text-black/20 dark:text-white/20">•</span>
@@ -933,7 +933,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             className="text-4xl sm:text-6xl lg:text-[62px] font-extrabold tracking-tight text-[#0C162C] dark:text-white leading-[1.08]"
           >
             Compress PDF Online Free{' '}
-            <span className="block text-[#FF5722]">
+            <span className="block text-[#055EFE]">
               Fast, Secure &amp; 100% Private
             </span>
           </h1>
@@ -944,7 +944,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Value Highlights */}
           <div className="flex items-center justify-center gap-2.5 flex-wrap pt-2 text-xs font-semibold text-[#0C162C] dark:text-white/80">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#111C38] border border-[#0C162C]/10 dark:border-white/10 shadow-xs">
-              <Zap className="w-3.5 h-3.5 text-[#FF5722]" /> WebAssembly Speed
+              <Zap className="w-3.5 h-3.5 text-[#055EFE]" /> WebAssembly Speed
             </span>
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#111C38] border border-[#0C162C]/10 dark:border-white/10 shadow-xs">
               <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Air-Gapped Privacy
@@ -957,7 +957,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Nomu Friendly Search Input with Interactive Dropdown */}
         <div ref={searchContainerRef} className="max-w-2xl mx-auto pt-2 relative">
-          <div className="relative flex items-center rounded-full bg-white dark:bg-[#111C38] border-2 border-[#0C162C]/10 dark:border-white/10 transition-all focus-within:border-[#FF5722] focus-within:shadow-[0_8px_30px_rgba(255,87,34,0.15)] shadow-sm">
+          <div className="relative flex items-center rounded-full bg-white dark:bg-[#111C38] border-2 border-[#0C162C]/10 dark:border-white/10 transition-all focus-within:border-[#055EFE] focus-within:shadow-[0_8px_30px_rgba(5,94,254,0.18)] shadow-sm">
             <Search className="w-4 h-4 text-[#0C162C]/40 dark:text-white/40 shrink-0 ml-4" />
             <input
               type="text"
@@ -988,7 +988,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <X className="w-4 h-4" />
               </button>
             )}
-            <span className="hidden sm:inline-flex items-center text-xs font-bold text-[#FF5722] px-4 shrink-0 border-l border-[#0C162C]/10 dark:border-white/10">
+            <span className="hidden sm:inline-flex items-center text-xs font-bold text-[#055EFE] px-4 shrink-0 border-l border-[#0C162C]/10 dark:border-white/10">
               {filteredTools.length} tools
             </span>
           </div>
@@ -1031,19 +1031,19 @@ export const HomePage: React.FC<HomePageProps> = ({
                         }}
                         className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors cursor-pointer text-left ${
                           isSelected
-                            ? 'bg-[#FF5722]/8 dark:bg-[#FF5722]/15 text-[#FF5722]'
+                            ? 'bg-[#055EFE]/8 dark:bg-[#055EFE]/15 text-[#055EFE]'
                             : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.04] text-[#0C162C] dark:text-white'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-xl bg-[#FFF4EE] dark:bg-[#FF5722]/15 text-[#FF5722] flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-[#EEF5FF] dark:bg-[#055EFE]/15 text-[#055EFE] flex items-center justify-center shrink-0">
                             {tool.icon}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm truncate">{tool.name}</span>
                               {tool.badge && (
-                                <span className="px-2 py-0.5 rounded-full bg-[#FF5722]/10 text-[#FF5722] text-[10px] font-bold">
+                                <span className="px-2 py-0.5 rounded-full bg-[#055EFE]/10 text-[#055EFE] text-[10px] font-bold">
                                   {tool.badge}
                                 </span>
                               )}
@@ -1057,7 +1057,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0 text-xs font-bold text-[#FF5722]">
+                        <div className="flex items-center gap-1.5 shrink-0 text-xs font-bold text-[#055EFE]">
                           <span className="hidden sm:inline">Open</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </div>
@@ -1075,7 +1075,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section aria-labelledby="quick-compress-title" className="w-full max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-[#FF5722]" />
+            <Flame className="w-4 h-4 text-[#055EFE]" />
             <h2 id="quick-compress-title" className="text-sm font-bold text-[#0C162C] dark:text-white uppercase tracking-wider">
               Quick File Drop
             </h2>
@@ -1143,7 +1143,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 setSearchQuery('');
                 setSelectedCategoryTab('all');
               }}
-              className="px-5 py-2 rounded-full bg-[#FF5722] text-white text-xs font-bold hover:bg-[#FF6838] transition-colors cursor-pointer shadow-sm"
+              className="px-5 py-2 rounded-full bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white text-xs font-bold transition-colors cursor-pointer shadow-sm shadow-[#055efe]/25"
             >
               Reset Search Filter
             </button>
@@ -1161,18 +1161,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool(tool.id, tool.targetCategory);
                   }}
-                  className="group relative p-5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/40 shadow-sm hover:shadow-[0_12px_32px_rgba(255,87,34,0.12)] transition-all duration-200 flex flex-col justify-between cursor-pointer"
+                  className="group relative p-5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#055EFE]/40 shadow-sm hover:shadow-[0_12px_32px_rgba(5,94,254,0.15)] transition-all duration-200 flex flex-col justify-between cursor-pointer"
                 >
                 <div>
                   {/* Top Bar: Icon & Badge */}
                   <div className="flex items-center justify-between mb-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#FFF4EE] dark:bg-[#FF5722]/15 text-[#FF5722] flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+                    <div className="w-10 h-10 rounded-xl bg-[#EEF5FF] dark:bg-[#055EFE]/15 text-[#055EFE] flex items-center justify-center transition-all duration-200 group-hover:scale-110">
                       {tool.icon}
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       {tool.badge && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#FF5722]/10 text-[11px] font-bold text-[#FF5722]">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#055EFE]/10 text-[11px] font-bold text-[#055EFE]">
                           {tool.badge}
                         </span>
                       )}
@@ -1180,7 +1180,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="text-base font-bold text-[#0C162C] dark:text-white group-hover:text-[#FF5722] transition-colors leading-snug">
+                  <h3 className="text-base font-bold text-[#0C162C] dark:text-white group-hover:text-[#055EFE] transition-colors leading-snug">
                     {tool.name}
                   </h3>
                   <p className="text-xs text-[#5C6479] dark:text-white/60 leading-relaxed mt-1.5 line-clamp-2">
@@ -1189,7 +1189,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
 
                 {/* Bottom Action Link */}
-                <div className="pt-3.5 mt-3.5 border-t border-[#0C162C]/5 dark:border-white/5 flex items-center justify-between text-xs font-bold text-[#FF5722] transition-colors">
+                <div className="pt-3.5 mt-3.5 border-t border-[#0C162C]/5 dark:border-white/5 flex items-center justify-between text-xs font-bold text-[#055EFE] transition-colors">
                   <span>Open tool</span>
                   <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -1203,7 +1203,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 4. "HOW IT WORKS" 3-STEP PROCESS - NOMU CLEAN DESIGN */}
       <section aria-labelledby="how-it-works-title" className="py-8 border-t border-[#0C162C]/8 dark:border-white/8">
         <div className="text-center max-w-2xl mx-auto space-y-2 mb-10">
-          <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+          <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
             Simple & Transparent
           </span>
           <h2 id="how-it-works-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0C162C] dark:text-white">
@@ -1216,7 +1216,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="p-6 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFF4EE] dark:bg-[#FF5722]/15 text-[#FF5722] flex items-center justify-center font-bold text-sm">
+            <div className="w-10 h-10 rounded-2xl bg-[#EEF5FF] dark:bg-[#055EFE]/15 text-[#055EFE] flex items-center justify-center font-bold text-sm">
               01
             </div>
             <h3 className="text-base font-bold text-[#0C162C] dark:text-white">
@@ -1256,7 +1256,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 5. WHY CHOOSE ZIPSTREAM */}
       <section aria-labelledby="why-zipstream-title" className="p-6 sm:p-10 rounded-3xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 shadow-sm space-y-8">
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+          <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
             Why Zipstream
           </span>
           <h2 id="why-zipstream-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0C162C] dark:text-white">
@@ -1281,7 +1281,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="p-5 rounded-2xl bg-white dark:bg-[#162244] border border-[#0C162C]/8 dark:border-white/5 space-y-2.5">
-            <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-[#FF5722] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#055EFE]/10 text-[#055EFE] flex items-center justify-center">
               <Zap className="w-4 h-4" />
             </div>
             <h3 className="text-sm font-bold text-[#0C162C] dark:text-white">
@@ -1321,7 +1321,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 6. FAQ ACCORDION SECTION */}
       <section aria-labelledby="faq-title" className="max-w-3xl mx-auto w-full space-y-6 pt-4">
         <div className="text-center space-y-2">
-          <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+          <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
             Questions & Answers
           </span>
           <h2 id="faq-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0C162C] dark:text-white">
@@ -1340,15 +1340,15 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   id={`home-faq-toggle-${idx}`}
                   onClick={() => setActiveFaq(isOpen ? null : idx)}
-                  className="w-full flex items-center justify-between text-left gap-4 text-sm font-bold text-[#0C162C] dark:text-white hover:text-[#FF5722] dark:hover:text-[#FF5722] transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between text-left gap-4 text-sm font-bold text-[#0C162C] dark:text-white hover:text-[#055EFE] dark:hover:text-[#055EFE] transition-colors cursor-pointer"
                 >
                   <span className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-[#FF5722]">0{idx + 1}</span>
+                    <span className="text-xs font-bold text-[#055EFE]">0{idx + 1}</span>
                     {faq.q}
                   </span>
                   <ChevronDown
                     className={`w-4 h-4 text-[#5C6479] transition-transform duration-200 shrink-0 ${
-                      isOpen ? 'rotate-180 text-[#FF5722]' : ''
+                      isOpen ? 'rotate-180 text-[#055EFE]' : ''
                     }`}
                   />
                 </button>
@@ -1376,7 +1376,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Column 1: Convert & Compress */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
               Convert &amp; Compress
             </h3>
             <ul className="space-y-2 text-xs">
@@ -1387,7 +1387,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('compress', 'pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Compress PDF
                 </a>
@@ -1399,7 +1399,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('pdf_to_word');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   PDF to Word
                 </a>
@@ -1411,7 +1411,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('pdf_to_excel');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   PDF to Excel
                 </a>
@@ -1423,7 +1423,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('pdf_to_powerpoint');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   PDF to PowerPoint
                 </a>
@@ -1435,7 +1435,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('pdf_to_jpg');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   PDF to JPG
                 </a>
@@ -1447,7 +1447,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('pdf_to_audio');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   PDF to Audio (TTS)
                 </a>
@@ -1459,7 +1459,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('extract_text');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Extract Text &amp; Markdown
                 </a>
@@ -1469,7 +1469,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Column 2: Split & Merge */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
               Split &amp; Merge
             </h3>
             <ul className="space-y-2 text-xs">
@@ -1480,7 +1480,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('merge_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Merge PDF
                 </a>
@@ -1492,7 +1492,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('split_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Split &amp; Extract PDF
                 </a>
@@ -1504,7 +1504,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('scan_document');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Scan Document (Camera)
                 </a>
@@ -1516,7 +1516,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('images_to_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Images to PDF
                 </a>
@@ -1528,7 +1528,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('watermark_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Watermark PDF
                 </a>
@@ -1540,7 +1540,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('collab_whiteboard');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Collab Whiteboard
                 </a>
@@ -1550,7 +1550,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Column 3: Sign & Security */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
               Sign &amp; Security
             </h3>
             <ul className="space-y-2 text-xs">
@@ -1561,7 +1561,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('encrypt_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Protect &amp; Encrypt PDF
                 </a>
@@ -1573,7 +1573,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('unlock_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Unlock PDF
                 </a>
@@ -1585,7 +1585,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('auto_redact_pii');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Auto-Redact Sensitive PII
                 </a>
@@ -1597,7 +1597,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('privacy_scanner');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Privacy &amp; Metadata Strip
                 </a>
@@ -1609,7 +1609,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('fingerprint_gen');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   SHA-256 Fingerprint Generator
                 </a>
@@ -1621,7 +1621,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('repair_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Repair Damaged PDF
                 </a>
@@ -1631,7 +1631,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Column 4: AI & Business */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-[#FF5722] uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-[#055EFE] uppercase tracking-wider">
               AI &amp; Business
             </h3>
             <ul className="space-y-2 text-xs">
@@ -1642,7 +1642,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('chat_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Chat with PDF (Gemini AI)
                 </a>
@@ -1654,7 +1654,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('ai_summarize');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   AI Document Summarizer
                 </a>
@@ -1666,7 +1666,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('searchable_pdf');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   Searchable PDF (OCR)
                 </a>
@@ -1678,7 +1678,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('gst_invoice');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   GST Tax Invoice Generator
                 </a>
@@ -1690,7 +1690,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('pos_billing');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   POS Billing Slip &amp; UPI QR
                 </a>
@@ -1702,7 +1702,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     e.preventDefault();
                     onSelectTool('p2p_share');
                   }}
-                  className="text-[#5C6479] dark:text-white/60 hover:text-[#FF5722] transition-colors"
+                  className="text-[#5C6479] dark:text-white/60 hover:text-[#055EFE] transition-colors"
                 >
                   P2P Encrypted File Share
                 </a>

@@ -560,7 +560,7 @@ export default function App() {
   const activeFeaturePage = getToolPage(currentPath) || getToolPageForTool(activeTool);
 
   return (
-    <div className="min-h-screen relative bg-white dark:bg-[#0B132B] text-[#0F172A] dark:text-[#F3F4F6] flex flex-col font-sans selection:bg-[#FF5722] selection:text-white transition-colors duration-200">
+    <div className="min-h-screen relative bg-white dark:bg-[#0B132B] text-[#0F172A] dark:text-[#F3F4F6] flex flex-col font-sans selection:bg-[#055EFE] selection:text-white transition-colors duration-200">
       {/* Background Subtle Texture */}
       <div className="fixed inset-0 nomu-dot-grid pointer-events-none opacity-60 z-0"></div>
 
@@ -648,7 +648,7 @@ export default function App() {
         ) : isNotFound ? (
           /* CUSTOM IN-APP 404 PAGE NOT FOUND */
           <div className="w-full max-w-2xl mx-auto text-center py-12 px-4 space-y-6 animate-in fade-in duration-200">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#055EFE]/10 border border-[#055EFE]/20 text-[#055EFE] text-xs font-bold uppercase tracking-wider">
               <span className="font-mono text-[#00ff87]">⇲</span> Error 404
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0C162C] dark:text-white tracking-tight">
@@ -661,7 +661,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigateTo('/')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FF5722] hover:bg-[#f4511e] text-white font-bold text-sm shadow-md transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white font-bold text-sm shadow-md shadow-[#055efe]/25 transition-all cursor-pointer"
               >
                 <span>← Return to ZipStream Home</span>
               </button>
@@ -685,7 +685,7 @@ export default function App() {
                     key={item.path}
                     type="button"
                     onClick={() => navigateTo(item.path, item.tool as ToolMode)}
-                    className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#131E3A] border border-[#0C162C]/10 dark:border-white/10 hover:border-[#FF5722]/50 text-xs font-semibold text-[#0C162C] dark:text-white transition-all cursor-pointer shadow-2xs"
+                    className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#131E3A] border border-[#0C162C]/10 dark:border-white/10 hover:border-[#055EFE]/50 text-xs font-semibold text-[#0C162C] dark:text-white transition-all cursor-pointer shadow-2xs"
                   >
                     {item.name}
                   </button>
@@ -874,7 +874,7 @@ export default function App() {
                   <span className="text-[11px] font-mono font-bold text-[#00ff87]">⇲</span>
                 </div>
                 <span className="font-extrabold text-[#0C162C] dark:text-white tracking-tight text-base">
-                  zipstream<span className="text-[#FF5722]">.</span>
+                  zipstream<span className="text-[#055EFE]">.</span>
                 </span>
               </button>
               <p className="text-xs text-[#5C6479] dark:text-white/65 leading-relaxed">
@@ -882,13 +882,13 @@ export default function App() {
               </p>
               <div className="pt-1 text-xs text-[#5C6479] dark:text-white/50 space-y-1">
                 <div>
-                  Created by <a href="https://www.linkedin.com/in/pranjal-singh-02aba0363/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0C162C] dark:text-white hover:text-[#FF5722] underline underline-offset-2 transition-colors">Pranjal Singh</a>
+                  Created by <a href="https://www.linkedin.com/in/pranjal-singh-02aba0363/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0C162C] dark:text-white hover:text-[#055EFE] underline underline-offset-2 transition-colors">Pranjal Singh</a>
                 </div>
                 <div>
                   <a
                     href="/about"
                     onClick={(e) => { e.preventDefault(); navigateTo('/about'); }}
-                    className="text-[#FF5722] hover:underline font-medium inline-flex items-center gap-1"
+                    className="text-[#055EFE] hover:underline font-medium inline-flex items-center gap-1"
                   >
                     <span>About ZipStream &amp; Architecture →</span>
                   </a>
@@ -898,7 +898,7 @@ export default function App() {
 
             {/* Column 1: Compress & Convert */}
             <div className="space-y-3">
-              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+              <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider block">
                 Compress &amp; Convert
               </span>
               <ul className="space-y-2 text-xs">
@@ -906,7 +906,7 @@ export default function App() {
                   <a
                     href="/compress-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/compress-pdf', 'compress'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Compress PDF Online
                   </a>
@@ -915,7 +915,7 @@ export default function App() {
                   <a
                     href="/pdf-to-word"
                     onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-word', 'pdf_to_word'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     PDF to Word (.docx)
                   </a>
@@ -924,7 +924,7 @@ export default function App() {
                   <a
                     href="/pdf-to-excel"
                     onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-excel', 'pdf_to_excel'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     PDF to Excel (.xlsx)
                   </a>
@@ -933,7 +933,7 @@ export default function App() {
                   <a
                     href="/pdf-to-powerpoint"
                     onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-powerpoint', 'pdf_to_powerpoint'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     PDF to PowerPoint
                   </a>
@@ -942,7 +942,7 @@ export default function App() {
                   <a
                     href="/pdf-to-jpg"
                     onClick={(e) => { e.preventDefault(); navigateTo('/pdf-to-jpg', 'pdf_to_jpg'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     PDF to JPG Images
                   </a>
@@ -951,7 +951,7 @@ export default function App() {
                   <a
                     href="/images-to-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/images-to-pdf', 'images_to_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Images to PDF
                   </a>
@@ -961,7 +961,7 @@ export default function App() {
                   <a
                     href="/jpg-to-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/jpg-to-pdf', 'images_to_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     JPG to PDF
                   </a>
@@ -970,7 +970,7 @@ export default function App() {
                   <a
                     href="/word-to-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/word-to-pdf', 'word_to_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Word to PDF
                   </a>
@@ -979,7 +979,7 @@ export default function App() {
                   <a
                     href="/powerpoint-to-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/powerpoint-to-pdf', 'pptx_to_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     PowerPoint to PDF
                   </a>
@@ -988,7 +988,7 @@ export default function App() {
                   <a
                     href="/excel-to-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/excel-to-pdf', 'xlsx_to_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Excel to PDF
                   </a>
@@ -997,7 +997,7 @@ export default function App() {
                   <a
                     href="/html-to-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/html-to-pdf', 'html_to_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     HTML to PDF
                   </a>
@@ -1006,7 +1006,7 @@ export default function App() {
                   <a
                     href="/extract-text"
                     onClick={(e) => { e.preventDefault(); navigateTo('/extract-text', 'extract_text'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Extract Text
                   </a>
@@ -1016,7 +1016,7 @@ export default function App() {
 
             {/* Column 2: Organize & Edit */}
             <div className="space-y-3">
-              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+              <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider block">
                 Organize &amp; Edit
               </span>
               <ul className="space-y-2 text-xs">
@@ -1024,7 +1024,7 @@ export default function App() {
                   <a
                     href="/merge-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/merge-pdf', 'merge_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Merge PDF Files
                   </a>
@@ -1033,7 +1033,7 @@ export default function App() {
                   <a
                     href="/split-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/split-pdf', 'split_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Split &amp; Extract PDF
                   </a>
@@ -1042,7 +1042,7 @@ export default function App() {
                   <a
                     href="/scan-document"
                     onClick={(e) => { e.preventDefault(); navigateTo('/scan-document', 'scan_document'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Scan Documents (Camera)
                   </a>
@@ -1051,7 +1051,7 @@ export default function App() {
                   <a
                     href="/watermark-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/watermark-pdf', 'watermark_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Watermark PDF
                   </a>
@@ -1060,7 +1060,7 @@ export default function App() {
                   <a
                     href="/compare-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/compare-pdf', 'compare_pdfs'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Compare PDF Files
                   </a>
@@ -1069,7 +1069,7 @@ export default function App() {
                   <a
                     href="/repair-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/repair-pdf', 'repair_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Repair Damaged PDF
                   </a>
@@ -1078,7 +1078,7 @@ export default function App() {
                   <a
                     href="/collaborative-whiteboard"
                     onClick={(e) => { e.preventDefault(); navigateTo('/collaborative-whiteboard', 'collab_whiteboard'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Collab Whiteboard
                   </a>
@@ -1088,7 +1088,7 @@ export default function App() {
 
             {/* Column 3: Security & Privacy */}
             <div className="space-y-3">
-              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+              <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider block">
                 Security &amp; Privacy
               </span>
               <ul className="space-y-2 text-xs">
@@ -1096,7 +1096,7 @@ export default function App() {
                   <a
                     href="/protect-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/protect-pdf', 'encrypt_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Protect PDF (Password)
                   </a>
@@ -1105,7 +1105,7 @@ export default function App() {
                   <a
                     href="/unlock-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/unlock-pdf', 'unlock_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Unlock Protected PDF
                   </a>
@@ -1114,7 +1114,7 @@ export default function App() {
                   <a
                     href="/redact-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/redact-pdf', 'auto_redact_pii'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Auto-Redact Sensitive PII
                   </a>
@@ -1123,7 +1123,7 @@ export default function App() {
                   <a
                     href="/privacy-scanner"
                     onClick={(e) => { e.preventDefault(); navigateTo('/privacy-scanner', 'privacy_scanner'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Privacy Metadata Scanner
                   </a>
@@ -1132,7 +1132,7 @@ export default function App() {
                   <a
                     href="/file-fingerprint"
                     onClick={(e) => { e.preventDefault(); navigateTo('/file-fingerprint', 'fingerprint_gen'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     SHA-256 Fingerprint
                   </a>
@@ -1141,7 +1141,7 @@ export default function App() {
                   <a
                     href="/p2p-share"
                     onClick={(e) => { e.preventDefault(); navigateTo('/p2p-share', 'p2p_share'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     P2P Encrypted File Share
                   </a>
@@ -1151,7 +1151,7 @@ export default function App() {
 
             {/* Column 4: AI & Business */}
             <div className="space-y-3">
-              <span className="text-xs font-bold text-[#FF5722] uppercase tracking-wider block">
+              <span className="text-xs font-bold text-[#055EFE] uppercase tracking-wider block">
                 AI &amp; Business
               </span>
               <ul className="space-y-2 text-xs">
@@ -1159,7 +1159,7 @@ export default function App() {
                   <a
                     href="/chat-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/chat-pdf', 'chat_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Chat with PDF (Gemini AI)
                   </a>
@@ -1168,7 +1168,7 @@ export default function App() {
                   <a
                     href="/summarize-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/summarize-pdf', 'ai_summarize'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     AI Document Summarizer
                   </a>
@@ -1177,7 +1177,7 @@ export default function App() {
                   <a
                     href="/ocr-pdf"
                     onClick={(e) => { e.preventDefault(); navigateTo('/ocr-pdf', 'searchable_pdf'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     Searchable PDF (OCR)
                   </a>
@@ -1186,7 +1186,7 @@ export default function App() {
                   <a
                     href="/gst-invoice"
                     onClick={(e) => { e.preventDefault(); navigateTo('/gst-invoice', 'gst_invoice'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     GST Tax Invoice Generator
                   </a>
@@ -1195,7 +1195,7 @@ export default function App() {
                   <a
                     href="/pos-billing"
                     onClick={(e) => { e.preventDefault(); navigateTo('/pos-billing', 'pos_billing'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     POS Thermal Billing &amp; UPI
                   </a>
@@ -1204,7 +1204,7 @@ export default function App() {
                   <a
                     href="/gst-filing-prep"
                     onClick={(e) => { e.preventDefault(); navigateTo('/gst-filing-prep', 'gst_filing_prep'); }}
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     GSTR Filing Preparation
                   </a>
@@ -1214,7 +1214,7 @@ export default function App() {
                     href="/sitemap.xml"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-[#FF5722] transition-colors"
+                    className="hover:text-[#055EFE] transition-colors"
                   >
                     XML Site Map
                   </a>
@@ -1228,14 +1228,14 @@ export default function App() {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs text-[#5C6479] dark:text-white/60">
               <span>&copy; {new Date().getFullYear()} ZipStream. All rights reserved.</span>
               <span className="text-black/20 dark:text-white/20 hidden sm:inline">&bull;</span>
-              <a href="mailto:Pranjalsinghwork1@gmail.com" className="hover:text-[#FF5722] transition-colors">
+              <a href="mailto:Pranjalsinghwork1@gmail.com" className="hover:text-[#055EFE] transition-colors">
                 Pranjalsinghwork1@gmail.com
               </a>
               <span className="text-black/20 dark:text-white/20 hidden sm:inline">&bull;</span>
               <button
                 type="button"
                 onClick={() => setIsReportModalOpen(true)}
-                className="hover:text-[#FF5722] transition-colors cursor-pointer"
+                className="hover:text-[#055EFE] transition-colors cursor-pointer"
               >
                 Report an Issue
               </button>
@@ -1243,7 +1243,7 @@ export default function App() {
 
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5 font-medium text-[#0C162C] dark:text-white/90">
-                <Lock className="w-3.5 h-3.5 text-[#FF5722]" />
+                <Lock className="w-3.5 h-3.5 text-[#055EFE]" />
                 100% Client-Side
               </span>
               <span className="text-black/20 dark:text-white/20">&bull;</span>
@@ -1260,7 +1260,7 @@ export default function App() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="X (Twitter) profile"
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#FF5722]/10 hover:text-[#FF5722] text-[#0C162C] dark:text-white transition-all duration-150"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-[#055EFE]/10 hover:text-[#055EFE] text-[#0C162C] dark:text-white transition-all duration-150"
                 title="Follow on X"
               >
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">

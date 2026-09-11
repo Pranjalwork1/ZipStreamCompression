@@ -51,7 +51,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         <div className="hidden md:block absolute top-0 left-6 bottom-0 w-px border-l border-dashed border-slate-300 dark:border-white/15 pointer-events-none"></div>
         <div className="hidden md:block absolute top-0 right-6 bottom-0 w-px border-r border-dashed border-slate-300 dark:border-white/15 pointer-events-none"></div>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] text-xs font-bold uppercase tracking-wider mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#055EFE]/10 border border-[#055EFE]/20 text-[#055EFE] text-xs font-bold uppercase tracking-wider mb-6">
           <Sparkles className="w-3.5 h-3.5" />
           <span>The ZipStream Mission</span>
         </div>
@@ -92,7 +92,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
       {/* ─── SECTION 1: WHAT IT TOOK TO BUILD THIS (Technical Architecture) ─── */}
       <div className="py-12 border-t border-slate-200/80 dark:border-white/10">
         <div className="max-w-3xl mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#FF5722]">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#055EFE]">
             Engineering Deep Dive
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0C162C] dark:text-white mt-1.5 tracking-tight">
@@ -106,8 +106,8 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         {/* 4 Architectural Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Pillar 1 */}
-          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-[#FF5722]/40 group">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-[#FF5722] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] transition-all hover:border-[#055EFE]/40 group">
+            <div className="w-10 h-10 rounded-xl bg-[#055EFE]/10 text-[#055EFE] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Cpu className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-[#0C162C] dark:text-white">
@@ -195,7 +195,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
             <thead>
               <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02]">
                 <th className="py-3.5 px-4 font-bold text-slate-700 dark:text-slate-300">Feature</th>
-                <th className="py-3.5 px-4 font-bold text-[#FF5722]">ZipStream.online</th>
+                <th className="py-3.5 px-4 font-bold text-[#055EFE]">ZipStream.online</th>
                 <th className="py-3.5 px-4 font-semibold text-slate-400 dark:text-slate-500">Traditional PDF Sites (iLovePDF, Smallpdf)</th>
               </tr>
             </thead>
@@ -288,7 +288,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
       {/* ─── SECTION 3: SPECIAL FEATURES & HIGHLIGHTS OF ZIPSTREAM ─────────── */}
       <div className="py-12 border-t border-slate-200/80 dark:border-white/10">
         <div className="max-w-3xl mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#FF5722]">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#055EFE]">
             Platform Capabilities
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0C162C] dark:text-white mt-1.5 tracking-tight">
@@ -359,7 +359,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
               {onSelectTool && (
                 <button
                   onClick={() => onSelectTool(item.tool as ToolMode)}
-                  className="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs font-semibold text-[#FF5722] hover:text-[#f4511e] transition-colors cursor-pointer"
+                  className="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs font-semibold text-[#055EFE] hover:text-[#044ECC] transition-colors cursor-pointer"
                 >
                   <span>Launch Tool</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -373,7 +373,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
       {/* ─── SECTION 4: CREATOR SPOTLIGHT — PRANJAL SINGH ───────────────────── */}
       <div className="my-12 p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#0C162C] to-[#1E293B] text-white relative overflow-hidden shadow-xl border border-white/10">
         {/* Background glow & subtle geometric lines */}
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-[#FF5722]/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-[#055EFE]/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-[#00ff87]/15 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
@@ -416,7 +416,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
 
           {/* Profile Card Badge */}
           <div className="shrink-0 p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center text-center w-full md:w-56">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#FF5722] to-[#ff8a65] flex items-center justify-center text-white text-2xl font-black shadow-md mb-3 border border-white/20">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#0077ff] to-[#055efe] flex items-center justify-center text-white text-2xl font-black shadow-md mb-3 border border-white/20">
               PS
             </div>
             <span className="font-bold text-base text-white">Pranjal Singh</span>
@@ -439,7 +439,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onBackToHome, onSelectTool
         <div className="mt-4">
           <button
             onClick={() => onSelectTool ? onSelectTool('compress') : onBackToHome()}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FF5722] hover:bg-[#f4511e] text-white font-bold text-sm shadow-md transition-all cursor-pointer hover:scale-105"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white font-bold text-sm shadow-md shadow-[#055efe]/25 transition-all cursor-pointer hover:scale-105"
           >
             <span>Explore All 35+ Tools</span>
             <ArrowRight className="w-4 h-4" />

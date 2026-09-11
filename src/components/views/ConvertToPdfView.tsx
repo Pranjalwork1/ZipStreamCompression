@@ -606,7 +606,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
     const sheetsHtml = workbook.SheetNames.map((sheetName, idx) => {
       const sheet = workbook.Sheets[sheetName];
       const html = XLSX.utils.sheet_to_html(sheet, { id: `sheet-${idx}`, header: "" });
-      return `<div style="margin-bottom:32px;page-break-inside:avoid;"><h2 style="font-family:sans-serif;font-size:14px;font-weight:700;color:#1e293b;border-bottom:2px solid #FF5722;padding-bottom:8px;margin-bottom:16px;">Sheet: ${sheetName}</h2><div>${html}</div></div>`;
+      return `<div style="margin-bottom:32px;page-break-inside:avoid;"><h2 style="font-family:sans-serif;font-size:14px;font-weight:700;color:#1e293b;border-bottom:2px solid #055EFE;padding-bottom:8px;margin-bottom:16px;">Sheet: ${sheetName}</h2><div>${html}</div></div>`;
     }).join("");
     const fullHtml = `<!DOCTYPE html><html><head><style>body{font-family:-apple-system,sans-serif;margin:40px;background:#fff;color:#1e293b;}table{border-collapse:collapse;width:100%;font-size:11px;}th,td{border:1px solid #e2e8f0;padding:6px 10px;text-align:left;}th{background:#f8fafc;font-weight:700;}tr:nth-child(even){background:#f8fafc;}h1{font-size:20px;margin-bottom:24px;color:#0f172a;}</style></head><body><h1>${file.name}</h1>${sheetsHtml}</body></html>`;
     setProgress(60);
@@ -770,7 +770,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
             onClick={() => handleSubToolSwitch(tool.id)}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
               activeSubTool === tool.id
-                ? "bg-[#FF5722] text-white shadow-md shadow-[#FF5722]/20"
+                ? "bg-gradient-to-b from-[#0077ff] to-[#055efe] text-white shadow-md shadow-[#055efe]/20"
                 : "bg-black/[0.04] dark:bg-white/[0.06] text-[#5C6479] dark:text-white/60 hover:bg-black/[0.08] dark:hover:bg-white/[0.1] hover:text-[#0C162C] dark:hover:text-white"
             }`}
           >
@@ -782,8 +782,8 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
       </div>
 
       {/* Tool Description Strip */}
-      <div className="flex items-start gap-3 p-4 rounded-2xl bg-[#FF5722]/5 border border-[#FF5722]/15">
-        <div className="w-8 h-8 rounded-xl bg-[#FF5722]/10 flex items-center justify-center text-[#FF5722] shrink-0">
+      <div className="flex items-start gap-3 p-4 rounded-2xl bg-[#055EFE]/5 border border-[#055EFE]/15">
+        <div className="w-8 h-8 rounded-xl bg-[#055EFE]/10 flex items-center justify-center text-[#055EFE] shrink-0">
           {currentTool.icon}
         </div>
         <div>
@@ -822,7 +822,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
                 value={htmlInput}
                 onChange={(e) => setHtmlInput(e.target.value)}
                 placeholder="Paste your HTML code here...&#10;&#10;&lt;!DOCTYPE html&gt;&#10;&lt;html&gt;&#10;&lt;body&gt;&#10;  &lt;h1&gt;Hello World&lt;/h1&gt;&#10;&lt;/body&gt;&#10;&lt;/html&gt;"
-                className="w-full h-56 px-4 py-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-[#0C162C]/10 dark:border-white/10 text-sm font-mono text-[#0C162C] dark:text-white placeholder-[#9AA3B0] dark:placeholder-white/30 focus:outline-none focus:border-[#FF5722]/50 resize-none transition-colors"
+                className="w-full h-56 px-4 py-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-[#0C162C]/10 dark:border-white/10 text-sm font-mono text-[#0C162C] dark:text-white placeholder-[#9AA3B0] dark:placeholder-white/30 focus:outline-none focus:border-[#055EFE]/50 resize-none transition-colors"
               />
               <button
                 type="button"
@@ -834,7 +834,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
                   }
                 }}
                 disabled={!htmlInput.trim()}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF5722] hover:bg-[#f4511e] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors cursor-pointer"
               >
                 <Eye className="w-4 h-4" />
                 Preview and Convert
@@ -849,8 +849,8 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
               onClick={() => fileInputRef.current?.click()}
               className={`relative flex flex-col items-center justify-center gap-4 p-10 rounded-3xl border-2 border-dashed cursor-pointer transition-all duration-200 group ${
                 isDragging
-                  ? "border-[#FF5722] bg-[#FF5722]/5 scale-[1.01]"
-                  : "border-[#0C162C]/15 dark:border-white/15 hover:border-[#FF5722]/50 hover:bg-[#FF5722]/[0.02]"
+                  ? "border-[#055EFE] bg-[#055EFE]/5 scale-[1.01]"
+                  : "border-[#0C162C]/15 dark:border-white/15 hover:border-[#055EFE]/50 hover:bg-[#055EFE]/[0.02]"
               }`}
             >
               <input
@@ -863,7 +863,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
               />
               <div
                 className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${
-                  isDragging ? "bg-[#FF5722]/20 text-[#FF5722]" : "bg-[#FF5722]/8 text-[#FF5722] group-hover:bg-[#FF5722]/15"
+                  isDragging ? "bg-[#055EFE]/20 text-[#055EFE]" : "bg-[#055EFE]/8 text-[#055EFE] group-hover:bg-[#055EFE]/15"
                 }`}
               >
                 <FileUp className="w-8 h-8" />
@@ -873,7 +873,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
                   {isDragging ? "Drop your files here" : `Drop ${currentTool.acceptLabel} here`}
                 </p>
                 <p className="text-sm text-[#5C6479] dark:text-white/50">
-                  or <span className="text-[#FF5722] font-semibold">click to browse</span>
+                  or <span className="text-[#055EFE] font-semibold">click to browse</span>
                   {currentTool.maxFiles > 1 && ` — Select up to ${currentTool.maxFiles} files`}
                 </p>
               </div>
@@ -904,7 +904,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs font-semibold text-[#FF5722] hover:underline cursor-pointer flex items-center gap-1"
+                className="text-xs font-semibold text-[#055EFE] hover:underline cursor-pointer flex items-center gap-1"
               >
                 + Add More Files
               </button>
@@ -946,9 +946,9 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
               {files.map((file, idx) => (
                 <div
                   key={file.name + idx}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#FF5722]/30 transition-all"
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#055EFE]/30 transition-all"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#FF5722]/10 flex items-center justify-center text-[#FF5722] shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#055EFE]/10 flex items-center justify-center text-[#055EFE] shrink-0">
                     {currentTool.icon}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -984,7 +984,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
             <button
               type="button"
               onClick={convertToPdf}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FF5722] hover:bg-[#f4511e] text-white text-sm font-bold shadow-lg shadow-[#FF5722]/20 transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white text-sm font-bold shadow-lg shadow-[#055efe]/20 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               {stage === "error" ? "Retry Conversion" : `Convert ${files.length > 1 ? `(${files.length} files) ` : ""}to PDF`}
@@ -1006,7 +1006,7 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
       {(stage === "converting" || stage === "queued" || stage === "validating") && (
         <div className="space-y-5 p-6 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-[#0C162C]/8 dark:border-white/8">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-[#FF5722] border-t-transparent animate-spin" />
+            <div className="w-8 h-8 rounded-full border-2 border-[#055EFE] border-t-transparent animate-spin" />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-[#0C162C] dark:text-white truncate">
                 {stage === "queued"
@@ -1017,11 +1017,11 @@ export const ConvertToPdfView: React.FC<ConvertToPdfViewProps> = ({ initialTool 
               </div>
               <div className="text-xs text-[#5C6479] dark:text-white/50 mt-0.5 truncate">{progressMsg}</div>
             </div>
-            <span className="ml-auto text-sm font-bold text-[#FF5722] shrink-0">{progress}%</span>
+            <span className="ml-auto text-sm font-bold text-[#055EFE] shrink-0">{progress}%</span>
           </div>
           <div className="h-2 rounded-full bg-[#0C162C]/8 dark:bg-white/8 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#FF5722] to-[#FF9A76] transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-[#0077ff] to-[#055efe] transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
