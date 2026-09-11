@@ -178,30 +178,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="ZipStream Home"
           >
-            {/* Geometric Converging Logo Mark */}
-            <div className="relative w-7.5 h-7.5 rounded-[10px] bg-gradient-to-br from-[#0C162C] to-[#1E293B] dark:from-white/15 dark:to-white/5 border border-black/10 dark:border-white/15 text-white flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-4 h-4"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M4 8L12 3L20 8"
-                  stroke="#FF5722"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M4 16L12 21L20 16"
-                  stroke="#00ff87"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="12" cy="12" r="2" fill="currentColor" />
-              </svg>
+            {/* Previous Iconic ZipStream Logo Mark */}
+            <div className="relative w-8 h-8 rounded-[9px] bg-[#11141a] border border-white/[0.12] text-white flex items-center justify-center transition-all duration-200 group-hover:border-[#00ff87]/60 group-hover:shadow-[0_0_15px_rgba(0,255,135,0.25)] shadow-xs shrink-0">
+              <span className="text-[13px] font-mono font-bold text-[#00ff87]">⇲</span>
+              {/* Corner crosshairs */}
+              <span className="absolute -top-0.5 -left-0.5 text-[7px] text-white/30 font-mono">+</span>
+              <span className="absolute -bottom-0.5 -right-0.5 text-[7px] text-white/30 font-mono">+</span>
             </div>
 
             {/* Wordmark */}
