@@ -244,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 role="menu"
                 aria-label="Tools Menu"
               >
-                <div className="bg-white/80 dark:bg-[#0B132B]/80 backdrop-blur-3xl rounded-2xl border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4">
+                <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.18)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)] p-4">
                   <div className="grid grid-cols-2 gap-3">
                     
                     {/* Column 1: PDF Essentials */}
@@ -357,7 +357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 role="menu"
                 aria-label="Solutions Menu"
               >
-                <div className="bg-white/80 dark:bg-[#0B132B]/80 backdrop-blur-3xl rounded-2xl border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4 space-y-3">
+                <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.18)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)] p-4 space-y-3">
                   
                   {/* Security */}
                   <div className="space-y-1">
@@ -449,10 +449,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 role="menu"
                 aria-label="Resources Menu"
               >
-                <div className="bg-white/80 dark:bg-[#0B132B]/80 backdrop-blur-3xl rounded-2xl border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.85)_inset,0_1px_2px_0_rgba(255,255,255,0.9)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4 space-y-2">
+                <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.18)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)] p-4 space-y-2">
                   
                   {/* Privacy Statement */}
-                  <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] backdrop-blur-sm border border-black/[0.04] dark:border-white/[0.06]">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06]">
                     <div className="flex items-center gap-2 text-[#047857] dark:text-emerald-400 text-xs font-semibold">
                       <Shield className="w-3.5 h-3.5" />
                       <span>100% Private Architecture</span>
@@ -585,7 +585,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* ─── DETACHED MOBILE FLOATING DRAWER CARD ──────────────────────────── */}
         {isMobileMenuOpen && (
           <div
-            className="md:hidden absolute top-[calc(100%+8px)] inset-x-0 bg-white/85 dark:bg-[#0B132B]/85 backdrop-blur-3xl rounded-[22px] border border-white/80 dark:border-white/[0.14] shadow-[0_24px_50px_-12px_rgba(15,23,42,0.2),0_0_0_1px_rgba(255,255,255,0.85)_inset] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.08)_inset] p-4 max-h-[calc(100vh-80px)] overflow-y-auto animate-in slide-in-from-top-2 duration-150 z-50"
+            className="md:hidden absolute top-[calc(100%+8px)] inset-x-0 bg-white dark:bg-[#0B132B] rounded-[22px] border border-slate-200/90 dark:border-white/10 shadow-2xl p-4 max-h-[calc(100vh-80px)] overflow-y-auto animate-in slide-in-from-top-2 duration-150 z-50"
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation"
