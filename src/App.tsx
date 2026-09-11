@@ -24,6 +24,8 @@ import { prepareFileInfo } from './utils/fileInfo';
 import {
   Lock,
   Shield,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 const BatchProcessingView = lazy(() => import('./components/BatchProcessingView').then(module => ({ default: module.BatchProcessingView })));
@@ -177,15 +179,17 @@ function toolFromPath(path: string): ToolMode | null {
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
-      const saved = localStorage.getItem('zipstream-theme');
-      if (saved === 'dark' || saved === 'light') return saved;
-      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        return 'light';
+      const explicit = localStorage.getItem('zipstream-theme-v2');
+      if (explicit === 'dark' || explicit === 'light') {
+        return explicit;
       }
+      // Default to light mode
+      localStorage.setItem('zipstream-theme-v2', 'light');
+      localStorage.setItem('zipstream-theme', 'light');
     } catch {
       // fallback
     }
-    return 'dark';
+    return 'light';
   });
 
   const [currentPath, setCurrentPath] = useState<string>(() => {
@@ -289,6 +293,7 @@ export default function App() {
       } else {
         document.documentElement.classList.remove('dark');
       }
+      localStorage.setItem('zipstream-theme-v2', theme);
       localStorage.setItem('zipstream-theme', theme);
     } catch {
       // ignore storage error
@@ -1252,6 +1257,29 @@ export default function App() {
                 Zero Cloud Ingress
               </span>
             </div>
+
+            {/* Footer Theme Toggle Switch */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              role="switch"
+              aria-checked={theme === 'dark'}
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-semibold text-[#0C162C] dark:text-white transition-all cursor-pointer border border-black/5 dark:border-white/10 shadow-2xs"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Light Mode</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-slate-700" />
+                  <span>Dark Mode</span>
+                </>
+              )}
+            </button>
 
             {/* Social Media Links */}
             <div className="flex items-center gap-2" aria-label="Social Media Links">

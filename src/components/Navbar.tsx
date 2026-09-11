@@ -564,21 +564,38 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Subtle Theme Toggle Button */}
+          {/* Dedicated Modern SaaS Dark Mode Toggle Switch */}
           {onToggleTheme && (
             <button
               id="nav-theme-toggle-btn"
               type="button"
               onClick={onToggleTheme}
-              className="flex items-center justify-center w-8.5 h-8.5 rounded-[12px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
-              title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
-              aria-label={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+              role="switch"
+              aria-checked={isDark}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="group relative inline-flex h-8 w-[58px] items-center rounded-full bg-slate-200/90 dark:bg-white/15 p-1 transition-all duration-200 hover:bg-slate-300/80 dark:hover:bg-white/20 cursor-pointer shrink-0 border border-black/5 dark:border-white/10 shadow-inner"
             >
-              {isDark ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-slate-700" />
-              )}
+              {/* Background Sun/Moon Track Icons */}
+              <span className="absolute left-2 flex items-center justify-center text-amber-500 pointer-events-none transition-opacity duration-200">
+                <Sun className="w-3.5 h-3.5" />
+              </span>
+              <span className="absolute right-2 flex items-center justify-center text-blue-400 pointer-events-none transition-opacity duration-200">
+                <Moon className="w-3.5 h-3.5" />
+              </span>
+
+              {/* Smooth Gliding Thumb Knob */}
+              <span
+                className={`inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-[#0C162C] shadow-md transform transition-transform duration-200 ease-out z-10 ${
+                  isDark ? 'translate-x-[26px]' : 'translate-x-0'
+                }`}
+              >
+                {isDark ? (
+                  <Moon className="w-3.5 h-3.5 text-blue-400" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                )}
+              </span>
             </button>
           )}
 
@@ -772,28 +789,59 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
-              {/* Mobile Actions: Theme & Primary CTA */}
-              <div className="pt-1.5 flex items-center gap-2">
+              {/* Mobile Actions: Dark Mode Toggle */}
+              <div className="pt-2 flex items-center justify-between p-3 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  {isDark ? (
+                    <Moon className="w-4 h-4 text-blue-400" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-amber-500" />
+                  )}
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    {isDark ? 'Dark Mode' : 'Light Mode'}
+                  </span>
+                </div>
+
                 {onToggleTheme && (
                   <button
                     type="button"
                     onClick={onToggleTheme}
-                    className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-medium text-xs border border-black/[0.04] dark:border-white/[0.06]"
+                    role="switch"
+                    aria-checked={isDark}
+                    title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    className="relative inline-flex h-7 w-[52px] items-center rounded-full bg-slate-200 dark:bg-white/15 p-0.5 transition-colors cursor-pointer border border-black/5 dark:border-white/10"
                   >
-                    {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-                    <span>{isDark ? 'Light' : 'Dark'}</span>
+                    <span className="absolute left-1.5 text-amber-500 pointer-events-none">
+                      <Sun className="w-3 h-3" />
+                    </span>
+                    <span className="absolute right-1.5 text-blue-400 pointer-events-none">
+                      <Moon className="w-3 h-3" />
+                    </span>
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded-full bg-white dark:bg-[#0C162C] shadow-sm transform transition-transform duration-200 ${
+                        isDark ? 'translate-x-[25px]' : 'translate-x-0'
+                      }`}
+                    >
+                      {isDark ? (
+                        <Moon className="w-3 h-3 text-blue-400" />
+                      ) : (
+                        <Sun className="w-3 h-3 text-amber-500" />
+                      )}
+                    </span>
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={handlePrimaryCta}
-                  className="flex-1 h-10 rounded-xl bg-gradient-to-b from-[#0077ff] to-[#055efe] text-white font-semibold text-xs shadow-sm shadow-[#055efe]/30"
-                >
-                  <span>{isHomepage ? 'Start Free' : 'Home'}</span>
-                </button>
               </div>
 
+              {/* Mobile Primary Action Button */}
+              <button
+                type="button"
+                onClick={handlePrimaryCta}
+                className="w-full h-11 rounded-xl bg-gradient-to-b from-[#0077ff] to-[#055efe] hover:from-[#006ee6] hover:to-[#0452e0] text-white font-bold text-xs shadow-md shadow-[#055efe]/25 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>{isHomepage ? 'Start Compressing Free' : 'Back to All Tools'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
