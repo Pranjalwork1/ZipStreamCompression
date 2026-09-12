@@ -1,68 +1,234 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core Site Pages -->
   <url>
     <loc>https://zipstream.online/</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://zipstream.online/about</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Popular PDF Optimization & Manipulation Tools -->
+  <url>
     <loc>https://zipstream.online/compress-pdf</loc>
-    <lastmod>2026-08-23</lastmod>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://zipstream.online/merge-pdf</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://zipstream.online/scan-document</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://zipstream.online/images-to-pdf</loc>
-    <lastmod>2026-08-23</lastmod>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://zipstream.online/split-pdf</loc>
-    <lastmod>2026-08-23</lastmod>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/images-to-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/jpg-to-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/scan-document</loc>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://zipstream.online/watermark-pdf</loc>
-    <lastmod>2026-08-23</lastmod>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  <url><loc>https://zipstream.online/pdf-to-word</loc><lastmod>2026-09-04</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://zipstream.online/pdf-to-excel</loc><lastmod>2026-09-04</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://zipstream.online/pdf-to-jpg</loc><lastmod>2026-09-04</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://zipstream.online/pdf-to-powerpoint</loc><lastmod>2026-09-04</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://zipstream.online/extract-text</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/pdf-to-html</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/pdf-to-audio</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/pdf-to-epub</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/protect-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://zipstream.online/unlock-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://zipstream.online/redact-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://zipstream.online/privacy-scanner</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/file-fingerprint</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/chat-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/summarize-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/ocr-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://zipstream.online/compare-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/repair-pdf</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/gst-invoice</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/pos-billing</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/gst-filing-prep</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/p2p-share</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://zipstream.online/collaborative-whiteboard</loc><lastmod>2026-09-04</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <!-- Convert FROM PDF -->
+  <url>
+    <loc>https://zipstream.online/pdf-to-word</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pdf-to-excel</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pdf-to-jpg</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pdf-to-powerpoint</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/extract-text</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pdf-to-html</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pdf-to-audio</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pdf-to-epub</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Convert TO PDF -->
+  <url>
+    <loc>https://zipstream.online/word-to-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/excel-to-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/powerpoint-to-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/html-to-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Security & Privacy Tools -->
+  <url>
+    <loc>https://zipstream.online/protect-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/unlock-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/redact-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/privacy-scanner</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/file-fingerprint</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- AI & Advanced Document Tools -->
+  <url>
+    <loc>https://zipstream.online/chat-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/summarize-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/ocr-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/compare-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/repair-pdf</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Business & Invoicing Tools -->
+  <url>
+    <loc>https://zipstream.online/gst-invoice</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/pos-billing</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/gst-filing-prep</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Collaboration & Sharing -->
+  <url>
+    <loc>https://zipstream.online/p2p-share</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://zipstream.online/collaborative-whiteboard</loc>
+    <lastmod>2026-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>

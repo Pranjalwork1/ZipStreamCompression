@@ -70,4 +70,3 @@ Allow: /
 
 # ── Sitemaps ──────────────────────────────────────────────────────────────────
 Sitemap: https://zipstream.online/sitemap.xml
-Sitemap: https://zipstream.online/sitemap-index.xml
