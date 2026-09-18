@@ -454,7 +454,7 @@ export const HOME_TOOLS: ToolItem[] = [
     name: 'Scan Document (CamScanner)',
     category: 'split-merge',
     categoryLabel: 'Split & Merge',
-    description: 'Capture documents with your device camera, enhance text contrast, and export clean PDF.',
+    description: 'Capture documents with automatic page border detection, enhance text contrast, and export clean PDF.',
     badge: 'New',
     colorScheme: {
       bg: 'bg-emerald-500/5 dark:bg-emerald-500/10',

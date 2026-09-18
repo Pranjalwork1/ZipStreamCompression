@@ -70,13 +70,16 @@ export const TOOL_PAGES: ToolPageDefinition[] = [
   },
   {
     path: '/scan-document', tool: 'scan_document', title: 'Scan Documents Online',
-    description: 'Use your device camera to scan documents and export clean PDFs.',
-    intro: 'Capture receipts, notes, forms, and paperwork with your camera. Enhance contrast and export a shareable PDF without installing an app.',
-    keywords: ['scan document online', 'camera PDF scanner', 'receipt scanner'],
-    benefits: ['Use a phone or laptop camera', 'Enhance contrast and grayscale', 'Export scanned pages as PDF'],
-    steps: ['Allow camera access', 'Capture and review each page', 'Export the scanned document'],
+    description: 'Use your device camera to scan documents with automatic border detection and export clean PDFs.',
+    intro: 'Capture receipts, notes, forms, and paperwork with your camera. Automatically detects and fits page borders in real time, enhances contrast, and exports a shareable PDF without installing an app.',
+    keywords: ['scan document online', 'automatic border detection', 'camera PDF scanner', 'receipt scanner'],
+    benefits: ['Automatic page border detection', 'Use a phone or laptop camera', 'Enhance contrast and grayscale', 'Export scanned pages as PDF'],
+    steps: ['Allow camera access', 'Document borders auto-detect and frame the page', 'Capture and review each page', 'Export the clean scanned PDF'],
     related: ['/images-to-pdf', '/compress-pdf', '/split-pdf'],
-    faqs: [{ question: 'Does scanning require an app?', answer: 'No. The scanner runs in a compatible modern browser with camera permission.' }],
+    faqs: [
+      { question: 'Does scanning require an app?', answer: 'No. The scanner runs in your browser with camera access and automatically detects page borders on-device.' },
+      { question: 'Do I need to adjust borders manually?', answer: 'No. The scanner automatically finds the paper edges and frames the document. Manual adjustment handles are also available if you want to fine-tune.' }
+    ],
   },
   {
     path: '/watermark-pdf', tool: 'watermark_pdf', title: 'Watermark PDF Online',

@@ -35,6 +35,12 @@ import {
   packageScannedPagesZip,
   FilterAdjustments,
 } from '../utils/scannerEngine';
+import {
+  detectDocumentBounds,
+  detectDocumentInImage,
+  autoCropDocumentImage,
+  DetectedCropBox,
+} from '../utils/documentDetector';
 import { formatBytes } from '../utils/formatters';
 import confetti from 'canvas-confetti';
 
@@ -67,9 +73,12 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
 
-  // Document Viewfinder Crop Box & Mobile Enhancements
+  // Document Viewfinder Crop Box & Automatic Page Border Detection
   const [cropBox, setCropBox] = useState<CropBox>(DEFAULT_CROP_BOX);
   const [cropPreset, setCropPreset] = useState<'a4' | 'receipt' | 'idcard' | 'full' | 'custom'>('a4');
+  const [isAutoBorderActive, setIsAutoBorderActive] = useState<boolean>(true);
+  const [isDocumentDetected, setIsDocumentDetected] = useState<boolean>(false);
+  const [autoCropOnUpload, setAutoCropOnUpload] = useState<boolean>(true);
   const [isCameraFullscreen, setIsCameraFullscreen] = useState<boolean>(false);
   const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
   const [hasTorch, setHasTorch] = useState<boolean>(false);
@@ -129,6 +138,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   // Apply Document Viewfinder Preset
   const applyCropPreset = (preset: 'a4' | 'receipt' | 'idcard' | 'full') => {
     setCropPreset(preset);
+    setIsAutoBorderActive(false); // Manual preset chosen
     if (preset === 'a4') {
       setCropBox({ x: 12, y: 8, w: 76, h: 84 });
     } else if (preset === 'receipt') {
@@ -139,6 +149,59 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       setCropBox({ x: 2, y: 2, w: 96, h: 96 });
     }
   };
+
+  // Real-time automatic document border detection on live camera feed
+  useEffect(() => {
+    if (!isCameraActive || !isAutoBorderActive) {
+      setIsDocumentDetected(false);
+      return;
+    }
+
+    let animationFrameId: number;
+    let lastCheckTime = 0;
+    let isCancelled = false;
+
+    const runDetection = (timestamp: number) => {
+      if (isCancelled) return;
+
+      // Throttle detection to ~120ms (approx 8 FPS) for buttery smooth performance without battery drain
+      if (timestamp - lastCheckTime >= 120) {
+        lastCheckTime = timestamp;
+        if (videoRef.current && videoRef.current.readyState >= 2) {
+          const result = detectDocumentBounds(videoRef.current);
+          if (result.found && result.confidence >= 0.6) {
+            setIsDocumentDetected(true);
+            // Smoothly lerp towards detected target box to avoid tremor jitter
+            setCropBox((prev) => {
+              const target = result.box;
+              const lerpFactor = 0.35;
+              const nextX = prev.x + (target.x - prev.x) * lerpFactor;
+              const nextY = prev.y + (target.y - prev.y) * lerpFactor;
+              const nextW = prev.w + (target.w - prev.w) * lerpFactor;
+              const nextH = prev.h + (target.h - prev.h) * lerpFactor;
+              return {
+                x: Math.round(nextX * 10) / 10,
+                y: Math.round(nextY * 10) / 10,
+                w: Math.round(nextW * 10) / 10,
+                h: Math.round(nextH * 10) / 10,
+              };
+            });
+          } else {
+            setIsDocumentDetected(false);
+          }
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(runDetection);
+    };
+
+    animationFrameId = requestAnimationFrame(runDetection);
+
+    return () => {
+      isCancelled = true;
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isCameraActive, isAutoBorderActive]);
 
   // Toggle device torch (flashlight) if supported
   const toggleTorch = async () => {
@@ -245,6 +308,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     e.preventDefault();
     e.stopPropagation();
     if (!cameraContainerRef.current) return;
+    setIsAutoBorderActive(false);
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -316,6 +380,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
         return prev;
       });
       setCropPreset('custom');
+      setIsAutoBorderActive(false);
     };
 
     const handlePointerUp = () => {
@@ -414,6 +479,39 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
 
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Open post-capture crop modal with automatic border detection
+  const handleOpenCropModal = async () => {
+    if (pages.length === 0 || activePageIndex >= pages.length) return;
+    const currentPage = pages[activePageIndex];
+    setIsCropModalOpen(true);
+    try {
+      const detection = await detectDocumentInImage(currentPage.originalDataUrl);
+      if (detection.found) {
+        setModalCropBox(detection.box);
+      } else {
+        setModalCropBox({ x: 5, y: 5, w: 90, h: 90 });
+      }
+    } catch {
+      setModalCropBox({ x: 5, y: 5, w: 90, h: 90 });
+    }
+  };
+
+  // Re-detect document boundary in post-capture crop modal on demand
+  const handleAutoDetectModalCrop = async () => {
+    if (pages.length === 0 || activePageIndex >= pages.length) return;
+    const currentPage = pages[activePageIndex];
+    try {
+      const detection = await detectDocumentInImage(currentPage.originalDataUrl);
+      if (detection.found) {
+        setModalCropBox(detection.box);
+      } else {
+        setModalCropBox({ x: 5, y: 5, w: 90, h: 90 });
+      }
+    } catch {
+      setModalCropBox({ x: 5, y: 5, w: 90, h: 90 });
+    }
   };
 
   // Apply post-capture crop to current page
@@ -546,7 +644,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     await addScannedPageFromDataUrl(dataUrl);
   };
 
-  // Upload image from file picker or camera capture input
+  // Upload image from file picker or camera capture input with automatic document border detection
   const handleImageUpload = (fileList: FileList | File[]) => {
     const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
     if (files.length === 0) return;
@@ -554,9 +652,19 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const dataUrl = e.target?.result as string;
-        if (dataUrl) {
-          await addScannedPageFromDataUrl(dataUrl);
+        const rawDataUrl = e.target?.result as string;
+        if (rawDataUrl) {
+          if (autoCropOnUpload) {
+            try {
+              // Automatically detect and crop the document border from the uploaded picture
+              const { croppedDataUrl } = await autoCropDocumentImage(rawDataUrl);
+              await addScannedPageFromDataUrl(croppedDataUrl);
+            } catch {
+              await addScannedPageFromDataUrl(rawDataUrl);
+            }
+          } else {
+            await addScannedPageFromDataUrl(rawDataUrl);
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -918,42 +1026,67 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     printWindow.document.close();
   };
 
-  // Load sample receipt/document
-  const handleLoadSampleScan = () => {
+  // Load sample receipt/document with simulated desk surface to demonstrate automatic border detection
+  const handleLoadSampleScan = async () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 1100;
+    canvas.width = 1000;
+    canvas.height = 1350;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background paper texture
-    ctx.fillStyle = '#fbfbfa';
-    ctx.fillRect(0, 0, 800, 1100);
+    // Outer desk surface (dark slate background representing a desk/table)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, 1000, 1350);
 
-    // Document header
+    // Subtle table woodgrain / desk texture lines
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    for (let lx = 40; lx < 1000; lx += 80) {
+      ctx.beginPath();
+      ctx.moveTo(lx, 0);
+      ctx.lineTo(lx, 1350);
+      ctx.stroke();
+    }
+
+    // Document sheet sitting on desk with subtle drop shadow
+    const docX = 100;
+    const docY = 90;
+    const docW = 800;
+    const docH = 1170;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetX = 4;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = '#fcfcfc';
+    ctx.fillRect(docX, docY, docW, docH);
+    ctx.restore();
+
+    // Document header inside paper
     ctx.fillStyle = '#111827';
     ctx.font = 'bold 30px sans-serif';
-    ctx.fillText('TAX INVOICE / RECEIPT', 60, 90);
+    ctx.fillText('TAX INVOICE / RECEIPT', docX + 60, docY + 90);
 
     ctx.font = '15px sans-serif';
     ctx.fillStyle = '#4b5563';
-    ctx.fillText(`Invoice #: INV-2026-9842`, 60, 130);
-    ctx.fillText(`Date: ${new Date().toLocaleDateString()}`, 60, 155);
-    ctx.fillText(`Vendor: Cloud Infrastructure & Storage Inc.`, 60, 180);
+    ctx.fillText(`Invoice #: INV-2026-9842`, docX + 60, docY + 130);
+    ctx.fillText(`Date: ${new Date().toLocaleDateString()}`, docX + 60, docY + 155);
+    ctx.fillText(`Vendor: Cloud Infrastructure & Storage Inc.`, docX + 60, docY + 180);
 
     // Divider line
     ctx.strokeStyle = '#e5e7eb';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(60, 205);
-    ctx.lineTo(740, 205);
+    ctx.moveTo(docX + 60, docY + 205);
+    ctx.lineTo(docX + 740, docY + 205);
     ctx.stroke();
 
     // Table headers
     ctx.font = 'bold 15px sans-serif';
     ctx.fillStyle = '#374151';
-    ctx.fillText('DESCRIPTION', 60, 235);
-    ctx.fillText('AMOUNT', 640, 235);
+    ctx.fillText('DESCRIPTION', docX + 60, docY + 235);
+    ctx.fillText('AMOUNT', docX + 640, docY + 235);
 
     // Table rows
     const items = [
@@ -963,27 +1096,27 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       { desc: 'Unlimited CamScanner Device Offline License', cost: '$0.00' },
     ];
 
-    let y = 280;
+    let y = docY + 280;
     items.forEach((item) => {
       ctx.fillStyle = '#1f2937';
       ctx.font = '16px sans-serif';
-      ctx.fillText(item.desc, 60, y);
-      ctx.fillText(item.cost, 650, y);
+      ctx.fillText(item.desc, docX + 60, y);
+      ctx.fillText(item.cost, docX + 650, y);
       y += 50;
     });
 
     ctx.beginPath();
-    ctx.moveTo(60, y + 20);
-    ctx.lineTo(740, y + 20);
+    ctx.moveTo(docX + 60, y + 20);
+    ctx.lineTo(docX + 740, y + 20);
     ctx.stroke();
 
     ctx.font = 'bold 22px sans-serif';
     ctx.fillStyle = '#2563eb';
-    ctx.fillText('TOTAL PAID: $595.00', 480, y + 70);
+    ctx.fillText('TOTAL PAID: $595.00', docX + 480, y + 70);
 
     // Stamp
     ctx.save();
-    ctx.translate(200, y + 100);
+    ctx.translate(docX + 200, y + 100);
     ctx.rotate(-0.12);
     ctx.strokeStyle = '#16a34a';
     ctx.lineWidth = 3.5;
@@ -993,8 +1126,14 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     ctx.fillText('PAID IN FULL', -70, 8);
     ctx.restore();
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    addScannedPageFromDataUrl(dataUrl);
+    const rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    // Automatically detect and crop the document border from the sample desk photo!
+    try {
+      const { croppedDataUrl } = await autoCropDocumentImage(rawDataUrl);
+      await addScannedPageFromDataUrl(croppedDataUrl);
+    } catch {
+      await addScannedPageFromDataUrl(rawDataUrl);
+    }
   };
 
   const activePage = pages[activePageIndex];
@@ -1029,14 +1168,14 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#34c759]/10 text-[#34c759] dark:text-[#30d158] text-[12px] font-semibold border border-[#34c759]/20">
-          <Camera className="w-3.5 h-3.5" />
-          <span>CamScanner Document Engine</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>CamScanner Document Engine • Auto-Border Detection</span>
         </div>
         <h2 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
           Scan Documents & Receipts
         </h2>
         <p className="text-[15px] text-[#6e6e73] dark:text-[#8e8e93] max-w-xl mx-auto">
-          Scan papers, bills, receipts, or notes using your camera or photos. Auto-enhances text contrast and exports clean multi-page PDFs on-device.
+          Point camera at receipts, notes, forms, or paperwork. Page borders are automatically detected and fitted in real-time, text contrast is enhanced, and shareable PDFs are exported instantly without installing an app.
         </p>
       </div>
 
@@ -1101,9 +1240,23 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               }}
             />
 
+            {/* Real-time Document Detected Status Indicator */}
+            {isAutoBorderActive && isDocumentDetected && (
+              <div className="absolute top-16 inset-x-0 flex justify-center pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3.5 py-1 rounded-full bg-[#34c759]/90 text-white backdrop-blur-md text-[11px] font-bold shadow-[0_0_16px_rgba(52,199,89,0.6)] flex items-center gap-1.5 border border-white/20">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                  <span>Page Detected • Borders Auto-Set</span>
+                </div>
+              </div>
+            )}
+
             {/* Illuminated Document Border Line with 4 Corner Points */}
             <div
-              className="absolute border-2 border-[#34c759] shadow-[0_0_20px_rgba(52,199,89,0.45)] z-20 select-none"
+              className={`absolute border-2 transition-[left,top,width,height] duration-75 select-none z-20 ${
+                isDocumentDetected
+                  ? 'border-[#34c759] shadow-[0_0_24px_rgba(52,199,89,0.7)]'
+                  : 'border-[#34c759]/80 shadow-[0_0_15px_rgba(52,199,89,0.35)]'
+              }`}
               style={{
                 left: `${cropBox.x}%`,
                 top: `${cropBox.y}%`,
@@ -1111,11 +1264,11 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 height: `${cropBox.h}%`,
               }}
             >
-              {/* L-shaped Bold Corner Brackets */}
-              <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#34c759] rounded-tl pointer-events-none shadow-sm" />
-              <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#34c759] rounded-tr pointer-events-none shadow-sm" />
-              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-[#34c759] rounded-bl pointer-events-none shadow-sm" />
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-[#34c759] rounded-br pointer-events-none shadow-sm" />
+              {/* L-shaped Bold Corner Brackets with dynamic glow when locked */}
+              <div className={`absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#34c759] rounded-tl pointer-events-none shadow-sm ${isDocumentDetected ? 'drop-shadow-[0_0_8px_#34c759]' : ''}`} />
+              <div className={`absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#34c759] rounded-tr pointer-events-none shadow-sm ${isDocumentDetected ? 'drop-shadow-[0_0_8px_#34c759]' : ''}`} />
+              <div className={`absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-[#34c759] rounded-bl pointer-events-none shadow-sm ${isDocumentDetected ? 'drop-shadow-[0_0_8px_#34c759]' : ''}`} />
+              <div className={`absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-[#34c759] rounded-br pointer-events-none shadow-sm ${isDocumentDetected ? 'drop-shadow-[0_0_8px_#34c759]' : ''}`} />
 
               {/* 1. Top-Left Corner Point Handle */}
               <div
@@ -1167,32 +1320,54 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 className="absolute inset-0 flex items-center justify-center cursor-move touch-none"
               >
                 <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white/90 shadow-md flex items-center gap-1.5 pointer-events-none">
-                  <Move className="w-3 h-3 text-[#34c759]" />
-                  <span>Document Border (Only inside captured)</span>
+                  {isAutoBorderActive ? (
+                    <>
+                      <Sparkles className="w-3 h-3 text-[#34c759]" />
+                      <span>{isDocumentDetected ? 'Page Detected (Auto-Fitted)' : 'Auto-Framing Document...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Move className="w-3 h-3 text-[#34c759]" />
+                      <span>Document Border (Manual)</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Top Toolbar overlay inside camera */}
             <div className="absolute top-3 inset-x-3 sm:top-4 sm:inset-x-4 flex items-center justify-between z-30 gap-2">
-              {/* Document Type Preset Buttons */}
+              {/* Document Type Preset Buttons & Auto-Border Toggle */}
               <div className="flex items-center gap-1 p-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 overflow-x-auto max-w-[65%] sm:max-w-none">
+                <button
+                  type="button"
+                  onClick={() => setIsAutoBorderActive((prev) => !prev)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                    isAutoBorderActive
+                      ? 'bg-[#34c759] text-white shadow-xs'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                  title={isAutoBorderActive ? 'Auto-Border is Active' : 'Enable Automatic Border Detection'}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>{isAutoBorderActive ? '⚡ Auto-Border' : 'Manual'}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => applyCropPreset('a4')}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    cropPreset === 'a4'
+                    cropPreset === 'a4' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  📄 A4 Doc
+                  📄 A4
                 </button>
                 <button
                   type="button"
                   onClick={() => applyCropPreset('receipt')}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    cropPreset === 'receipt'
+                    cropPreset === 'receipt' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
@@ -1203,7 +1378,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   type="button"
                   onClick={() => applyCropPreset('idcard')}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    cropPreset === 'idcard'
+                    cropPreset === 'idcard' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
@@ -1214,7 +1389,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   type="button"
                   onClick={() => applyCropPreset('full')}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap hidden sm:inline ${
-                    cropPreset === 'full'
+                    cropPreset === 'full' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
@@ -1303,10 +1478,26 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               )}
             </div>
 
+            {/* Quick Switch to Auto Border if currently manual */}
+            {!isAutoBorderActive && (
+              <button
+                type="button"
+                onClick={() => setIsAutoBorderActive(true)}
+                className="absolute bottom-28 inset-x-0 mx-auto w-fit px-3.5 py-1.5 rounded-full bg-[#34c759] hover:bg-[#2fb350] text-white text-[12px] font-bold shadow-lg transition-transform active:scale-95 cursor-pointer z-30 flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Re-enable Auto-Border</span>
+              </button>
+            )}
+
             {/* Mobile Touch Guidance Tip */}
             <div className="absolute bottom-20 sm:bottom-24 inset-x-0 text-center pointer-events-none z-20">
-              <span className="px-3 py-1 rounded-full bg-black/60 text-white/80 text-[11px] font-medium backdrop-blur-xs border border-white/10 shadow-xs">
-                Drag green corner points to fit document
+              <span className="px-3 py-1 rounded-full bg-black/65 text-white/90 text-[11px] font-medium backdrop-blur-xs border border-white/10 shadow-xs">
+                {isAutoBorderActive
+                  ? isDocumentDetected
+                    ? '✓ Document borders automatically fitted to page'
+                    : 'Point camera at paper or receipt — border fits automatically'
+                  : 'Manual mode — drag green corner points or click Re-enable Auto-Border'}
               </span>
             </div>
           </div>
@@ -1326,7 +1517,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               <div>
                 <h4 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Live Camera Scanner</h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5">
-                  Point camera at receipt, invoice, or paper
+                  Auto-detects page boundaries & aligns document
                 </p>
               </div>
             </button>
@@ -1344,7 +1535,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               <div>
                 <h4 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Phone Camera Snap</h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5">
-                  Take photo using device native camera
+                  Auto-crops paper & receipts from photo
                 </p>
               </div>
             </button>
@@ -1362,7 +1553,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               <div>
                 <h4 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Upload Photos</h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5">
-                  Drop JPG, PNG, or photo scans here
+                  Auto-detects borders from JPG, PNG, or photo scans
                 </p>
               </div>
             </button>
@@ -1390,7 +1581,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#f5f5f7] dark:bg-[#252528] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer border border-black/[0.04] dark:border-white/[0.06]"
             >
               <Sparkles className="w-4 h-4 text-[#ff9500]" />
-              <span>Load Sample Invoice Document to Test</span>
+              <span>Load Sample Invoice Document to Test Auto-Detection</span>
             </button>
           </div>
         )}
@@ -1452,10 +1643,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   id="page-crop-btn"
-                  onClick={() => {
-                    setModalCropBox({ x: 5, y: 5, w: 90, h: 90 });
-                    setIsCropModalOpen(true);
-                  }}
+                  onClick={handleOpenCropModal}
                   className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer flex items-center gap-1"
                   title="Crop Document Borders & Corners"
                 >
@@ -1948,14 +2136,25 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Modal Footer Controls */}
-            <div className="flex items-center justify-between px-5 py-4 border-t border-white/10 bg-[#252528] shrink-0">
-              <button
-                type="button"
-                onClick={() => setModalCropBox({ x: 5, y: 5, w: 90, h: 90 })}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[13px] font-medium transition-colors cursor-pointer"
-              >
-                Reset to Full
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-white/10 bg-[#252528] shrink-0">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAutoDetectModalCrop}
+                  className="px-3.5 py-2 rounded-xl bg-[#34c759]/20 hover:bg-[#34c759]/30 text-[#34c759] dark:text-[#30d158] border border-[#34c759]/40 text-[13px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                  title="Automatically detect and fit borders to document page"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Auto-Detect Border</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalCropBox({ x: 5, y: 5, w: 90, h: 90 })}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[13px] font-medium transition-colors cursor-pointer"
+                >
+                  Reset
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
