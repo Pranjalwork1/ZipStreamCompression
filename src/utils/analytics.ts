@@ -3,27 +3,6 @@
  * Wraps window.umami to safely execute tracking events and distinct user identification.
  */
 
-export const initUmami = () => {
-  const websiteId = import.meta.env.VITE_UMAMI_WEBSITE_ID;
-  const scriptSrc = import.meta.env.VITE_UMAMI_SRC;
-
-  if (!websiteId || !scriptSrc) {
-    console.warn('Umami analytics not initialized: Missing VITE_UMAMI_WEBSITE_ID or VITE_UMAMI_SRC in environment variables.');
-    return;
-  }
-
-  // Prevent multiple injections
-  if (document.querySelector('script[data-website-id]')) {
-    return;
-  }
-
-  const script = document.createElement('script');
-  script.defer = true;
-  script.src = scriptSrc;
-  script.setAttribute('data-website-id', websiteId);
-
-  document.head.appendChild(script);
-};
 
 export const trackEvent = (eventName: string, eventData?: Record<string, any>) => {
   if (typeof window !== 'undefined' && window.umami && typeof window.umami.track === 'function') {
