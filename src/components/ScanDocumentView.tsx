@@ -310,6 +310,11 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     if (!cameraContainerRef.current) return;
     setIsAutoBorderActive(false);
 
+    const targetElem = e.currentTarget as HTMLElement;
+    try {
+      targetElem.setPointerCapture?.(e.pointerId);
+    } catch {}
+
     const startX = e.clientX;
     const startY = e.clientY;
     const initialBox = { ...cropBox };
@@ -383,7 +388,10 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       setIsAutoBorderActive(false);
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (upEvt: PointerEvent) => {
+      try {
+        targetElem.releasePointerCapture?.(upEvt.pointerId);
+      } catch {}
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -400,6 +408,11 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     e.preventDefault();
     e.stopPropagation();
     if (!modalCropContainerRef.current) return;
+
+    const targetElem = e.currentTarget as HTMLElement;
+    try {
+      targetElem.setPointerCapture?.(e.pointerId);
+    } catch {}
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -472,7 +485,10 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       });
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (upEvt: PointerEvent) => {
+      try {
+        targetElem.releasePointerCapture?.(upEvt.pointerId);
+      } catch {}
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -1140,7 +1156,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   const activeAdj = activePage ? pageAdjustments[activePage.id] || { brightness: 0, contrast: 0 } : { brightness: 0, contrast: 0 };
 
   return (
-    <div id="scan-document-view" className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
+    <div id="scan-document-view" className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0 animate-in fade-in duration-200">
       {/* Hidden file inputs */}
       <input
         type="file"
@@ -1166,15 +1182,15 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
       />
 
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#34c759]/10 text-[#34c759] dark:text-[#30d158] text-[12px] font-semibold border border-[#34c759]/20">
-          <Sparkles className="w-3.5 h-3.5" />
+      <div className="text-center space-y-2 px-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#34c759]/10 text-[#34c759] dark:text-[#30d158] text-[11px] sm:text-[12px] font-semibold border border-[#34c759]/20">
+          <Sparkles className="w-3.5 h-3.5 shrink-0" />
           <span>CamScanner Document Engine • Auto-Border Detection</span>
         </div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
           Scan Documents & Receipts
         </h2>
-        <p className="text-[15px] text-[#6e6e73] dark:text-[#8e8e93] max-w-xl mx-auto">
+        <p className="text-[13px] sm:text-[15px] text-[#6e6e73] dark:text-[#8e8e93] max-w-xl mx-auto leading-relaxed">
           Point camera at receipts, notes, forms, or paperwork. Page borders are automatically detected and fitted in real-time, text contrast is enhanced, and shareable PDFs are exported instantly without installing an app.
         </p>
       </div>
@@ -1184,11 +1200,11 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`bg-white dark:bg-[#1c1c1e] rounded-[24px] border ${
+        className={`bg-white dark:bg-[#1c1c1e] rounded-[20px] sm:rounded-[24px] border ${
           isDragOver
             ? 'border-[#34c759] ring-2 ring-[#34c759]/30'
             : 'border-black/[0.08] dark:border-white/[0.08]'
-        } shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 transition-all`}
+        } shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-3.5 sm:p-6 md:p-8 space-y-4 sm:space-y-6 transition-all`}
       >
         {/* Camera Live Viewfinder / Capture Section with Corner Points & Document Border Line */}
         {isCameraActive ? (
@@ -1197,8 +1213,8 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             className={`${
               isCameraFullscreen
                 ? 'fixed inset-0 z-50 bg-black flex flex-col justify-between p-2 sm:p-4'
-                : 'relative rounded-[24px] overflow-hidden bg-black h-[68vh] sm:h-[520px] max-h-[640px] flex items-center justify-center shadow-2xl border border-white/10'
-            } select-none transition-all`}
+                : 'relative rounded-[18px] sm:rounded-[24px] overflow-hidden bg-black h-[74vh] min-h-[460px] max-h-[720px] sm:h-[520px] sm:max-h-[640px] flex items-center justify-center shadow-2xl border border-white/10'
+            } select-none transition-all touch-none`}
           >
             {/* Live Video Stream Element */}
             <video
@@ -1242,9 +1258,9 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
 
             {/* Real-time Document Detected Status Indicator */}
             {isAutoBorderActive && isDocumentDetected && (
-              <div className="absolute top-16 inset-x-0 flex justify-center pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-3.5 py-1 rounded-full bg-[#34c759]/90 text-white backdrop-blur-md text-[11px] font-bold shadow-[0_0_16px_rgba(52,199,89,0.6)] flex items-center gap-1.5 border border-white/20">
-                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+              <div className="absolute top-14 sm:top-16 inset-x-0 flex justify-center pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-150 px-2">
+                <div className="px-3 py-1 rounded-full bg-[#34c759]/90 text-white backdrop-blur-md text-[10px] sm:text-[11px] font-bold shadow-[0_0_16px_rgba(52,199,89,0.6)] flex items-center gap-1.5 border border-white/20">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
                   <span>Page Detected • Borders Auto-Set</span>
                 </div>
               </div>
@@ -1270,46 +1286,46 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               <div className={`absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-[#34c759] rounded-bl pointer-events-none shadow-sm ${isDocumentDetected ? 'drop-shadow-[0_0_8px_#34c759]' : ''}`} />
               <div className={`absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-[#34c759] rounded-br pointer-events-none shadow-sm ${isDocumentDetected ? 'drop-shadow-[0_0_8px_#34c759]' : ''}`} />
 
-              {/* 1. Top-Left Corner Point Handle */}
+              {/* 1. Top-Left Corner Point Handle (48px Touch Hit Target) */}
               <div
                 onPointerDown={(e) => handleStartCropDrag('tl', e)}
-                className="absolute -top-5 -left-5 w-10 h-10 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                className="absolute -top-6 -left-6 w-12 h-12 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
                 title="Drag Corner Point"
               >
-                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center pointer-events-none">
                   <div className="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
               </div>
 
-              {/* 2. Top-Right Corner Point Handle */}
+              {/* 2. Top-Right Corner Point Handle (48px Touch Hit Target) */}
               <div
                 onPointerDown={(e) => handleStartCropDrag('tr', e)}
-                className="absolute -top-5 -right-5 w-10 h-10 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                className="absolute -top-6 -right-6 w-12 h-12 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
                 title="Drag Corner Point"
               >
-                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center pointer-events-none">
                   <div className="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
               </div>
 
-              {/* 3. Bottom-Left Corner Point Handle */}
+              {/* 3. Bottom-Left Corner Point Handle (48px Touch Hit Target) */}
               <div
                 onPointerDown={(e) => handleStartCropDrag('bl', e)}
-                className="absolute -bottom-5 -left-5 w-10 h-10 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                className="absolute -bottom-6 -left-6 w-12 h-12 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
                 title="Drag Corner Point"
               >
-                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center pointer-events-none">
                   <div className="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
               </div>
 
-              {/* 4. Bottom-Right Corner Point Handle */}
+              {/* 4. Bottom-Right Corner Point Handle (48px Touch Hit Target) */}
               <div
                 onPointerDown={(e) => handleStartCropDrag('br', e)}
-                className="absolute -bottom-5 -right-5 w-10 h-10 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                className="absolute -bottom-6 -right-6 w-12 h-12 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
                 title="Drag Corner Point"
               >
-                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-active:scale-125 transition-transform flex items-center justify-center pointer-events-none">
                   <div className="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
               </div>
@@ -1319,7 +1335,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 onPointerDown={(e) => handleStartCropDrag('center', e)}
                 className="absolute inset-0 flex items-center justify-center cursor-move touch-none"
               >
-                <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white/90 shadow-md flex items-center gap-1.5 pointer-events-none">
+                <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[10px] sm:text-[11px] font-semibold text-white/90 shadow-md flex items-center gap-1.5 pointer-events-none">
                   {isAutoBorderActive ? (
                     <>
                       <Sparkles className="w-3 h-3 text-[#34c759]" />
@@ -1336,13 +1352,13 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Top Toolbar overlay inside camera */}
-            <div className="absolute top-3 inset-x-3 sm:top-4 sm:inset-x-4 flex items-center justify-between z-30 gap-2">
+            <div className="absolute top-2.5 inset-x-2.5 sm:top-4 sm:inset-x-4 flex items-center justify-between z-30 gap-1.5">
               {/* Document Type Preset Buttons & Auto-Border Toggle */}
-              <div className="flex items-center gap-1 p-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 overflow-x-auto max-w-[65%] sm:max-w-none">
+              <div className="flex items-center gap-1 p-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 overflow-x-auto scrollbar-none max-w-[64%] sm:max-w-none flex-nowrap shrink">
                 <button
                   type="button"
                   onClick={() => setIsAutoBorderActive((prev) => !prev)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
                     isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -1350,12 +1366,12 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   title={isAutoBorderActive ? 'Auto-Border is Active' : 'Enable Automatic Border Detection'}
                 >
                   <Sparkles className="w-3 h-3" />
-                  <span>{isAutoBorderActive ? '⚡ Auto-Border' : 'Manual'}</span>
+                  <span>{isAutoBorderActive ? '⚡ Auto' : 'Manual'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => applyCropPreset('a4')}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     cropPreset === 'a4' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -1366,7 +1382,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   onClick={() => applyCropPreset('receipt')}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     cropPreset === 'receipt' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -1377,18 +1393,18 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   onClick={() => applyCropPreset('idcard')}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     cropPreset === 'idcard' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  🪪 ID Card
+                  🪪 ID
                 </button>
                 <button
                   type="button"
                   onClick={() => applyCropPreset('full')}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap hidden sm:inline ${
+                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     cropPreset === 'full' && !isAutoBorderActive
                       ? 'bg-[#34c759] text-white shadow-xs'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -1399,12 +1415,12 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               </div>
 
               {/* Utility Buttons: Torch, Flip, Fullscreen, Close */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 {hasTorch && (
                   <button
                     type="button"
                     onClick={toggleTorch}
-                    className={`p-2.5 rounded-full backdrop-blur-md transition-colors cursor-pointer border border-white/10 ${
+                    className={`p-2 sm:p-2.5 rounded-full backdrop-blur-md transition-colors cursor-pointer border border-white/10 ${
                       isTorchOn ? 'bg-[#ff9500] text-white shadow-[0_0_12px_#ff9500]' : 'bg-black/60 text-white hover:bg-black/80'
                     }`}
                     title={isTorchOn ? 'Turn Flashlight Off' : 'Turn Flashlight On'}
@@ -1415,7 +1431,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   onClick={toggleCameraFacing}
-                  className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10"
+                  className="p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10"
                   title="Switch Front/Rear Camera"
                 >
                   <RotateCw className="w-4 h-4" />
@@ -1423,7 +1439,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   onClick={() => setIsCameraFullscreen((prev) => !prev)}
-                  className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10"
+                  className="p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10 hidden sm:flex"
                   title={isCameraFullscreen ? 'Exit Fullscreen' : 'Fullscreen Camera'}
                 >
                   {isCameraFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -1431,7 +1447,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10"
+                  className="p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer border border-white/10"
                   title="Close Camera"
                 >
                   <X className="w-4 h-4" />
@@ -1440,17 +1456,17 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Bottom Shutter Controls */}
-            <div className="absolute bottom-4 sm:bottom-6 inset-x-0 flex items-center justify-center gap-6 sm:gap-10 z-30 px-4">
+            <div className="absolute bottom-3 sm:bottom-6 inset-x-0 flex items-center justify-between sm:justify-center gap-4 sm:gap-10 z-30 px-4 sm:px-8">
               {pages.length > 0 ? (
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="px-4 py-2 rounded-full bg-black/70 hover:bg-black/90 text-white text-[13px] font-semibold backdrop-blur-md transition-colors cursor-pointer border border-white/15"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/70 hover:bg-black/90 text-white text-[12px] sm:text-[13px] font-semibold backdrop-blur-md transition-colors cursor-pointer border border-white/15 shrink-0"
                 >
                   Done ({pages.length})
                 </button>
               ) : (
-                <div className="w-16" />
+                <div className="w-14 sm:w-16" />
               )}
 
               {/* Shutter Button with tactile feedback */}
@@ -1459,22 +1475,22 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 id="camera-snap-btn"
                 onClick={capturePhoto}
                 disabled={isProcessing}
-                className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-white border-4 border-[#34c759] shadow-[0_0_24px_rgba(52,199,89,0.5)] flex items-center justify-center active:scale-90 transition-transform cursor-pointer hover:scale-105"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white border-4 border-[#34c759] shadow-[0_0_24px_rgba(52,199,89,0.5)] flex items-center justify-center active:scale-90 transition-transform cursor-pointer hover:scale-105 shrink-0"
                 title="Capture Document Inside Border"
               >
-                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#34c759] hover:bg-[#2fb350] transition-colors flex items-center justify-center shadow-inner">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#34c759] hover:bg-[#2fb350] transition-colors flex items-center justify-center shadow-inner">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
               </button>
 
               {pages.length > 0 ? (
-                <div className="w-16 flex justify-center">
+                <div className="w-14 sm:w-16 flex justify-end sm:justify-center shrink-0">
                   <span className="px-2.5 py-1 rounded-full bg-[#34c759] text-white text-[12px] font-bold shadow-md">
                     +{pages.length}
                   </span>
                 </div>
               ) : (
-                <div className="w-16" />
+                <div className="w-14 sm:w-16" />
               )}
             </div>
 
@@ -1483,7 +1499,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               <button
                 type="button"
                 onClick={() => setIsAutoBorderActive(true)}
-                className="absolute bottom-28 inset-x-0 mx-auto w-fit px-3.5 py-1.5 rounded-full bg-[#34c759] hover:bg-[#2fb350] text-white text-[12px] font-bold shadow-lg transition-transform active:scale-95 cursor-pointer z-30 flex items-center gap-1.5"
+                className="absolute bottom-24 sm:bottom-28 inset-x-0 mx-auto w-fit px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#34c759] hover:bg-[#2fb350] text-white text-[11px] sm:text-[12px] font-bold shadow-lg transition-transform active:scale-95 cursor-pointer z-30 flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Re-enable Auto-Border</span>
@@ -1491,8 +1507,8 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             )}
 
             {/* Mobile Touch Guidance Tip */}
-            <div className="absolute bottom-20 sm:bottom-24 inset-x-0 text-center pointer-events-none z-20">
-              <span className="px-3 py-1 rounded-full bg-black/65 text-white/90 text-[11px] font-medium backdrop-blur-xs border border-white/10 shadow-xs">
+            <div className="absolute bottom-20 sm:bottom-24 inset-x-2 text-center pointer-events-none z-20">
+              <span className="inline-block px-3 py-1 rounded-full bg-black/70 text-white/90 text-[10px] sm:text-[11px] font-medium backdrop-blur-xs border border-white/10 shadow-xs max-w-[90%] truncate">
                 {isAutoBorderActive
                   ? isDocumentDetected
                     ? '✓ Document borders automatically fitted to page'
@@ -1503,19 +1519,19 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
           </div>
         ) : (
           /* Capture / Upload Options */
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Option 1: Live Camera Scanner */}
             <button
               type="button"
               id="start-camera-scan-btn"
               onClick={() => startCamera('environment')}
-              className="p-6 rounded-[20px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#34c759] bg-[#fafafc] dark:bg-[#252528] hover:bg-[#34c759]/5 dark:hover:bg-[#34c759]/10 flex flex-col items-center justify-center text-center gap-3 transition-all group cursor-pointer"
+              className="p-4 sm:p-6 rounded-[18px] sm:rounded-[20px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#34c759] bg-[#fafafc] dark:bg-[#252528] hover:bg-[#34c759]/5 dark:hover:bg-[#34c759]/10 flex sm:flex-col items-center sm:justify-center text-left sm:text-center gap-3.5 sm:gap-3 transition-all group cursor-pointer"
             >
-              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#2c2c2e] border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center text-[#34c759] group-hover:scale-105 transition-transform">
+              <div className="w-12 h-12 shrink-0 rounded-2xl bg-white dark:bg-[#2c2c2e] border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center text-[#34c759] group-hover:scale-105 transition-transform">
                 <Camera className="w-6 h-6" />
               </div>
-              <div>
-                <h4 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Live Camera Scanner</h4>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[14px] sm:text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Live Camera Scanner</h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5">
                   Auto-detects page boundaries & aligns document
                 </p>
@@ -1527,13 +1543,16 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               type="button"
               id="mobile-camera-btn"
               onClick={() => mobileInputRef.current?.click()}
-              className="p-6 rounded-[20px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#ff9500] bg-[#fafafc] dark:bg-[#252528] hover:bg-[#ff9500]/5 dark:hover:bg-[#ff9500]/10 flex flex-col items-center justify-center text-center gap-3 transition-all group cursor-pointer"
+              className="relative p-4 sm:p-6 rounded-[18px] sm:rounded-[20px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#ff9500] bg-[#fafafc] dark:bg-[#252528] hover:bg-[#ff9500]/5 dark:hover:bg-[#ff9500]/10 flex sm:flex-col items-center sm:justify-center text-left sm:text-center gap-3.5 sm:gap-3 transition-all group cursor-pointer"
             >
-              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#2c2c2e] border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center text-[#ff9500] group-hover:scale-105 transition-transform">
+              <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#ff9500]/10 text-[#ff9500] text-[10px] font-bold border border-[#ff9500]/20">
+                Instant Snap
+              </span>
+              <div className="w-12 h-12 shrink-0 rounded-2xl bg-white dark:bg-[#2c2c2e] border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center text-[#ff9500] group-hover:scale-105 transition-transform">
                 <Smartphone className="w-6 h-6" />
               </div>
-              <div>
-                <h4 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Phone Camera Snap</h4>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[14px] sm:text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Phone Camera Snap</h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5">
                   Auto-crops paper & receipts from photo
                 </p>
@@ -1545,13 +1564,13 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               type="button"
               id="upload-photos-btn"
               onClick={() => fileInputRef.current?.click()}
-              className="p-6 rounded-[20px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#0071e3] bg-[#fafafc] dark:bg-[#252528] hover:bg-[#0071e3]/5 dark:hover:bg-[#0071e3]/10 flex flex-col items-center justify-center text-center gap-3 transition-all group cursor-pointer"
+              className="p-4 sm:p-6 rounded-[18px] sm:rounded-[20px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#0071e3] bg-[#fafafc] dark:bg-[#252528] hover:bg-[#0071e3]/5 dark:hover:bg-[#0071e3]/10 flex sm:flex-col items-center sm:justify-center text-left sm:text-center gap-3.5 sm:gap-3 transition-all group cursor-pointer"
             >
-              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#2c2c2e] border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center text-[#0071e3] group-hover:scale-105 transition-transform">
+              <div className="w-12 h-12 shrink-0 rounded-2xl bg-white dark:bg-[#2c2c2e] border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center text-[#0071e3] group-hover:scale-105 transition-transform">
                 <Upload className="w-6 h-6" />
               </div>
-              <div>
-                <h4 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Upload Photos</h4>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[14px] sm:text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Upload Photos</h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93] mt-0.5">
                   Auto-detects borders from JPG, PNG, or photo scans
                 </p>
@@ -1588,20 +1607,77 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
 
         {/* Scanned Pages Workspace */}
         {pages.length > 0 && (
-          <div className="space-y-6 pt-2">
+          <div className="space-y-4 sm:space-y-6 pt-2">
             {/* Top Toolbar: Active Page Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#f5f5f7] dark:bg-[#252528] border border-black/[0.04] dark:border-white/[0.06]">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  Page {activePageIndex + 1} of {pages.length}
-                </span>
-                <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93]">
-                  • {formatBytes(activePage?.blob?.size || 0)}
-                </span>
+            <div className="space-y-2.5 p-3 sm:p-3.5 rounded-2xl bg-[#f5f5f7] dark:bg-[#252528] border border-black/[0.04] dark:border-white/[0.06]">
+              {/* Row 1: Page Counter & Action Tools */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[13px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                    Page {activePageIndex + 1} of {pages.length}
+                  </span>
+                  <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93] hidden xs:inline">
+                    • {formatBytes(activePage?.blob?.size || 0)}
+                  </span>
+                </div>
+
+                {/* Action Buttons: Sliders, Crop, Zoom, Rotate, Delete */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdjustments((prev) => !prev)}
+                    className={`p-2 rounded-xl transition-colors cursor-pointer border border-black/[0.06] dark:border-white/[0.06] shadow-2xs ${
+                      showAdjustments
+                        ? 'bg-[#0071e3] text-white'
+                        : 'bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]'
+                    }`}
+                    title="Fine-tune Brightness & Contrast"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    id="page-crop-btn"
+                    onClick={handleOpenCropModal}
+                    className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer flex items-center gap-1"
+                    title="Crop Document Borders & Corners"
+                  >
+                    <Crop className="w-4 h-4 text-[#34c759]" />
+                    <span className="hidden sm:inline text-[12px] font-medium">Crop</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => activePage && setPreviewModalUrl(activePage.dataUrl)}
+                    className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer"
+                    title="Zoom / Fullscreen View"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRotatePage(activePageIndex)}
+                    className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer"
+                    title="Rotate 90° Clockwise"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePage(activePageIndex)}
+                    className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-[#ff3b30]/10 text-[#86868b] hover:text-[#ff3b30] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer"
+                    title="Delete This Page"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
-              {/* Filter Presets */}
-              <div className="flex items-center gap-1 bg-white dark:bg-[#1c1c1e] p-1 rounded-xl shadow-2xs border border-black/[0.04] dark:border-white/[0.06]">
+              {/* Row 2: Filter Presets (Horizontally scrollable with no scrollbar on mobile) */}
+              <div className="flex items-center gap-1 bg-white dark:bg-[#1c1c1e] p-1 rounded-xl shadow-2xs border border-black/[0.04] dark:border-white/[0.06] overflow-x-auto scrollbar-none flex-nowrap">
                 {(
                   [
                     { id: 'auto_enhance', label: 'Magic Color', icon: '✨' },
@@ -1613,76 +1689,22 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   <button
                     key={f.id}
                     onClick={() => handleChangeFilter(f.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-none px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer whitespace-nowrap text-center flex items-center justify-center gap-1 shrink-0 ${
                       activePage?.filter === f.id
                         ? 'bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] shadow-xs'
                         : 'text-[#6e6e73] dark:text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]'
                     }`}
                   >
-                    <span>{f.icon} </span>
-                    <span className="hidden sm:inline">{f.label}</span>
+                    <span>{f.icon}</span>
+                    <span>{f.label}</span>
                   </button>
                 ))}
-              </div>
-
-              {/* Action Buttons: Sliders, Fullscreen, Rotate, Delete */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setShowAdjustments((prev) => !prev)}
-                  className={`p-2 rounded-xl transition-colors cursor-pointer border border-black/[0.06] dark:border-white/[0.06] shadow-2xs ${
-                    showAdjustments
-                      ? 'bg-[#0071e3] text-white'
-                      : 'bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]'
-                  }`}
-                  title="Fine-tune Brightness & Contrast"
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  id="page-crop-btn"
-                  onClick={handleOpenCropModal}
-                  className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer flex items-center gap-1"
-                  title="Crop Document Borders & Corners"
-                >
-                  <Crop className="w-4 h-4 text-[#34c759]" />
-                  <span className="hidden sm:inline text-[12px] font-medium">Crop</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => activePage && setPreviewModalUrl(activePage.dataUrl)}
-                  className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer"
-                  title="Zoom / Fullscreen View"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleRotatePage(activePageIndex)}
-                  className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer"
-                  title="Rotate 90° Clockwise"
-                >
-                  <RotateCw className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDeletePage(activePageIndex)}
-                  className="p-2 rounded-xl bg-white dark:bg-[#2c2c2e] hover:bg-[#ff3b30]/10 text-[#86868b] hover:text-[#ff3b30] border border-black/[0.06] dark:border-white/[0.06] shadow-2xs cursor-pointer"
-                  title="Delete This Page"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
             {/* Fine-Tuning Sliders Panel */}
             {showAdjustments && (
-              <div className="p-4 rounded-2xl bg-[#fafafc] dark:bg-[#252528] border border-black/[0.06] dark:border-white/[0.06] space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#fafafc] dark:bg-[#252528] border border-black/[0.06] dark:border-white/[0.06] space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Adjust Page {activePageIndex + 1}
@@ -1748,21 +1770,21 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
 
             {/* Active Page Large Preview */}
             {activePage && (
-              <div className="relative rounded-[20px] overflow-hidden bg-[#e5e5ea] dark:bg-[#2c2c2e] flex items-center justify-center p-4 min-h-[340px] max-h-[520px]">
+              <div className="relative rounded-[18px] sm:rounded-[20px] overflow-hidden bg-[#e5e5ea] dark:bg-[#2c2c2e] flex items-center justify-center p-2 sm:p-4 min-h-[280px] sm:min-h-[340px] max-h-[60vh] sm:max-h-[520px]">
                 <img
                   src={activePage.dataUrl}
                   alt={`Scanned Page ${activePageIndex + 1}`}
-                  className="max-h-[480px] w-auto object-contain rounded-lg shadow-md bg-white transition-all"
+                  className="max-h-[52vh] sm:max-h-[480px] w-auto object-contain rounded-lg shadow-md bg-white transition-all"
                 />
 
-                {/* Page Navigation Overlay Buttons */}
+                {/* Page Navigation Overlay Buttons (44px Touch Targets) */}
                 {pages.length > 1 && (
                   <>
                     <button
                       type="button"
                       disabled={activePageIndex === 0}
                       onClick={() => setActivePageIndex((prev) => Math.max(0, prev - 1))}
-                      className="absolute left-3 p-2 rounded-full bg-black/50 hover:bg-black/70 disabled:opacity-30 text-white backdrop-blur-xs transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                      className="absolute left-2 sm:left-3 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-20 text-white backdrop-blur-xs transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center shadow-md active:scale-95"
                       title="Previous Page"
                     >
                       <ArrowLeft className="w-5 h-5" />
@@ -1771,7 +1793,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                       type="button"
                       disabled={activePageIndex === pages.length - 1}
                       onClick={() => setActivePageIndex((prev) => Math.min(pages.length - 1, prev + 1))}
-                      className="absolute right-3 p-2 rounded-full bg-black/50 hover:bg-black/70 disabled:opacity-30 text-white backdrop-blur-xs transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                      className="absolute right-2 sm:right-3 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-20 text-white backdrop-blur-xs transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center shadow-md active:scale-95"
                       title="Next Page"
                     >
                       <ArrowRight className="w-5 h-5" />
@@ -1787,14 +1809,14 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Scanned Pages Queue ({pages.length})
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => startCamera('environment')}
                     className="inline-flex items-center gap-1 text-[12px] text-[#34c759] dark:text-[#30d158] font-medium hover:underline cursor-pointer"
                   >
                     <Camera className="w-3.5 h-3.5" />
-                    <span>Scan with Camera</span>
+                    <span>Scan</span>
                   </button>
                   <button
                     type="button"
@@ -1807,7 +1829,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-1">
+              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto scrollbar-none pb-2 pt-1">
                 {pages.map((p, idx) => (
                   <div
                     key={p.id}
@@ -1821,7 +1843,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                       src={p.dataUrl}
                       alt={`Scanned thumbnail ${idx + 1}`}
                       onClick={() => setActivePageIndex(idx)}
-                      className="w-16 h-20 object-cover bg-white"
+                      className="w-14 h-18 sm:w-16 sm:h-20 object-cover bg-white"
                     />
 
                     {/* Page index badge */}
@@ -1862,15 +1884,16 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Export Settings & Actions Bar */}
-            <div className="pt-5 border-t border-black/[0.06] dark:border-white/[0.08] space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-[13px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#6e6e73] dark:text-[#8e8e93]">PDF Page Format:</span>
+            <div className="pt-4 sm:pt-5 border-t border-black/[0.06] dark:border-white/[0.08] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[13px]">
+                {/* PDF Page Format Selector */}
+                <div className="flex items-center justify-between sm:justify-start gap-2">
+                  <span className="text-[#6e6e73] dark:text-[#8e8e93] text-xs sm:text-[13px]">PDF Format:</span>
                   <div className="flex items-center bg-[#f5f5f7] dark:bg-[#252528] p-1 rounded-xl border border-black/[0.04] dark:border-white/[0.06]">
                     <button
                       type="button"
                       onClick={() => setPdfPageSize('a4')}
-                      className={`px-3 py-1 rounded-lg font-medium cursor-pointer transition-all ${
+                      className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-[13px] font-medium cursor-pointer transition-all ${
                         pdfPageSize === 'a4'
                           ? 'bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-xs'
                           : 'text-[#6e6e73] dark:text-[#8e8e93]'
@@ -1881,7 +1904,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                     <button
                       type="button"
                       onClick={() => setPdfPageSize('fit')}
-                      className={`px-3 py-1 rounded-lg font-medium cursor-pointer transition-all ${
+                      className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-[13px] font-medium cursor-pointer transition-all ${
                         pdfPageSize === 'fit'
                           ? 'bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-xs'
                           : 'text-[#6e6e73] dark:text-[#8e8e93]'
@@ -1892,41 +1915,42 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Quick actions row */}
+                <div className="flex items-center justify-between sm:justify-end gap-2 overflow-x-auto scrollbar-none py-0.5">
+                  <button
+                    type="button"
+                    onClick={handleSharePdf}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#34c759]/30 bg-[#34c759]/10 text-[#34c759] dark:text-[#30d158] font-semibold cursor-pointer shrink-0 text-xs sm:text-[13px]"
+                    title="Share PDF via device"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Share PDF</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handlePrintDocument}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer shrink-0 text-xs sm:text-[13px]"
                     title="Print Document"
                   >
-                    <Printer className="w-4 h-4 text-[#86868b]" />
-                    <span className="hidden sm:inline">Print</span>
+                    <Printer className="w-3.5 h-3.5 text-[#86868b]" />
+                    <span className="hidden xs:inline">Print</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleExportZip}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer shrink-0 text-xs sm:text-[13px]"
                     title="Download individual images as ZIP"
                   >
-                    <Archive className="w-4 h-4 text-[#86868b]" />
-                    <span className="hidden sm:inline">Export ZIP</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSharePdf}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer"
-                    title="Share PDF via device"
-                  >
-                    <Share2 className="w-4 h-4 text-[#86868b]" />
-                    <span className="hidden sm:inline">Share</span>
+                    <Archive className="w-3.5 h-3.5 text-[#86868b]" />
+                    <span className="hidden xs:inline">ZIP</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleClearAllPages}
-                    className="text-[#ff3b30] hover:underline px-2 py-1 cursor-pointer text-[12px]"
+                    className="text-[#ff3b30] hover:underline px-2 py-1 cursor-pointer text-xs sm:text-[12px] shrink-0"
                   >
                     Clear All
                   </button>
@@ -1934,11 +1958,11 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
               </div>
 
               {/* Main Download PDF CTA */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={onBackToHome}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl border border-black/10 dark:border-white/10 text-[14px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.03] dark:hover:bg-white/[0.05] cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl border border-black/10 dark:border-white/10 text-[14px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.03] dark:hover:bg-white/[0.05] cursor-pointer text-center"
                 >
                   Back to Tools
                 </button>
@@ -1948,7 +1972,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   id="download-scanned-pdf-btn"
                   disabled={isProcessing}
                   onClick={handleExportPdf}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#34c759] hover:bg-[#2fb350] active:bg-[#27a346] text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#34c759] hover:bg-[#2fb350] active:bg-[#27a346] text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
                 >
                   {isProcessing ? (
                     <>
@@ -2012,13 +2036,13 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
 
       {/* Interactive Post-Capture Page Crop Modal with 4 Corner Points */}
       {isCropModalOpen && activePage && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl bg-[#1c1c1e] text-white rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-white/10 max-h-[92vh]">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-[#1c1c1e] text-white rounded-t-[24px] sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-white/10 max-h-[96dvh] sm:max-h-[92vh] h-[92dvh] sm:h-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-white/10 shrink-0">
               <div className="flex items-center gap-2">
                 <Crop className="w-5 h-5 text-[#34c759]" />
-                <h3 className="text-base font-bold">Crop & Trim Document Borders</h3>
+                <h3 className="text-sm sm:text-base font-bold">Crop & Trim Document Borders</h3>
               </div>
               <button
                 type="button"
@@ -2030,16 +2054,16 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Modal Interactive Crop Workspace */}
-            <div className="relative p-4 flex-1 flex items-center justify-center overflow-hidden bg-black/90 min-h-[300px] max-h-[60vh]">
+            <div className="relative p-2 sm:p-4 flex-1 flex items-center justify-center overflow-hidden bg-black/90 min-h-[260px]">
               <div
                 ref={modalCropContainerRef}
-                className="relative inline-block max-w-full max-h-full select-none"
+                className="relative inline-block max-w-full max-h-full select-none touch-none"
               >
                 {/* Image element */}
                 <img
                   src={activePage.originalDataUrl}
                   alt="Original Document"
-                  className="max-h-[55vh] max-w-full object-contain pointer-events-none rounded-lg"
+                  className="max-h-[50vh] sm:max-h-[55vh] max-w-full object-contain pointer-events-none rounded-lg"
                 />
 
                 {/* Dark Mask outside crop borders */}
@@ -2084,39 +2108,39 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-3 border-l-3 border-[#34c759] pointer-events-none" />
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-3 border-r-3 border-[#34c759] pointer-events-none" />
 
-                  {/* Corner handles */}
+                  {/* Corner handles (48px Touch Hit Targets) */}
                   <div
                     onPointerDown={(e) => handleStartModalCropDrag('tl', e)}
-                    className="absolute -top-4 -left-4 w-8 h-8 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                    className="absolute -top-6 -left-6 w-12 h-12 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
                   >
-                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                    <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform pointer-events-none">
                       <div className="w-1.5 h-1.5 rounded-full bg-white" />
                     </div>
                   </div>
 
                   <div
                     onPointerDown={(e) => handleStartModalCropDrag('tr', e)}
-                    className="absolute -top-4 -right-4 w-8 h-8 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                    className="absolute -top-6 -right-6 w-12 h-12 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
                   >
-                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                    <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform pointer-events-none">
                       <div className="w-1.5 h-1.5 rounded-full bg-white" />
                     </div>
                   </div>
 
                   <div
                     onPointerDown={(e) => handleStartModalCropDrag('bl', e)}
-                    className="absolute -bottom-4 -left-4 w-8 h-8 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
+                    className="absolute -bottom-6 -left-6 w-12 h-12 flex items-center justify-center cursor-nesw-resize touch-none z-30 group"
                   >
-                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                    <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform pointer-events-none">
                       <div className="w-1.5 h-1.5 rounded-full bg-white" />
                     </div>
                   </div>
 
                   <div
                     onPointerDown={(e) => handleStartModalCropDrag('br', e)}
-                    className="absolute -bottom-4 -right-4 w-8 h-8 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
+                    className="absolute -bottom-6 -right-6 w-12 h-12 flex items-center justify-center cursor-nwse-resize touch-none z-30 group"
                   >
-                    <div className="w-4.5 h-4.5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform">
+                    <div className="w-5 h-5 rounded-full bg-[#34c759] border-2 border-white shadow-md flex items-center justify-center group-active:scale-125 transition-transform pointer-events-none">
                       <div className="w-1.5 h-1.5 rounded-full bg-white" />
                     </div>
                   </div>
@@ -2126,7 +2150,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                     onPointerDown={(e) => handleStartModalCropDrag('center', e)}
                     className="absolute inset-0 flex items-center justify-center cursor-move touch-none"
                   >
-                    <div className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-xs border border-white/20 text-[10px] font-semibold text-white/90 shadow-md flex items-center gap-1">
+                    <div className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-xs border border-white/20 text-[10px] font-semibold text-white/90 shadow-md flex items-center gap-1 pointer-events-none">
                       <Move className="w-3 h-3 text-[#34c759]" />
                       <span>Drag to reposition</span>
                     </div>
@@ -2136,21 +2160,21 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
             </div>
 
             {/* Modal Footer Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-white/10 bg-[#252528] shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-5 py-3 sm:py-4 border-t border-white/10 bg-[#252528] shrink-0">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleAutoDetectModalCrop}
-                  className="px-3.5 py-2 rounded-xl bg-[#34c759]/20 hover:bg-[#34c759]/30 text-[#34c759] dark:text-[#30d158] border border-[#34c759]/40 text-[13px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-[#34c759]/20 hover:bg-[#34c759]/30 text-[#34c759] dark:text-[#30d158] border border-[#34c759]/40 text-xs sm:text-[13px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
                   title="Automatically detect and fit borders to document page"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Auto-Detect Border</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Auto-Detect</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalCropBox({ x: 5, y: 5, w: 90, h: 90 })}
-                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[13px] font-medium transition-colors cursor-pointer"
+                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs sm:text-[13px] font-medium transition-colors cursor-pointer"
                 >
                   Reset
                 </button>
@@ -2160,7 +2184,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                 <button
                   type="button"
                   onClick={() => setIsCropModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-white/70 hover:text-white text-[13px] font-medium transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-white/70 hover:text-white text-xs sm:text-[13px] font-medium transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2168,7 +2192,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
                   type="button"
                   onClick={handleApplyPageCrop}
                   disabled={isModalCropping}
-                  className="px-5 py-2 rounded-xl bg-[#34c759] hover:bg-[#2fb350] text-white text-[13px] font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-[#34c759] hover:bg-[#2fb350] text-white text-xs sm:text-[13px] font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Check className="w-4 h-4" />
                   <span>{isModalCropping ? 'Cropping...' : 'Apply Crop'}</span>
