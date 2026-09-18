@@ -27,7 +27,6 @@ import {
   Shield,
   HelpCircle,
   FileSpreadsheet,
-import {
   Presentation,
 } from 'lucide-react';
 import { FileCategory, ToolMode } from '../types';
