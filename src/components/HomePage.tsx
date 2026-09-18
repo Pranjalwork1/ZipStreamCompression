@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { ToolMode, FileCategory, UploadedFileInfo } from '../types';
 import { DropZone } from './DropZone';
+import { trackEvent } from '../utils/analytics';
 
 export interface ToolItem {
   id: ToolMode;
@@ -867,6 +868,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       e.preventDefault();
       const selected = searchDropdownResults[searchSelectedIndex] || searchDropdownResults[0];
       if (selected) {
+        trackEvent('Tool Selected From Home', { toolId: selected.id, source: 'search_enter' });
         onSelectTool(selected.id, selected.targetCategory);
         setIsSearchDropdownOpen(false);
         setSearchQuery('');
@@ -1025,6 +1027,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         onMouseEnter={() => setSearchSelectedIndex(idx)}
                         onClick={(e) => {
                           e.preventDefault();
+                          trackEvent('Tool Selected From Home', { toolId: tool.id, source: 'search_dropdown' });
                           onSelectTool(tool.id, tool.targetCategory);
                           setIsSearchDropdownOpen(false);
                           setSearchQuery('');
@@ -1114,7 +1117,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   key={cat.id}
                   id={`home-category-tab-${cat.id}`}
-                  onClick={() => setSelectedCategoryTab(cat.id)}
+                  onClick={() => {
+                    trackEvent('Home Category Filter Clicked', { category: cat.id });
+                    setSelectedCategoryTab(cat.id);
+                  }}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[#0C162C] dark:bg-white text-white dark:text-[#0C162C] shadow-sm'
@@ -1159,6 +1165,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   href={toolHref}
                   onClick={(e) => {
                     e.preventDefault();
+                    trackEvent('Tool Selected From Home', { toolId: tool.id, source: 'grid' });
                     onSelectTool(tool.id, tool.targetCategory);
                   }}
                   className="group relative p-5 rounded-2xl bg-white dark:bg-[#111C38] border border-[#0C162C]/8 dark:border-white/8 hover:border-[#055EFE]/40 shadow-sm hover:shadow-[0_12px_32px_rgba(5,94,254,0.15)] transition-all duration-200 flex flex-col justify-between cursor-pointer"

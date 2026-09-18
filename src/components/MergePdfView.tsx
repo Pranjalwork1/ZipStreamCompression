@@ -15,6 +15,7 @@ import { MergePdfItem } from '../types';
 import { mergePdfFiles, getPdfPageCount } from '../utils/pdfTools';
 import { formatBytes } from '../utils/formatters';
 import confetti from 'canvas-confetti';
+import { trackEvent } from '../utils/analytics';
 
 interface MergePdfViewProps {
   onBackToHome: () => void;
@@ -104,6 +105,7 @@ export const MergePdfView: React.FC<MergePdfViewProps> = ({ onBackToHome }) => {
   const handleMergePdfs = async () => {
     if (items.length < 2) return;
 
+    trackEvent('Merge PDF Process Started', { fileCount: items.length });
     setIsProcessing(true);
     try {
       const files = items.map((i) => i.file);
@@ -133,6 +135,7 @@ export const MergePdfView: React.FC<MergePdfViewProps> = ({ onBackToHome }) => {
   // Trigger download
   const handleDownload = () => {
     if (!mergedResult) return;
+    trackEvent('Merge PDF Downloaded', { size: mergedResult.size, totalPages: mergedResult.totalPages });
     const a = document.createElement('a');
     a.href = mergedResult.url;
     a.download = mergedFileName.endsWith('.pdf') ? mergedFileName : `${mergedFileName}.pdf`;

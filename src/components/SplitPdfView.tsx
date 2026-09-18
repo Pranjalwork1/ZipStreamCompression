@@ -12,6 +12,7 @@ import { SplitPdfSettings } from '../types';
 import { splitPdfFile, getPdfPageCount } from '../utils/pdfTools';
 import { formatBytes } from '../utils/formatters';
 import confetti from 'canvas-confetti';
+import { trackEvent } from '../utils/analytics';
 
 interface SplitPdfViewProps {
   onBackToHome: () => void;
@@ -45,6 +46,7 @@ export const SplitPdfView: React.FC<SplitPdfViewProps> = ({ onBackToHome }) => {
 
   const handleSplit = async () => {
     if (!file) return;
+    trackEvent('Split PDF Process Started', { mode: settings.mode });
     setIsProcessing(true);
 
     try {
@@ -75,6 +77,7 @@ export const SplitPdfView: React.FC<SplitPdfViewProps> = ({ onBackToHome }) => {
 
   const handleDownload = () => {
     if (!result || !file) return;
+    trackEvent('Split PDF Downloaded', { totalPagesExtracted: result.totalPagesExtracted });
     const a = document.createElement('a');
     a.href = result.url;
     const baseName = file.name.replace(/\.[^/.]+$/, '');

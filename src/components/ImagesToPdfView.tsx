@@ -15,6 +15,7 @@ import { ImageToPdfItem, ImageToPdfSettings } from '../types';
 import { convertImagesToPdf } from '../utils/pdfTools';
 import { formatBytes } from '../utils/formatters';
 import confetti from 'canvas-confetti';
+import { trackEvent } from '../utils/analytics';
 
 interface ImagesToPdfViewProps {
   onBackToHome: () => void;
@@ -80,6 +81,11 @@ export const ImagesToPdfView: React.FC<ImagesToPdfViewProps> = ({ onBackToHome }
   // Convert to PDF
   const handleConvert = async () => {
     if (items.length === 0) return;
+    trackEvent('Images to PDF Process Started', { 
+      imageCount: items.length, 
+      pageSize: settings.pageSize, 
+      orientation: settings.orientation 
+    });
     setIsProcessing(true);
 
     try {
@@ -102,6 +108,7 @@ export const ImagesToPdfView: React.FC<ImagesToPdfViewProps> = ({ onBackToHome }
 
   const handleDownload = () => {
     if (!result) return;
+    trackEvent('Images to PDF Downloaded', { totalPages: result.totalPages, size: result.blob.size });
     const a = document.createElement('a');
     a.href = result.url;
     a.download = `Images_Document_${new Date().toISOString().slice(0, 10)}.pdf`;

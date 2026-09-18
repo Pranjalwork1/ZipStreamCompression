@@ -194,3 +194,12 @@ export interface SearchToolItem {
   targetCategory?: FileCategory;
 }
 
+declare global {
+  interface Window {
+    umami?: {
+      track: (eventName: string | ((props: any) => string), eventData?: Record<string, any>) => void;
+      identify: (sessionData: Record<string, any>) => void;
+    };
+  }
+}
+

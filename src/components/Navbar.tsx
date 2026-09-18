@@ -27,9 +27,11 @@ import {
   Shield,
   HelpCircle,
   FileSpreadsheet,
+import {
   Presentation,
 } from 'lucide-react';
 import { FileCategory, ToolMode } from '../types';
+import { trackEvent } from '../utils/analytics';
 
 interface NavbarProps {
   activeTool: ToolMode;
@@ -136,12 +138,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [isMobileMenuOpen]);
 
   const handleToolClick = (tool: ToolMode) => {
+    trackEvent('Nav Tool Selected', { toolId: tool });
     setActiveDropdown(null);
     setIsMobileMenuOpen(false);
     onSelectTool(tool);
   };
 
   const handlePrimaryCta = () => {
+    trackEvent('Nav Primary CTA Clicked');
     setActiveDropdown(null);
     setIsMobileMenuOpen(false);
     if (!isHomepage) {
@@ -175,6 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="brand-logo-btn"
             onClick={() => {
+              trackEvent('Nav Home Clicked');
               setActiveDropdown(null);
               setIsMobileMenuOpen(false);
               onReset();
@@ -539,7 +544,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-search-trigger-btn"
               type="button"
-              onClick={onOpenSearch}
+              onClick={() => {
+                trackEvent('Nav Search Opened');
+                onOpenSearch();
+              }}
               className="hidden sm:flex items-center gap-2 h-8.5 px-3 rounded-[12px] bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-transparent hover:border-black/[0.06] dark:hover:border-white/[0.08] transition-all cursor-pointer group shadow-2xs"
               title="Search tools (Press ⌘K or Ctrl+K)"
               aria-label="Search tools"
@@ -569,7 +577,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-theme-toggle-btn"
               type="button"
-              onClick={onToggleTheme}
+              onClick={() => {
+                trackEvent('Theme Toggled', { theme: isDark ? 'light' : 'dark' });
+                onToggleTheme();
+              }}
               role="switch"
               aria-checked={isDark}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}

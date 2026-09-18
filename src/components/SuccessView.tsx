@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CompressionResult } from '../types';
 import { formatBytes, downloadBlob } from '../utils/formatters';
+import { trackEvent } from '../utils/analytics';
 
 interface SuccessViewProps {
   result: CompressionResult;
@@ -38,6 +39,13 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
   }, [result?.compressedBlob]);
 
   useEffect(() => {
+    trackEvent('Compression Completed', {
+      originalSize: result.originalFile.size,
+      compressedSize: result.compressedSize,
+      savedPercentage: result.savedPercentage,
+      category: result.originalFile.category,
+    });
+    
     return () => {
       if (downloadUrl) {
         try {
@@ -48,6 +56,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
   }, [downloadUrl]);
 
   const handleDownload = () => {
+    trackEvent('Download Result Clicked');
     // Only dispatch synthetic download if direct anchor href is missing
     if (!downloadUrl && !result?.serverDownloadUrl && result?.compressedBlob) {
       try {
@@ -63,6 +72,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function' && !!result?.compressedBlob;
 
   const handleShare = async () => {
+    trackEvent('Share Result Clicked');
     if (!canShare) return;
     try {
       const file = new File([result.compressedBlob], result.compressedName, {
@@ -298,7 +308,10 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
           <button
             type="button"
             id="compress-another-file-btn"
-            onClick={onCompressAnother}
+            onClick={() => {
+              trackEvent('Compress Another Clicked');
+              onCompressAnother();
+            }}
             className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#e8e8ed] dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium text-[14px] transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 text-[#86868b] dark:text-[#8e8e93]" />

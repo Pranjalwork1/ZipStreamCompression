@@ -14,6 +14,7 @@ import {
 import { FileCategory, UploadedFileInfo } from '../types';
 import { detectFileCategory, getAcceptedExtensions } from '../utils/formatters';
 import { prepareFileInfo } from '../utils/fileInfo';
+import { trackEvent } from '../utils/analytics';
 
 interface DropZoneProps {
   activeCategory: FileCategory;
@@ -105,6 +106,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     });
 
     if (invalidNames.length > 0 && validItems.length === 0) {
+      trackEvent('Invalid File Uploaded', { invalidNames });
       setErrorMessage(
         `"${invalidNames.join(', ')}" is not supported. Please choose a PDF, image, video, audio, DOCX, PPTX, or XLSX file.`
       );
@@ -112,8 +114,10 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
 
     if (validItems.length > 1 && onMultipleFilesLoaded) {
+      trackEvent('File Dropped', { count: validItems.length, category: validItems[0].category, mode: 'batch' });
       onMultipleFilesLoaded(validItems);
     } else if (validItems.length > 0) {
+      trackEvent('File Dropped', { count: 1, category: validItems[0].category, mode: 'single' });
       onFileLoaded(validItems[0]);
     }
   };
@@ -152,10 +156,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
   };
 
   const handleBrowseClick = () => {
+    trackEvent('Browse Files Clicked');
     fileInputRef.current?.click();
   };
 
   const handleLoadSample = async (type: 'pdf' | 'image' | 'video' | 'audio') => {
+    trackEvent('Sample File Tested', { type });
     const samples = await import('../utils/sampleFiles');
     let file: File;
     if (type === 'pdf') {

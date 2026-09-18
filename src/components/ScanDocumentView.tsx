@@ -43,6 +43,7 @@ import {
 } from '../utils/documentDetector';
 import { formatBytes } from '../utils/formatters';
 import confetti from 'canvas-confetti';
+import { trackEvent } from '../utils/analytics';
 
 interface ScanDocumentViewProps {
   onBackToHome: () => void;
@@ -928,6 +929,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   // Export as multi-page PDF
   const handleExportPdf = async () => {
     if (pages.length === 0) return;
+    trackEvent('Scan Document Export PDF', { pageCount: pages.length, pageSize: pdfPageSize });
     setIsProcessing(true);
 
     try {
@@ -967,6 +969,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
     }
     if (!exportSuccess?.pdfBlob) return;
 
+    trackEvent('Scan Document Shared', { pageCount: pages.length });
     try {
       const file = new File([exportSuccess.pdfBlob], exportSuccess.filename || 'Scanned_Document.pdf', {
         type: 'application/pdf',
@@ -991,6 +994,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   // Download all pages as ZIP
   const handleExportZip = async () => {
     if (pages.length === 0) return;
+    trackEvent('Scan Document Export ZIP', { pageCount: pages.length });
     setIsProcessing(true);
     try {
       const zipBlob = await packageScannedPagesZip(pages);
@@ -1012,6 +1016,7 @@ export const ScanDocumentView: React.FC<ScanDocumentViewProps> = ({ onBackToHome
   // Direct print scanned document
   const handlePrintDocument = () => {
     if (pages.length === 0) return;
+    trackEvent('Scan Document Printed', { pageCount: pages.length });
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
