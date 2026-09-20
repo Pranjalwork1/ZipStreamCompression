@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import {
   isSarvamConfigured,
   isSarvamEnabled,
+  translateWithSarvam,
 } from './sarvam';
 import { orchestrateChat, orchestrateSummarize } from './aiOrchestrator';
 import { createAiRateLimiter } from './aiRateLimit';
@@ -99,6 +100,44 @@ router.post('/summarize', createAiRateLimiter('summarize'), async (req: Request,
   } catch (err: any) {
     const status = err?.status || 500;
     const errorMsg = err?.message || 'Failed to summarize document.';
+    return res.status(status).json({ error: errorMsg });
+  }
+});
+
+/**
+ * POST /api/sarvam/translate
+ * Multilingual translation using sarvam-translate:v1 with long-text chunking.
+ */
+router.post('/translate', createAiRateLimiter('translate'), async (req: Request, res: Response) => {
+  try {
+    if (!isSarvamEnabled()) {
+      return res.status(403).json({ error: 'AI translation service is currently disabled.' });
+    }
+
+    const { input, sourceLanguageCode, targetLanguageCode } = req.body || {};
+
+    if (!input || typeof input !== 'string' || !input.trim()) {
+      return res.status(400).json({ error: 'Text input is required for translation.' });
+    }
+
+    if (!targetLanguageCode || typeof targetLanguageCode !== 'string') {
+      return res.status(400).json({ error: 'Target language code is required.' });
+    }
+
+    if (input.length > 30_000) {
+      return res.status(413).json({ error: 'Input text exceeds the 30,000 character limit for translation.' });
+    }
+
+    const result = await translateWithSarvam({
+      input: input.trim(),
+      sourceLanguageCode: typeof sourceLanguageCode === 'string' ? sourceLanguageCode : undefined,
+      targetLanguageCode,
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    const status = err?.status || 500;
+    const errorMsg = err?.message || 'Translation service temporarily unavailable.';
     return res.status(status).json({ error: errorMsg });
   }
 });
