@@ -35,12 +35,26 @@ import {
   Eye,
   Radio,
   Mic,
+  Languages,
+  Shield,
 } from 'lucide-react';
 import { ToolMode } from '../../types';
 import { PDFDocument } from 'pdf-lib';
 import confetti from 'canvas-confetti';
 import { extractPdfStructuredData, PdfConversionResult } from '../../utils/pdfConverter';
 import { downloadBlob } from '../../utils/formatters';
+import {
+  sarvamHealth,
+  sarvamChat,
+  sarvamSummarize,
+  sarvamTranslate,
+  sarvamInsights,
+} from '../../services/aiApi';
+import { AiProviderBadge } from '../ai/AiProviderBadge';
+import { AiLanguageSelector } from '../ai/AiLanguageSelector';
+import { VoiceInputButton } from '../ai/VoiceInputButton';
+import { AudioResponsePlayer } from '../ai/AudioResponsePlayer';
+import { SarvamHealthResponse, AiProvider, AiInsightsResponse } from '../../types/sarvam';
 
 interface AiToolsViewProps {
   initialTool: ToolMode;
@@ -51,6 +65,8 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  provider?: AiProvider;
+  fallbackUsed?: boolean;
 }
 
 type SummaryMode = 'executive' | 'bullets' | 'tldr' | 'action_items' | 'faq' | 'metrics';
@@ -76,6 +92,25 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
   const [structuredData, setStructuredData] = useState<PdfConversionResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processStatus, setProcessStatus] = useState<string>('');
+
+  // Sarvam AI Health & Configuration State
+  const [sarvamHealthState, setSarvamHealthState] = useState<SarvamHealthResponse | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en-IN');
+  const [summaryProvider, setSummaryProvider] = useState<AiProvider>('local');
+  const [summaryFallbackUsed, setSummaryFallbackUsed] = useState<boolean>(false);
+  const [isTranslatingSummary, setIsTranslatingSummary] = useState<boolean>(false);
+  const [translatingMsgIdx, setTranslatingMsgIdx] = useState<number | null>(null);
+
+  // AI Document Insights State
+  const [insightsData, setInsightsData] = useState<AiInsightsResponse | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState<boolean>(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
+  const [showInsightsPanel, setShowInsightsPanel] = useState<boolean>(false);
+
+  // Probe backend AI configuration on mount
+  useEffect(() => {
+    sarvamHealth().then(setSarvamHealthState).catch(() => null);
+  }, []);
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -175,6 +210,14 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
     setStructuredData(null);
     setMessages([]);
     setSummaryResult('');
+    setSummaryProvider('local');
+    setSummaryFallbackUsed(false);
+    setIsTranslatingSummary(false);
+    setTranslatingMsgIdx(null);
+    setInsightsData(null);
+    setIsLoadingInsights(false);
+    setInsightsError(null);
+    setShowInsightsPanel(false);
     setSecondFile(null);
     setDiffResults(null);
     setGeneratedBlobUrl(null);
@@ -322,7 +365,7 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
     return answer + suffix;
   };
 
-  // AI Chat Handler — 100% client-side, no API key required
+  // AI Chat Handler with Sarvam AI and deterministic local fallback
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!chatInput.trim() || isChatLoading) return;
@@ -336,59 +379,76 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
     setChatInput('');
     setIsChatLoading(true);
 
-    // Small artificial delay so it feels responsive, not instant
-    await new Promise(r => setTimeout(r, 320));
+    try {
+      // Local retrieval first: extract top matching passages to feed context
+      const relevantPassages = extractedText
+        ? rankSentences(userText, extractedText, 6).join('\n\n')
+        : '';
+      const docContextToSend = relevantPassages || (extractedText ? extractedText.slice(0, 10000) : '');
 
-    const reply = answerFromDocument(userText, extractedText);
-    setMessages([
-      ...newMessages,
-      { role: 'assistant', content: reply, timestamp: Date.now() },
-    ]);
-    setIsChatLoading(false);
-    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      const response = await sarvamChat({
+        message: userText,
+        documentContext: docContextToSend,
+        history: messages.slice(-4).map(m => ({ role: m.role, content: m.content })),
+        languageCode: selectedLanguage,
+      });
+
+      setMessages([
+        ...newMessages,
+        {
+          role: 'assistant',
+          content: response.reply,
+          timestamp: Date.now(),
+          provider: response.provider,
+          fallbackUsed: response.fallbackUsed,
+        },
+      ]);
+    } catch (err) {
+      console.warn('Backend AI chat error; falling back to local extraction:', err);
+      const fallbackReply = answerFromDocument(userText, extractedText);
+      setMessages([
+        ...newMessages,
+        {
+          role: 'assistant',
+          content: fallbackReply,
+          timestamp: Date.now(),
+          provider: 'local',
+          fallbackUsed: true,
+        },
+      ]);
+    } finally {
+      setIsChatLoading(false);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
   };
 
-  // AI Summarizer Handler — 100% client-side, no API key required
-  const handleSummarize = async () => {
-    if (!extractedText) return;
-    setIsSummarizing(true);
-    setCheckedActions({});
-
-    await new Promise(r => setTimeout(r, 400)); // breathing room for spinner
-
+  // Local fallback summarizer logic
+  const runLocalSummarizer = () => {
     const text = extractedText;
     const sentences = splitSentences(text);
     const wordCount = text.split(/\s+/).filter(Boolean).length;
     const readingTime = Math.ceil(wordCount / 200);
 
     let result = '';
-
     if (summaryType === 'tldr') {
       const top3 = sentences.slice(0, 3).join(' ');
-      const points = sentences
-        .slice(3, 8)
-        .map((s, i) => `${i + 1}. ${s}`)
-        .join('\n');
+      const points = sentences.slice(3, 8).map((s, i) => `${i + 1}. ${s}`).join('\n');
       result = `## ⚡ TL;DR\n\n${top3}\n\n## 🏆 Top Points\n\n${points}`;
-
     } else if (summaryType === 'bullets') {
       const items = sentences.slice(0, 10).map(s => `- ${s}`).join('\n');
       result = `## 📌 Key Highlights\n\n${items}\n\n## 📊 Stats\n- **Words:** ${wordCount.toLocaleString()}  \n- **Reading time:** ~${readingTime} min`;
-
     } else if (summaryType === 'action_items') {
       const actionRe = /must|should|will|shall|need|action|deadline|agree|payment|submit|review|complete|required|ensure|provide/i;
       const actions = sentences.filter(s => actionRe.test(s)).slice(0, 8);
       const fallback = sentences.slice(0, 5);
       const list = (actions.length > 0 ? actions : fallback).map(s => `- [ ] ${s}`).join('\n');
       result = `## ✅ Action Items\n\n${list}\n\n---\n*Extracted from directive language in the document.*`;
-
     } else if (summaryType === 'faq') {
       const pairs = sentences.slice(0, 8).map((s, i) => {
         const shortQ = s.split(',')[0]?.slice(0, 55) || `Topic ${i + 1}`;
         return `**Q${i + 1}: What does the document say about "${shortQ}…"?**\nA: ${s}`;
       }).join('\n\n');
       result = `## ❓ FAQ from Document\n\n${pairs}`;
-
     } else if (summaryType === 'metrics') {
       const metricRe = /\d+[%₹$]?|\$\d|₹\d|total|amount|rate|cost|fee|percent/i;
       const metricSents = sentences.filter(s => metricRe.test(s)).slice(0, 8);
@@ -396,17 +456,96 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
         .map((s, i) => `| #${i + 1} | ${s.slice(0, 65)}… |`)
         .join('\n');
       result = `## 📊 Key Metrics\n\n| # | Extracted Data |\n|---|---|\n${rows}\n\n- **Total words:** ${wordCount.toLocaleString()}  \n- **Reading time:** ~${readingTime} min`;
-
     } else {
-      // Executive (default)
       const intro = sentences.slice(0, 4).join(' ');
       const takeaways = sentences.slice(4, 10).map(s => `- ${s}`).join('\n');
       result = `## 📋 Executive Summary\n\n${intro}\n\n## 🎯 Key Takeaways\n\n${takeaways}\n\n---\n### 📊 Document Stats\n- **Words:** ${wordCount.toLocaleString()}  \n- **Reading time:** ~${readingTime} min  \n- **Processed:** 100% on-device — files never leave your browser`;
     }
 
     setSummaryResult(result);
-    setIsSummarizing(false);
+    setSummaryProvider('local');
+    setSummaryFallbackUsed(true);
     confetti({ particleCount: 30, spread: 50 });
+  };
+
+  // AI Summarizer Handler — Orchestrated with Sarvam AI and local fallback
+  const handleSummarize = async () => {
+    if (!extractedText) return;
+    setIsSummarizing(true);
+    setCheckedActions({});
+
+    try {
+      const response = await sarvamSummarize({
+        text: extractedText,
+        type: summaryType,
+        targetLanguageCode: selectedLanguage,
+      });
+
+      setSummaryResult(response.summary);
+      setSummaryProvider(response.provider);
+      setSummaryFallbackUsed(response.fallbackUsed);
+      confetti({ particleCount: 30, spread: 50 });
+    } catch (err) {
+      console.warn('Sarvam summarize failed, falling back to local summarizer:', err);
+      runLocalSummarizer();
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  // Translate entire generated summary to selected Indian language
+  const handleTranslateSummary = async () => {
+    if (!summaryResult || isTranslatingSummary) return;
+    setIsTranslatingSummary(true);
+    try {
+      const res = await sarvamTranslate({
+        input: summaryResult,
+        targetLanguageCode: selectedLanguage,
+      });
+      if (res.translatedText) {
+        setSummaryResult(res.translatedText);
+      }
+    } catch (err) {
+      console.warn('Summary translation failed:', err);
+    } finally {
+      setIsTranslatingSummary(false);
+    }
+  };
+
+  // Translate an individual chat reply to selected Indian language
+  const handleTranslateMessage = async (index: number) => {
+    const msg = messages[index];
+    if (!msg || msg.role !== 'assistant' || translatingMsgIdx !== null) return;
+    setTranslatingMsgIdx(index);
+    try {
+      const res = await sarvamTranslate({
+        input: msg.content,
+        targetLanguageCode: selectedLanguage,
+      });
+      if (res.translatedText) {
+        setMessages(prev => prev.map((m, i) => (i === index ? { ...m, content: res.translatedText } : m)));
+      }
+    } catch (err) {
+      console.warn('Message translation failed:', err);
+    } finally {
+      setTranslatingMsgIdx(null);
+    }
+  };
+
+  // Extract structured insights via Sarvam-105B
+  const handleExtractInsights = async () => {
+    if (!extractedText || isLoadingInsights) return;
+    setIsLoadingInsights(true);
+    setInsightsError(null);
+    setShowInsightsPanel(true);
+    try {
+      const data = await sarvamInsights(extractedText);
+      setInsightsData(data);
+    } catch (err: any) {
+      setInsightsError(err?.message || 'Failed to extract insights. Please try again.');
+    } finally {
+      setIsLoadingInsights(false);
+    }
   };
 
   // Speech Synthesizer Functions
@@ -719,6 +858,167 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
               </div>
             </div>
 
+            {/* AI Control & Privacy Bar */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/90 dark:bg-[#252528]/90 border border-black/[0.05] dark:border-white/[0.08] flex-wrap gap-3">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <AiProviderBadge provider={sarvamHealthState?.enabled ? 'sarvam' : 'local'} />
+                <AiLanguageSelector
+                  selectedLanguage={selectedLanguage}
+                  onLanguageChange={setSelectedLanguage}
+                  label="AI Language:"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExtractInsights}
+                  disabled={isLoadingInsights || !extractedText}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-semibold border border-indigo-200/60 dark:border-indigo-800/40 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>{showInsightsPanel ? 'Hide AI Insights' : 'Extract AI Insights'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Privacy Guarantee Statement */}
+            <div className="text-[12px] text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-[#202022]/70 px-3.5 py-2 rounded-xl border border-slate-200/50 dark:border-slate-700/40 flex items-center gap-2">
+              <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>
+                Core file processing stays in your browser. Optional AI features send the content required for the selected AI operation to ZipStream's AI backend.
+              </span>
+            </div>
+
+            {/* AI Insights Panel */}
+            {showInsightsPanel && (
+              <div className="p-5 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/40 space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      AI Document Insights & Entities
+                    </h3>
+                    <AiProviderBadge provider="sarvam" />
+                  </div>
+                  <button
+                    onClick={() => setShowInsightsPanel(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                {isLoadingInsights && (
+                  <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 py-3">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Extracting structured insights with Sarvam-105B...</span>
+                  </div>
+                )}
+
+                {insightsError && (
+                  <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-3 rounded-xl border border-red-200 dark:border-red-800">
+                    {insightsError}
+                  </div>
+                )}
+
+                {insightsData && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    {insightsData.dates.length > 0 && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                          📅 Important Dates
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {insightsData.dates.slice(0, 5).map((d, i) => (
+                            <li key={i} className="truncate">• {d}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {insightsData.amounts.length > 0 && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                          💰 Financial Figures
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {insightsData.amounts.slice(0, 5).map((a, i) => (
+                            <li key={i} className="truncate">• {a}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {(insightsData.organizations.length > 0 || insightsData.people.length > 0) && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                          🏢 Entities & People
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {[...insightsData.organizations, ...insightsData.people].slice(0, 5).map((e, i) => (
+                            <li key={i} className="truncate">• {e}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {insightsData.actionItems.length > 0 && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                          ✅ Action Items
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {insightsData.actionItems.slice(0, 5).map((act, i) => (
+                            <li key={i} className="truncate">• {act}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {insightsData.warnings.length > 0 && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-amber-200/80 dark:border-amber-800/60 space-y-1.5">
+                        <span className="font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1">
+                          ⚠️ Warnings & Deadlines
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {insightsData.warnings.slice(0, 5).map((w, i) => (
+                            <li key={i} className="truncate">• {w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {insightsData.clauses.length > 0 && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                          📜 Key Clauses
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {insightsData.clauses.slice(0, 5).map((c, i) => (
+                            <li key={i} className="truncate">• {c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {insightsData.contacts.length > 0 && (
+                      <div className="p-3 bg-white dark:bg-[#1c1c1e] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                          📞 Contacts
+                        </span>
+                        <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                          {insightsData.contacts.slice(0, 5).map((co, i) => (
+                            <li key={i} className="truncate">• {co}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {isProcessing && (
               <div className="p-4 rounded-2xl bg-[#fafafc] dark:bg-[#252528] border border-black/[0.06] dark:border-white/[0.08] flex items-center gap-3">
                 <RefreshCw className="w-4 h-4 text-[#af52de] animate-spin shrink-0" />
@@ -751,6 +1051,23 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
                         }`}
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                        {msg.role === 'assistant' && (
+                          <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-black/[0.04] dark:border-white/[0.06] flex-wrap">
+                            <AiProviderBadge provider={msg.provider} fallbackUsed={msg.fallbackUsed} />
+                            <AudioResponsePlayer text={msg.content} languageCode={selectedLanguage} />
+                            <button
+                              type="button"
+                              onClick={() => handleTranslateMessage(idx)}
+                              disabled={translatingMsgIdx === idx}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                              title={`Translate to ${selectedLanguage}`}
+                            >
+                              <Languages className="w-3 h-3" />
+                              <span>{translatingMsgIdx === idx ? 'Translating...' : 'Translate'}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {msg.role === 'user' && (
                         <div className="w-7 h-7 rounded-full bg-[#0071e3] text-white flex items-center justify-center shrink-0">
@@ -773,6 +1090,12 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
                   onSubmit={handleSendMessage}
                   className="p-3 bg-white dark:bg-[#1c1c1e] border-t border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2"
                 >
+                  <VoiceInputButton
+                    onTranscript={(transcript) => setChatInput((prev) => (prev ? `${prev} ${transcript}` : transcript))}
+                    languageCode={selectedLanguage}
+                    documentContext={extractedText}
+                    disabled={isChatLoading}
+                  />
                   <input
                     type="text"
                     value={chatInput}
@@ -825,6 +1148,19 @@ export const AiToolsView: React.FC<AiToolsViewProps> = ({
                   <div className="flex items-center gap-2 flex-wrap">
                     {summaryResult && (
                       <>
+                        <AiProviderBadge provider={summaryProvider} fallbackUsed={summaryFallbackUsed} />
+                        <AudioResponsePlayer text={summaryResult} languageCode={selectedLanguage} />
+                        <button
+                          type="button"
+                          onClick={handleTranslateSummary}
+                          disabled={isTranslatingSummary}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold cursor-pointer hover:bg-black/[0.08] disabled:opacity-50"
+                          title={`Translate summary to ${selectedLanguage}`}
+                        >
+                          <Languages className="w-3.5 h-3.5" />
+                          <span>{isTranslatingSummary ? 'Translating...' : 'Translate'}</span>
+                        </button>
+
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(summaryResult);
