@@ -5,6 +5,7 @@ import {
   isSarvamEnabled,
   translateWithSarvam,
   speechToTextWithSarvam,
+  textToSpeechWithSarvam,
 } from './sarvam';
 import { orchestrateChat, orchestrateSummarize } from './aiOrchestrator';
 import { createAiRateLimiter } from './aiRateLimit';
@@ -198,6 +199,42 @@ router.post('/stt', createAiRateLimiter('stt'), upload.single('file'), async (re
   } catch (err: any) {
     const status = err?.status || 500;
     const errorMsg = err?.message || 'Failed to transcribe audio.';
+    return res.status(status).json({ error: errorMsg });
+  }
+});
+
+/**
+ * POST /api/sarvam/tts
+ * Text to speech using Bulbul v3 with sequential chunking.
+ */
+router.post('/tts', createAiRateLimiter('tts'), async (req: Request, res: Response) => {
+  try {
+    if (!isSarvamEnabled()) {
+      return res.status(403).json({ error: 'AI text-to-speech service is currently disabled.' });
+    }
+
+    const { text, languageCode, speaker, pace, codec } = req.body || {};
+
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Text is required for speech synthesis.' });
+    }
+
+    if (text.length > 15_000) {
+      return res.status(413).json({ error: 'Text exceeds the 15,000 character limit for speech synthesis.' });
+    }
+
+    const result = await textToSpeechWithSarvam({
+      text: text.trim(),
+      languageCode: typeof languageCode === 'string' ? languageCode : undefined,
+      speaker: typeof speaker === 'string' ? speaker : undefined,
+      pace: typeof pace === 'number' ? pace : 1.0,
+      codec: typeof codec === 'string' ? codec : 'mp3',
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    const status = err?.status || 500;
+    const errorMsg = err?.message || 'Failed to synthesize speech.';
     return res.status(status).json({ error: errorMsg });
   }
 });
