@@ -1,14 +1,24 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import {
   isSarvamConfigured,
   isSarvamEnabled,
   translateWithSarvam,
+  speechToTextWithSarvam,
 } from './sarvam';
 import { orchestrateChat, orchestrateSummarize } from './aiOrchestrator';
 import { createAiRateLimiter } from './aiRateLimit';
-import { getMaxChatChars, getMaxDocumentChars } from './aiUtils';
+import { getMaxChatChars, getMaxDocumentChars, extractKeyterms } from './aiUtils';
 
 const router = Router();
+
+// Multer in-memory storage for STT audio chunks; buffers are ephemeral and garbage collected immediately
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 15 * 1024 * 1024, // 15MB limit (plenty for 30s of WebM/WAV/MP3)
+  },
+});
 
 // Middleware to enforce no-store caching on all AI responses
 router.use((_req, res, next) => {
@@ -138,6 +148,56 @@ router.post('/translate', createAiRateLimiter('translate'), async (req: Request,
   } catch (err: any) {
     const status = err?.status || 500;
     const errorMsg = err?.message || 'Translation service temporarily unavailable.';
+    return res.status(status).json({ error: errorMsg });
+  }
+});
+
+/**
+ * POST /api/sarvam/stt
+ * Speech to text using Saaras v4 REST endpoint (max 30s audio).
+ */
+router.post('/stt', createAiRateLimiter('stt'), upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!isSarvamEnabled()) {
+      return res.status(403).json({ error: 'AI speech-to-text service is currently disabled.' });
+    }
+
+    const file = req.file;
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      return res.status(400).json({ error: 'No audio data received.' });
+    }
+
+    if (file.buffer.length > 10 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Audio file exceeds the maximum 10MB limit.' });
+    }
+
+    let parsedKeyterms: string[] | undefined = undefined;
+    const rawKeyterms = req.body?.keyterms;
+    if (typeof rawKeyterms === 'string') {
+      try {
+        const json = JSON.parse(rawKeyterms);
+        if (Array.isArray(json)) parsedKeyterms = json;
+      } catch {
+        parsedKeyterms = rawKeyterms.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (Array.isArray(rawKeyterms)) {
+      parsedKeyterms = rawKeyterms;
+    }
+
+    const docContext = typeof req.body?.documentContext === 'string' ? req.body.documentContext : '';
+    const keyterms = extractKeyterms(docContext, parsedKeyterms);
+
+    const result = await speechToTextWithSarvam({
+      audioBuffer: file.buffer,
+      mimeType: file.mimetype || 'audio/webm',
+      languageCode: req.body?.language_code || req.body?.languageCode,
+      keyterms,
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    const status = err?.status || 500;
+    const errorMsg = err?.message || 'Failed to transcribe audio.';
     return res.status(status).json({ error: errorMsg });
   }
 });
