@@ -6,6 +6,7 @@ import {
   translateWithSarvam,
   speechToTextWithSarvam,
   textToSpeechWithSarvam,
+  extractInsightsWithSarvam,
 } from './sarvam';
 import { orchestrateChat, orchestrateSummarize } from './aiOrchestrator';
 import { createAiRateLimiter } from './aiRateLimit';
@@ -235,6 +236,33 @@ router.post('/tts', createAiRateLimiter('tts'), async (req: Request, res: Respon
   } catch (err: any) {
     const status = err?.status || 500;
     const errorMsg = err?.message || 'Failed to synthesize speech.';
+    return res.status(status).json({ error: errorMsg });
+  }
+});
+
+/**
+ * POST /api/sarvam/insights
+ * Extracts structured intelligence (dates, amounts, people, orgs, actions, warnings, clauses, contacts)
+ */
+router.post('/insights', createAiRateLimiter('insights'), async (req: Request, res: Response) => {
+  try {
+    if (!isSarvamEnabled()) {
+      return res.status(403).json({ error: 'AI document insights service is currently disabled.' });
+    }
+
+    const { documentContext } = req.body || {};
+
+    if (!documentContext || typeof documentContext !== 'string' || !documentContext.trim()) {
+      return res.status(400).json({ error: 'Document context is required.' });
+    }
+
+    const maxDoc = getMaxDocumentChars();
+    const insights = await extractInsightsWithSarvam(documentContext.slice(0, maxDoc));
+
+    return res.json(insights);
+  } catch (err: any) {
+    const status = err?.status || 500;
+    const errorMsg = err?.message || 'Failed to extract document insights.';
     return res.status(status).json({ error: errorMsg });
   }
 });
