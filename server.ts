@@ -15,6 +15,7 @@ import { GoogleGenAI } from '@google/genai';
 import { startTunnel as startCloudflareTunnel } from 'untun';
 import compressionRouter from './server/compression/api';
 import wordConversionRouter from './server/conversion/wordToPdf/api';
+import sarvamRouter from './server/ai/sarvamRouter';
 
 // Shared tunnel state — readable by API routes
 let tunnelUrl: string = '';
@@ -145,7 +146,7 @@ async function startServer() {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
     if (process.env.NODE_ENV === 'production') {
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
@@ -235,6 +236,9 @@ async function startServer() {
 
   // High-fidelity Office Word-to-PDF conversion engine (LibreOffice headless)
   app.use('/api/convert', wordConversionRouter);
+
+  // Modular Indian-language Sarvam AI Intelligence Engine
+  app.use('/api/sarvam', sarvamRouter);
 
   app.post('/api/compress/pdf', express.raw({
     type: ['application/pdf', 'application/octet-stream'],
