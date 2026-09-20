@@ -3,7 +3,7 @@ import {
   isSarvamConfigured,
   isSarvamEnabled,
 } from './sarvam';
-import { orchestrateChat } from './aiOrchestrator';
+import { orchestrateChat, orchestrateSummarize } from './aiOrchestrator';
 import { createAiRateLimiter } from './aiRateLimit';
 import { getMaxChatChars, getMaxDocumentChars } from './aiUtils';
 
@@ -68,6 +68,37 @@ router.post('/chat', createAiRateLimiter('chat'), async (req: Request, res: Resp
   } catch (err: any) {
     const status = err?.status || 500;
     const errorMsg = err?.message || 'Failed to process document chat.';
+    return res.status(status).json({ error: errorMsg });
+  }
+});
+
+/**
+ * POST /api/sarvam/summarize
+ * Document summarization. Routes through AI Orchestrator (Sarvam -> Gemini -> Local).
+ */
+router.post('/summarize', createAiRateLimiter('summarize'), async (req: Request, res: Response) => {
+  try {
+    const { text, type = 'executive', targetLanguageCode } = req.body || {};
+
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Document text is required for summarization.' });
+    }
+
+    const maxDoc = getMaxDocumentChars();
+    if (text.length > maxDoc * 2) {
+      return res.status(413).json({ error: `Document text exceeds the ${maxDoc} character limit.` });
+    }
+
+    const result = await orchestrateSummarize({
+      text: text.trim().slice(0, maxDoc),
+      type,
+      targetLanguageCode: typeof targetLanguageCode === 'string' ? targetLanguageCode : undefined,
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    const status = err?.status || 500;
+    const errorMsg = err?.message || 'Failed to summarize document.';
     return res.status(status).json({ error: errorMsg });
   }
 });
