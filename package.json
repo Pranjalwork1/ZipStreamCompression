@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild server/compression/worker.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/worker.cjs",
-    "build:client": "vite build",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild server/compression/worker.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/worker.cjs && tsx scripts/prerender_seo.ts",
+    "build:client": "vite build && tsx scripts/prerender_seo.ts",
     "start": "node dist/server.cjs",
     "worker": "tsx server/compression/worker.ts",
     "start:worker": "node dist/worker.cjs",
@@ -19,6 +19,7 @@
     "test:security": "tsx scripts/verify_security.ts",
     "test:compression": "vitest run server/__tests__/compressionRegression.test.ts",
     "test:word": "tsx scripts/test_word_to_pdf.ts",
+    "test:seo": "tsx scripts/verify_seo.ts",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {

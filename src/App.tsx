@@ -45,6 +45,7 @@ const BusinessToolsView = lazy(() => import('./components/views/BusinessToolsVie
 const CollaborateToolsView = lazy(() => import('./components/views/CollaborateToolsView').then(module => ({ default: module.CollaborateToolsView })));
 const ConvertToPdfView = lazy(() => import('./components/views/ConvertToPdfView').then(module => ({ default: module.ConvertToPdfView })));
 const AboutView = lazy(() => import('./components/views/AboutView').then(module => ({ default: module.AboutView })));
+const PdfToolsDirectory = lazy(() => import('./components/PdfToolsDirectory').then(module => ({ default: module.PdfToolsDirectory })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -168,6 +169,7 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/p2p-share': { title: 'P2P File Share Online — Direct, Encrypted & Zero Cloud | ZipStream', description: 'Share files directly peer-to-peer with zero cloud storage, QR pairing, and live sync.' },
   '/collaborative-whiteboard': { title: 'Collaborative Whiteboard Online | ZipStream', description: 'Real-time collaborative whiteboard for sketches, diagrams, and visual brainstorming.' },
   '/about': { title: 'About ZipStream — Mission, Architecture & Features | ZipStream', description: 'Learn how ZipStream was built, our 100% client-side privacy architecture, comparison with other platforms, and our 35+ tools.' },
+  '/pdf-tools': { title: 'All Free Online PDF & Document Tools Directory | ZipStream', description: 'Explore the complete directory of 35+ free, privacy-first PDF and document utilities on ZipStream. Compress, merge, split, convert, redact, encrypt, and edit online.' },
 };
 
 function toolFromPath(path: string): ToolMode | null {
@@ -245,13 +247,16 @@ export default function App() {
     const isUnknownRoute =
       normalized !== '/' &&
       normalized !== '/about' &&
+      normalized !== '/pdf-tools' &&
       normalized !== '/p2p-share' &&
       !getToolPage(normalized) &&
       !TOOL_PATHS[normalized] &&
       !normalized.startsWith('/room/');
 
     if (normalized === '/') {
-      document.title = 'Compress PDF Online Free — Fast & Private | ZipStream';
+      document.title = 'ZipStream — Free Online PDF & Document Tools';
+    } else if (normalized === '/pdf-tools') {
+      document.title = 'All Free Online PDF & Document Tools Directory | ZipStream';
     } else if (normalized === '/about') {
       document.title = 'About ZipStream — Mission, Architecture & Features | ZipStream';
     } else if (isUnknownRoute) {
@@ -261,7 +266,7 @@ export default function App() {
     } else if (page?.title) {
       document.title = `${page.title} | ZipStream`;
     } else {
-      document.title = 'Compress PDF Online Free — Fast & Private | ZipStream';
+      document.title = 'ZipStream — Free Online PDF & Document Tools';
     }
 
     let description = document.querySelector('meta[name="description"]');
@@ -557,6 +562,7 @@ export default function App() {
   const isNotFound =
     currentPath !== '/' &&
     currentPath !== '/about' &&
+    currentPath !== '/pdf-tools' &&
     currentPath !== '/p2p-share' &&
     !getToolPage(currentPath) &&
     !TOOL_PATHS[currentPath] &&
@@ -649,6 +655,15 @@ export default function App() {
           <AboutView
             onBackToHome={() => navigateTo('/')}
             onSelectTool={handleSelectTool}
+          />
+        ) : currentPath === '/pdf-tools' ? (
+          /* DEDICATED PDF TOOLS DIRECTORY */
+          <PdfToolsDirectory
+            onSelectTool={(tool) => {
+              const targetPath = TOOL_CANONICAL_PATHS[tool] || '/compress-pdf';
+              navigateTo(targetPath, tool);
+            }}
+            onNavigateHome={() => navigateTo('/')}
           />
         ) : isNotFound ? (
           /* CUSTOM IN-APP 404 PAGE NOT FOUND */
@@ -1212,6 +1227,15 @@ export default function App() {
                     className="hover:text-[#055EFE] transition-colors"
                   >
                     GSTR Filing Preparation
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pdf-tools"
+                    onClick={(e) => { e.preventDefault(); navigateTo('/pdf-tools'); }}
+                    className="hover:text-[#055EFE] transition-colors font-semibold text-[#055EFE]"
+                  >
+                    All 35+ PDF Tools Directory →
                   </a>
                 </li>
                 <li>
