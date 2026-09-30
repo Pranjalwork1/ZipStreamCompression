@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { ToolMode, FileCategory, UploadedFileInfo } from '../types';
 import { DropZone } from './DropZone';
+import { TypewriterTools } from './TypewriterTools';
 import { trackEvent } from '../utils/analytics';
 
 export interface ToolItem {
@@ -928,19 +929,19 @@ export const HomePage: React.FC<HomePageProps> = ({
           <span className="text-[#5C6479] dark:text-white/60">ZERO CLOUD UPLOADS</span>
         </div>
 
-        {/* Hero Title & Value Proposition */}
+        {/* Hero Title & Value Proposition with Continuous Typewriter Showcase */}
         <div className="space-y-4">
           <h1
             id="hero-title"
-            className="text-4xl sm:text-6xl lg:text-[62px] font-extrabold tracking-tight text-[#0C162C] dark:text-white leading-[1.08]"
+            className="text-4xl sm:text-6xl lg:text-[62px] font-extrabold tracking-tight text-[#0C162C] dark:text-white leading-[1.12]"
           >
-            Compress PDF Online Free{' '}
-            <span className="block text-[#055EFE]">
-              Fast, Secure &amp; 100% Private
+            Everything you need for PDFs{' '}
+            <span className="block text-[#055EFE] dark:text-[#528BFF] min-h-[1.25em] mt-1 sm:mt-2">
+              <TypewriterTools onSelectTool={onSelectTool} />
             </span>
           </h1>
           <p className="text-base sm:text-lg text-[#5C6479] dark:text-white/70 leading-relaxed max-w-2xl mx-auto font-normal">
-            Reduce PDF file size without losing quality. Merge, split, convert to Word and Excel, sign, and redact documents directly in your browser. No file upload or signup needed.
+            Compress, merge, split, convert to Word and Excel, sign, OCR, and redact documents directly in your browser. Fast, 100% private, with zero file uploads or signup needed.
           </p>
 
           {/* Value Highlights */}

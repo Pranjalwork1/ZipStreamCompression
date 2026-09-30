@@ -11,7 +11,11 @@ export default defineConfig(() => {
       target: 'es2022',
       cssCodeSplit: true,
     },
-    plugins: [react(), tailwindcss(), cloudflare()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      ...(process.env.VITEST ? [] : [cloudflare()]),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
