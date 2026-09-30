@@ -693,6 +693,31 @@ export const TOOL_ROUTES: ToolRouteMeta[] = [
     faqs: [{ question: 'Who built ZipStream?', answer: 'ZipStream was architected and developed by Pranjal Singh.' }],
     related: ['/pdf-tools', '/compress-pdf', '/merge-pdf'],
   },
+  {
+    path: '/workflows',
+    toolTitle: 'Workflows',
+    seoTitle: 'Automated PDF Workflows Online Free — Multi-Tool Pipelines | ZipStream',
+    description: 'Automate repetitive PDF tasks with reusable multi-step workflows. Chain merge, organize, compress, watermark, protect, and convert in one seamless pipeline.',
+    h1: 'Automated PDF Workflows Online Free',
+    intro: 'Automate repetitive PDF tasks with one reusable workflow. Upload your documents once and let ZipStream process them across multiple sequential tools automatically.',
+    keywords: ['PDF workflows', 'automated PDF processing', 'chain PDF tools', 'merge and compress PDF', 'PDF batch pipeline', 'reusable PDF workflows'],
+    benefits: [
+      'Chain up to 4 PDF tools sequentially with zero intermediate downloads',
+      'Ephemeral secure execution with instant scratch cleanup',
+      'Save, duplicate, and rerun reusable workflows with 1 click',
+    ],
+    steps: [
+      'Create a workflow and pick up to 4 sequential tools',
+      'Configure settings like compression levels, watermark text, or rotation',
+      'Upload your files once and download the final processed result',
+    ],
+    faqs: [
+      { question: 'What is a PDF workflow?', answer: 'A PDF workflow is an automated pipeline that chains multiple PDF actions (such as Merge, Organize, Compress, and Watermark) together so you upload once and get the final document.' },
+      { question: 'Do I have to re-upload files between steps?', answer: 'No. The ZipStream workflow execution engine pipes the output of each tool directly into the next step on the backend without any intermediate file downloads.' },
+      { question: 'How many steps can I add?', answer: 'You can chain up to 4 sequential steps in each workflow.' },
+    ],
+    related: ['/merge-pdf', '/compress-pdf', '/watermark-pdf', '/protect-pdf'],
+  },
 ];
 
 

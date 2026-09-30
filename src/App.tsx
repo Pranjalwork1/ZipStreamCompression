@@ -46,6 +46,7 @@ const CollaborateToolsView = lazy(() => import('./components/views/CollaborateTo
 const ConvertToPdfView = lazy(() => import('./components/views/ConvertToPdfView').then(module => ({ default: module.ConvertToPdfView })));
 const AboutView = lazy(() => import('./components/views/AboutView').then(module => ({ default: module.AboutView })));
 const PdfToolsDirectory = lazy(() => import('./components/PdfToolsDirectory').then(module => ({ default: module.PdfToolsDirectory })));
+const WorkflowsView = lazy(() => import('./components/workflows/WorkflowsView').then(module => ({ default: module.WorkflowsView })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -170,6 +171,7 @@ const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/collaborative-whiteboard': { title: 'Collaborative Whiteboard Online | ZipStream', description: 'Real-time collaborative whiteboard for sketches, diagrams, and visual brainstorming.' },
   '/about': { title: 'About ZipStream — Mission, Architecture & Features | ZipStream', description: 'Learn how ZipStream was built, our 100% client-side privacy architecture, comparison with other platforms, and our 35+ tools.' },
   '/pdf-tools': { title: 'All Free Online PDF & Document Tools Directory | ZipStream', description: 'Explore the complete directory of 35+ free, privacy-first PDF and document utilities on ZipStream. Compress, merge, split, convert, redact, encrypt, and edit online.' },
+  '/workflows': { title: 'Automated PDF Workflows Online Free — Multi-Tool Pipelines | ZipStream', description: 'Automate repetitive PDF tasks with reusable multi-step workflows. Chain merge, organize, compress, watermark, protect, and convert in one seamless pipeline.' },
 };
 
 function toolFromPath(path: string): ToolMode | null {
@@ -248,6 +250,7 @@ export default function App() {
       normalized !== '/' &&
       normalized !== '/about' &&
       normalized !== '/pdf-tools' &&
+      normalized !== '/workflows' &&
       normalized !== '/p2p-share' &&
       !getToolPage(normalized) &&
       !TOOL_PATHS[normalized] &&
@@ -259,6 +262,8 @@ export default function App() {
       document.title = 'All Free Online PDF & Document Tools Directory | ZipStream';
     } else if (normalized === '/about') {
       document.title = 'About ZipStream — Mission, Architecture & Features | ZipStream';
+    } else if (normalized === '/workflows') {
+      document.title = 'Automated PDF Workflows Online Free — Multi-Tool Pipelines | ZipStream';
     } else if (isUnknownRoute) {
       document.title = '404 — Page Not Found | ZipStream';
     } else if (metadata?.title) {
@@ -563,6 +568,7 @@ export default function App() {
     currentPath !== '/' &&
     currentPath !== '/about' &&
     currentPath !== '/pdf-tools' &&
+    currentPath !== '/workflows' &&
     currentPath !== '/p2p-share' &&
     !getToolPage(currentPath) &&
     !TOOL_PATHS[currentPath] &&
@@ -588,6 +594,8 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenAbout={() => navigateTo('/about')}
         isAboutPage={currentPath === '/about'}
+        onOpenWorkflows={() => navigateTo('/workflows')}
+        isWorkflowsPage={currentPath === '/workflows'}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
@@ -664,6 +672,11 @@ export default function App() {
               navigateTo(targetPath, tool);
             }}
             onNavigateHome={() => navigateTo('/')}
+          />
+        ) : currentPath === '/workflows' ? (
+          /* DEDICATED WORKFLOWS VIEW */
+          <WorkflowsView
+            onBackToHome={() => navigateTo('/')}
           />
         ) : isNotFound ? (
           /* CUSTOM IN-APP 404 PAGE NOT FOUND */

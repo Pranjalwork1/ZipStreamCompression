@@ -28,6 +28,7 @@ import {
   HelpCircle,
   FileSpreadsheet,
   Presentation,
+  Workflow as WorkflowIcon,
 } from 'lucide-react';
 import { FileCategory, ToolMode } from '../types';
 import { trackEvent } from '../utils/analytics';
@@ -44,6 +45,8 @@ interface NavbarProps {
   onOpenSearch?: () => void;
   onOpenAbout?: () => void;
   isAboutPage?: boolean;
+  onOpenWorkflows?: () => void;
+  isWorkflowsPage?: boolean;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
   toolsCount?: number;
@@ -59,6 +62,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSearch,
   onOpenAbout,
   isAboutPage = false,
+  onOpenWorkflows,
+  isWorkflowsPage = false,
   theme = 'light',
   onToggleTheme,
 }) => {
@@ -515,7 +520,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* 4. About Navigation Button */}
+          {/* 4. Workflows Navigation Button */}
+          <button
+            id="nav-workflows-btn"
+            type="button"
+            onClick={() => {
+              setActiveDropdown(null);
+              setIsMobileMenuOpen(false);
+              onOpenWorkflows?.();
+            }}
+            className={`px-3 py-1.5 rounded-xl text-[13px] font-medium transition-all duration-150 cursor-pointer ${
+              isWorkflowsPage
+                ? 'text-[#055EFE] bg-[#055EFE]/10 font-semibold shadow-2xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-[#0C162C] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+            }`}
+            aria-label="Automated PDF Workflows"
+          >
+            Workflows
+          </button>
+
+          {/* 5. About Navigation Button */}
           <button
             id="nav-about-btn"
             type="button"
@@ -778,6 +802,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Mobile Workflows Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenWorkflows?.();
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl border text-left text-xs font-semibold cursor-pointer transition-colors ${
+                  isWorkflowsPage
+                    ? 'border-[#055EFE]/40 bg-[#055EFE]/10 text-[#055EFE]'
+                    : 'border-black/[0.06] dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <WorkflowIcon className="w-3.5 h-3.5 text-[#055EFE]" />
+                  <span>Workflows (Automated PDF)</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
 
               {/* Mobile About Button */}
               <button
