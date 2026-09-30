@@ -349,12 +349,11 @@ railway up
 Create a `.env` file or set in Vercel dashboard:
 
 ```bash
-# Required
+# Required for hosted frontend connecting to external backend
 VITE_BACKEND_URL=https://your-railway-domain.up.railway.app
 VITE_PUBLIC_APP_URL=https://zipstream.online
 
-# Optional — Gemini AI features (Chat PDF, Summarizer, OCR)
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
+# Note: AI keys (GEMINI_API_KEY, SARVAM_API_KEY) are backend-only. Never expose them to the frontend.
 ```
 
 ### Backend (Railway)

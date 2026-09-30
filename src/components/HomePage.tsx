@@ -891,7 +891,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const faqs = [
     {
       q: 'How does ZipStream process my files without uploading them?',
-      a: 'ZipStream runs completely inside your web browser using WebAssembly (Wasm) and HTML5 Canvas technology. When you open a PDF, photo, video, or audio file, our client-side engine executes local algorithms directly on your device CPU. Your private documents never leave your computer or touch an external server.',
+      a: 'ZipStream prioritizes client-side processing using WebAssembly (Wasm) and HTML5 Canvas technology. Most core tools process your files directly inside your browser on-device. For advanced operations requiring server-assisted conversion (such as LibreOffice conversion or Ghostscript rendering) or optional AI features, processing occurs in isolated, ephemeral memory environments with automatic immediate cleanup.',
     },
     {
       q: 'Are there any hidden file size or daily usage limits?',

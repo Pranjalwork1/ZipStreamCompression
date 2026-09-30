@@ -261,6 +261,26 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     const existing = getRoomIdFromLocation();
     return existing ? sessionStorage.getItem(`zip_host_${existing}`) === 'true' : true;
   });
+
+  const [roomToken, setRoomToken] = useState<string>(() => {
+    const existing = getRoomIdFromLocation();
+    const query = new URLSearchParams(window.location.search);
+    const queryToken = query.get('token');
+    if (queryToken && queryToken.length >= 16) {
+      if (existing) sessionStorage.setItem(`zip_token_${existing}`, queryToken);
+      return queryToken;
+    }
+    if (existing) {
+      const stored = sessionStorage.getItem(`zip_token_${existing}`);
+      if (stored) return stored;
+    }
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    const newToken = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+    if (existing) sessionStorage.setItem(`zip_token_${existing}`, newToken);
+    return newToken;
+  });
+
   const [sessionInput, setSessionInput] = useState('');
   const [copiedSessionId, setCopiedSessionId] = useState(false);
   const backendBaseUrl = (() => {
@@ -275,7 +295,10 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     if (isHost && roomId) {
       sessionStorage.setItem(`zip_host_${roomId}`, 'true');
     }
-  }, [isHost, roomId]);
+    if (roomId && roomToken) {
+      sessionStorage.setItem(`zip_token_${roomId}`, roomToken);
+    }
+  }, [isHost, roomId, roomToken]);
 
   // ─── Dynamic Network Interfaces & Public Tunnel QR ─────────────────────
   const [networkInterfaces, setNetworkInterfaces] = useState<NetworkInterface[]>([]);
@@ -363,25 +386,26 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     const host = window.location.hostname;
     const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
     const isProductionHost = host === 'zipstream.online' || host === 'www.zipstream.online' || host.endsWith('.vercel.app');
+    const tokenQuery = roomToken ? `?token=${encodeURIComponent(roomToken)}` : '';
 
     if (configuredPublic) {
-      return `${configuredPublic.replace(/\/$/, '')}/room/${roomId}`;
+      return `${configuredPublic.replace(/\/$/, '')}/room/${roomId}${tokenQuery}`;
     }
     if (isProductionHost || (!isLocalHost && window.location.protocol === 'https:')) {
-      return `${window.location.origin}/room/${roomId}`;
+      return `${window.location.origin}/room/${roomId}${tokenQuery}`;
     }
     if (isCustomHostMode && customHost.trim()) {
       const trimmed = customHost.trim().replace(/\/$/, '');
       const prefix = /^https?:\/\//i.test(trimmed) ? '' : 'http://';
-      return `${prefix}${trimmed}/room/${roomId}`;
+      return `${prefix}${trimmed}/room/${roomId}${tokenQuery}`;
     }
     if (tunnelUrl && tunnelStatus === 'active') {
-      return `${tunnelUrl.replace(/\/$/, '')}/room/${roomId}`;
+      return `${tunnelUrl.replace(/\/$/, '')}/room/${roomId}${tokenQuery}`;
     }
     const hostIp = selectedIp && selectedIp !== '127.0.0.1' ? selectedIp : window.location.hostname;
     const port = window.location.port || String(serverPort);
-    return `http://${hostIp}:${port}/room/${roomId}`;
-  }, [isCustomHostMode, customHost, tunnelUrl, tunnelStatus, selectedIp, serverPort, roomId]);
+    return `http://${hostIp}:${port}/room/${roomId}${tokenQuery}`;
+  }, [isCustomHostMode, customHost, tunnelUrl, tunnelStatus, selectedIp, serverPort, roomId, roomToken]);
 
   const shareUrl = computeShareUrl();
   const isHostedPublicOrigin = window.location.protocol === 'https:' && !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
@@ -508,6 +532,15 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       setStatusMessage('Invalid Session ID. Use 4–64 letters, numbers, _ or -.');
       return;
     }
+    let extractedToken: string | null = null;
+    try {
+      const parsedUrl = new URL(raw.startsWith('http') ? raw : `http://localhost/${raw.replace(/^[#/]+/, '')}`);
+      extractedToken = parsedUrl.searchParams.get('token');
+    } catch {}
+    if (extractedToken && extractedToken.length >= 16) {
+      setRoomToken(extractedToken);
+      sessionStorage.setItem(`zip_token_${extracted}`, extractedToken);
+    }
     socketRef.current?.disconnect();
     pcRef.current?.close();
     peerSocketId.current = '';
@@ -515,7 +548,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     setIsHost(false);
     setRoomId(extracted);
     setSessionInput(extracted);
-    window.history.replaceState(null, '', `/#/room/${extracted}`);
+    window.history.replaceState(null, '', `/#/room/${extracted}${extractedToken ? `?token=${encodeURIComponent(extractedToken)}` : ''}`);
     setConnectionStatus('connecting');
     setStatusMessage('Joining Session…');
   }, [sessionInput]);
@@ -609,15 +642,26 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     const timeout = setTimeout(() => controller.abort(), 120000);
     try {
       setTransferState({ fileName: reason === 'fallback' ? 'Recovering shared file…' : 'Syncing Room File…', fileSize: 0, progress: 5, status: 'streaming' });
-      const metaRes = await fetch(`${backendBaseUrl}/api/rooms/${roomId}/document`, { cache: 'no-store', signal: controller.signal });
+      const tokenQuery = roomToken ? `?token=${encodeURIComponent(roomToken)}` : '';
+      const authHeaders: Record<string, string> = roomToken ? { 'X-Room-Token': roomToken } : {};
+
+      const metaRes = await fetch(`${backendBaseUrl}/api/rooms/${roomId}/document${tokenQuery}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: authHeaders,
+      });
       if (!metaRes.ok) {
-        if (metaRes.status === 404) {
+        if (metaRes.status === 404 || metaRes.status === 401 || metaRes.status === 403) {
           setTransferState({ fileName: '', fileSize: 0, progress: 0, status: 'idle' });
         }
         return false;
       }
       const meta = await metaRes.json();
-      const response = await fetch(`${backendBaseUrl}/api/rooms/${roomId}/document/raw`, { cache: 'no-store', signal: controller.signal });
+      const response = await fetch(`${backendBaseUrl}/api/rooms/${roomId}/document/raw${tokenQuery}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: authHeaders,
+      });
       if (!response.ok) throw new Error(`Room file download failed (${response.status})`);
 
       const total = Number(response.headers.get('content-length') || meta.fileSize || 0);
@@ -653,7 +697,10 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
 
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         // Direct fetch fallback if stream reader was aborted or empty
-        const freshRes = await fetch(`${backendBaseUrl}/api/rooms/${roomId}/document/raw`, { cache: 'no-store' });
+        const freshRes = await fetch(`${backendBaseUrl}/api/rooms/${roomId}/document/raw${tokenQuery}`, {
+          cache: 'no-store',
+          headers: authHeaders,
+        });
         if (!freshRes.ok) throw new Error(`Fallback file download failed (${freshRes.status})`);
         const blobData = await freshRes.blob();
         arrayBuffer = await blobData.arrayBuffer();
@@ -911,7 +958,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
       .catch(() => undefined);
 
     socket.on('connect', () => {
-      socket.emit('join-room', { roomId, role: isHost ? 'host' : 'peer', isHost });
+      socket.emit('join-room', { roomId, role: isHost ? 'host' : 'peer', isHost, token: roomToken });
       setStatusMessage(isHost ? 'Waiting for Peer to Scan QR…' : 'Connecting to Host Session…');
     });
 
@@ -1111,7 +1158,8 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
     // recovery and delivery path across all network configurations and cellular firewalls.
     try {
       setTransferState(prev => ({ ...prev, progress: 20 }));
-      const uploadUrl = `${backendBaseUrl}/api/rooms/${roomId}/document?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(fileType)}`;
+      const tokenQuery = roomToken ? `&token=${encodeURIComponent(roomToken)}` : '';
+      const uploadUrl = `${backendBaseUrl}/api/rooms/${roomId}/document?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(fileType)}${tokenQuery}`;
       
       let uploadSucceeded = false;
       let uploadedHash = '';
@@ -1124,6 +1172,7 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
             'Content-Type': fileType,
             'X-File-Name': encodeURIComponent(file.name),
             'X-File-Type': fileType,
+            ...(roomToken ? { 'X-Room-Token': roomToken } : {}),
           },
           body: file,
         });
@@ -1153,7 +1202,10 @@ export const CollaborateToolsView: React.FC<CollaborateToolsViewProps> = ({
 
         const fallbackRes = await fetch(uploadUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(roomToken ? { 'X-Room-Token': roomToken } : {}),
+          },
           body: JSON.stringify({
             fileName: file.name,
             fileSize: file.size,

@@ -3,12 +3,11 @@
  * Validates repository compliance against credential leaks and frontend isolation constraints.
  *
  * Checks:
- * 1. src/ contains ZERO instances of SARVAM_API_KEY or VITE_SARVAM_API_KEY.
- * 2. src/ contains ZERO imports of the sarvamai SDK.
- * 3. src/ contains ZERO direct calls to api.sarvam.ai.
- * 4. src/ contains ZERO api-subscription-key headers.
- * 5. Tracked files contain ZERO hardcoded secret patterns (e.g. sk_...).
- * 6. Backend only references process.env.SARVAM_API_KEY.
+ * 1. src/ contains ZERO instances of private API keys (GEMINI, SARVAM, REDIS, TURN, SUPABASE).
+ * 2. src/ contains ZERO imports of the sarvamai or @google/genai SDKs directly in browser code.
+ * 3. src/ contains ZERO direct calls to third-party AI APIs.
+ * 4. Tracked files contain ZERO hardcoded secret patterns (e.g. sk_..., AIzaSy...).
+ * 5. Backend only consumes credentials via server-side process.env and serverConfig.
  */
 
 import fs from 'fs';
@@ -40,16 +39,23 @@ function getAllFiles(dir: string, fileList: string[] = []): string[] {
 const rootDir = process.cwd();
 const srcDir = path.join(rootDir, 'src');
 
-console.log('🔒 Running Static Security Audit on ZipStream codebase...\n');
+console.log('🔒 Running Comprehensive Static Security Audit on ZipStream codebase...\n');
 
 // 1. Audit Frontend Files in src/
 const srcFiles = getAllFiles(srcDir);
 const frontendDisallowedPatterns = [
   { pattern: /SARVAM_API_KEY/, name: 'SARVAM_API_KEY variable reference in frontend' },
   { pattern: /VITE_SARVAM_API_KEY/, name: 'VITE_SARVAM_API_KEY variable reference' },
+  { pattern: /GEMINI_API_KEY/, name: 'GEMINI_API_KEY variable reference in frontend' },
+  { pattern: /VITE_GEMINI_API_KEY/, name: 'VITE_GEMINI_API_KEY variable reference in frontend' },
+  { pattern: /REDIS_PASSWORD/, name: 'REDIS_PASSWORD reference in frontend' },
+  { pattern: /TURN_SECRET/, name: 'TURN_SECRET reference in frontend' },
+  { pattern: /SUPABASE_SERVICE_ROLE/, name: 'SUPABASE_SERVICE_ROLE reference in frontend' },
   { pattern: /from\s+['"]sarvamai['"]/, name: 'Direct sarvamai SDK import in frontend' },
+  { pattern: /from\s+['"]@google\/genai['"]/, name: 'Direct @google/genai SDK import in frontend' },
   { pattern: /require\(['"]sarvamai['"]\)/, name: 'Direct sarvamai SDK require in frontend' },
   { pattern: /api\.sarvam\.ai/, name: 'Direct call to api.sarvam.ai from browser' },
+  { pattern: /generativelanguage\.googleapis\.com/, name: 'Direct call to Google Gemini API from browser' },
   { pattern: /api-subscription-key/i, name: 'Direct Sarvam authorization header in frontend' },
 ];
 
@@ -65,7 +71,7 @@ for (const file of srcFiles) {
 }
 
 if (violationCount === 0) {
-  console.log('✅ Frontend isolation check: OK (Zero Sarvam keys, headers, or SDK imports in src/)');
+  console.log('✅ Frontend isolation check: OK (Zero private keys, headers, or SDK imports in src/)');
   console.log('✅ No third-party direct API calls in client: OK');
 }
 
@@ -75,18 +81,27 @@ const allRepoFiles = getAllFiles(rootDir).filter(f => {
   return ['.ts', '.tsx', '.js', '.cjs', '.mjs', '.json', '.env.example', '.md', '.yml', '.yaml'].includes(ext);
 });
 
-const secretLiteralPattern = /['"`](?:sk_[a-zA-Z0-9_-]{24,}|sarvam_[a-zA-Z0-9_-]{24,})['"`]/;
+const secretLiteralPatterns = [
+  /['"`]sk_[a-zA-Z0-9_-]{24,}['"`]/,
+  /['"`]sarvam_[a-zA-Z0-9_-]{24,}['"`]/,
+  /['"`]AIza[0-9A-Za-z-_]{35}['"`]/,
+];
 
 for (const file of allRepoFiles) {
+  // Skip verify_security.ts itself so pattern definitions aren't matched
+  if (file.endsWith('verify_security.ts')) continue;
+
   const content = fs.readFileSync(file, 'utf8');
   const relPath = path.relative(rootDir, file);
 
-  if (secretLiteralPattern.test(content)) {
-    reportViolation(relPath, 'Potential hardcoded secret literal detected matching key pattern');
+  for (const pattern of secretLiteralPatterns) {
+    if (pattern.test(content)) {
+      reportViolation(relPath, 'Potential hardcoded secret literal detected matching key pattern');
+    }
   }
 }
 
-// 3. Verify Backend Secret Consumption is process.env.SARVAM_API_KEY only
+// 3. Verify Backend Secret Consumption is process.env or serverConfig only
 const serverAiFile = path.join(rootDir, 'server', 'ai', 'sarvam.ts');
 if (fs.existsSync(serverAiFile)) {
   const content = fs.readFileSync(serverAiFile, 'utf8');

@@ -7,7 +7,7 @@
 export const trackEvent = (eventName: string, eventData?: Record<string, any>) => {
   if (typeof window !== 'undefined' && window.umami && typeof window.umami.track === 'function') {
     window.umami.track(eventName, eventData);
-  } else if (import.meta.env.DEV) {
+  } else if ((import.meta as any).env?.DEV) {
     console.log(`[Umami Event Tracked - Dev Mode] ${eventName}`, eventData || '');
   }
 };
@@ -15,7 +15,7 @@ export const trackEvent = (eventName: string, eventData?: Record<string, any>) =
 export const identifyUser = (userId: string, sessionData?: Record<string, any>) => {
   if (typeof window !== 'undefined' && window.umami && typeof window.umami.identify === 'function') {
     window.umami.identify({ id: userId, ...sessionData });
-  } else if (import.meta.env.DEV) {
+  } else if ((import.meta as any).env?.DEV) {
     console.log(`[Umami User Identified - Dev Mode] User ID: ${userId}`, sessionData || '');
   }
 };

@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import path from 'path';
 import os from 'os';
 import fs from 'fs/promises';
-import { createReadStream } from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import crypto from 'crypto';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -10,12 +10,36 @@ import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import { createServer as createHttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { startTunnel as startCloudflareTunnel } from 'untun';
+
+// Core Security, Config & Observability Modules
+import { serverConfig } from './server/config/env';
+import { productionCorsOptions, socketIoCorsOptions } from './server/security/cors';
+import { securityHeadersMiddleware } from './server/security/headers';
+import { canonicalRedirectMiddleware } from './server/security/redirects';
+import { createRateLimiter } from './server/security/rateLimiter';
+import { sanitizeFileName, isValidPdfBuffer } from './server/security/validation';
+import {
+  isAuthorizedForRoom,
+  getOrCreateRoom,
+  getRoom,
+  trackRelayBandwidth,
+  isValidRoomId,
+  MAX_RELAY_CHUNK_BYTES,
+  MAX_ROOM_PARTICIPANTS,
+} from './server/security/p2pAuth';
+import { startOrphanCleanupDaemon, stopOrphanCleanupDaemon } from './server/security/orphanCleanup';
+import { requestLoggingMiddleware, logInfo, logWarn, logError } from './server/observability/logger';
+import { sendError } from './server/security/errorResponse';
+import { getIceServers } from './server/security/turnToken';
+import { injectSeoMetadata } from './server/seo/meta';
+
+// Subsystem Routers
 import compressionRouter from './server/compression/api';
 import wordConversionRouter from './server/conversion/wordToPdf/api';
 import sarvamRouter from './server/ai/sarvamRouter';
+import reportIssueHandler from './api/report-issue';
 
 // Shared tunnel state — readable by API routes
 let tunnelUrl: string = '';
@@ -33,19 +57,17 @@ function getLocalIp(): string {
   return 'localhost';
 }
 
-dotenv.config();
-
 let aiClient: GoogleGenAI | null = null;
 
 function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = serverConfig.ai.geminiApiKey;
   if (!apiKey) return null;
   if (!aiClient) {
     aiClient = new GoogleGenAI({
       apiKey,
       httpOptions: {
         headers: {
-          'User-Agent': 'aistudio-build',
+          'User-Agent': 'zipstream-backend-ai',
         },
       },
     });
@@ -53,109 +75,67 @@ function getGeminiClient(): GoogleGenAI | null {
   return aiClient;
 }
 
-// ─── P2P Room State ────────────────────────────────────────────────────────
-interface RoomMember {
-  socketId: string;
-  role: 'host' | 'peer';
-  joinedAt: number;
+// ─── Ephemeral Room Document Cache ─────────────────────────────────────────
+interface EphemeralDocument {
+  fileName: string;
+  fileSize: number;
+  fileType?: string;
+  filePath: string;
+  updatedAt: number;
+  page: number;
+  zoom: number;
+  scrollRatio: number;
+  sha256: string;
 }
-interface LocalNetworkInterface {
-  name: string;
-  ip: string;
-  isDefault: boolean;
-}
-const rooms = new Map<string, RoomMember[]>();
-// Cleanup rooms older than 4 hours
+const roomDocuments = new Map<string, EphemeralDocument>();
+
+// Purge stale room documents older than 4 hours
 setInterval(() => {
-  const now = Date.now();
-  for (const [roomId, members] of rooms.entries()) {
-    const fresh = members.filter(m => now - m.joinedAt < 4 * 60 * 60 * 1000);
-    if (fresh.length === 0) rooms.delete(roomId);
-    else rooms.set(roomId, fresh);
+  const cutoff = Date.now() - 4 * 60 * 60 * 1000;
+  for (const [id, doc] of roomDocuments.entries()) {
+    if (doc.updatedAt < cutoff) {
+      roomDocuments.delete(id);
+      void fs.rm(doc.filePath, { force: true }).catch(() => undefined);
+    }
   }
 }, 30 * 60 * 1000);
+
 async function startServer() {
   const app = express();
   const execFileAsync = promisify(execFile);
   const httpServer = createHttpServer(app);
-  const PORT = Number(process.env.PORT) || 3000;
-  const MAX_ROOM_DOCUMENT_BYTES = Number(process.env.MAX_ROOM_DOCUMENT_BYTES || 250 * 1024 * 1024);
-  const roomIdPattern = /^[a-zA-Z0-9_-]{4,64}$/;
-  const requestCounts = new Map<string, { count: number; resetAt: number }>();
+  const PORT = serverConfig.port;
+  const MAX_ROOM_DOCUMENT_BYTES = serverConfig.maxRoomDocumentBytes;
 
   app.disable('x-powered-by');
-  // REST API is called by the Vercel frontend in production.
-  app.use(cors({
-    origin: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'X-Target-Size-Bytes',
-      'X-Compression-Level',
-      'X-File-Name',
-      'X-File-Type',
-      'X-File-Sha256',
-      'X-File-Size',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-      'Origin',
-    ],
-    exposedHeaders: [
-      'Content-Disposition',
-      'Content-Length',
-      'Content-Type',
-      'X-Original-Size',
-      'X-Compressed-Size',
-      'X-Reduction-Percentage',
-      'X-Compression-Engine',
-      'X-Compression-Status',
-      'X-File-Name',
-      'X-File-Type',
-      'X-File-Sha256',
-      'X-File-Size',
-    ],
-    credentials: true,
-  }));
-  app.options('*', cors());
-  // Parse bodies before API routes; room documents are uploaded as base64 JSON.
-  app.use(express.json({ limit: '70mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '70mb' }));
-
-  // ─── Canonical 301 Redirect: Enforce HTTPS & non-www apex domain ───
   app.enable('trust proxy');
-  app.use((req, res, next) => {
-    // Always let health-checks through before attempting any redirect
-    if (req.path === '/api/health') return next();
 
-    const host = req.headers.host || '';
-    const proto = req.headers['x-forwarded-proto'] || req.protocol;
-    const isWww = /^www\./i.test(host);
-    const isHttp = proto === 'http';
-    const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(host);
+  // Start periodic orphan temp directory cleanup
+  startOrphanCleanupDaemon();
 
-    if (!isLocal && (isWww || isHttp)) {
-      const cleanHost = host.replace(/^www\./i, '');
-      return res.redirect(301, `https://${cleanHost}${req.originalUrl}`);
-    }
-    next();
-  });
+  // 1. Request correlation ID & structured logging
+  app.use(requestLoggingMiddleware);
 
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
-    if (process.env.NODE_ENV === 'production') {
-      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    }
-    next();
-  });
-  // Local development helpers used by the pairing UI. Hosted production does not
-  // depend on these endpoints; it always shares from the canonical HTTPS origin.
+  // 2. Production CORS hardening
+  app.use(cors(productionCorsOptions));
+  app.options('*', cors(productionCorsOptions));
+
+  // 3. Canonical HTTPS & apex domain redirect
+  app.use(canonicalRedirectMiddleware);
+
+  // 4. Strict Security Headers & CSP
+  app.use(securityHeadersMiddleware);
+
+  // 5. Body Parsers with defensive size caps
+  app.use(express.json({ limit: '30mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '30mb' }));
+
+  // 6. General API Rate Limiting (150 requests/min per IP)
+  app.use('/api', createRateLimiter('general'));
+
+  // ─── Local Network & Tunnel Diagnostic Routes ───────────────────────────
   app.get('/api/network-interfaces', (_req, res) => {
-    const interfaces: LocalNetworkInterface[] = [];
+    const interfaces: Array<{ name: string; ip: string; isDefault: boolean }> = [];
     for (const [name, entries] of Object.entries(os.networkInterfaces())) {
       for (const iface of entries || []) {
         if (iface.family === 'IPv4') {
@@ -171,29 +151,59 @@ async function startServer() {
     res.json({ status: tunnelStatus, url: tunnelUrl || null });
   });
 
-  app.use('/api', (req, res, next) => {
-    const now = Date.now();
-    const key = req.ip || 'unknown';
-    const current = requestCounts.get(key);
-    if (!current || current.resetAt <= now) {
-      requestCounts.set(key, { count: 1, resetAt: now + 60_000 });
-      return next();
-    }
-    current.count += 1;
-    if (current.count > 120) {
-      return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
-    }
-    return next();
+  // ─── Health & Readiness Probes ───────────────────────────────────────────
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'ZipStream Server',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      activeDocuments: roomDocuments.size,
+    });
   });
 
-  // ─── Server-side PDF compression (Ghostscript) ───────────────────────────
-  // This is the production path for PDF compression. Browser PDF rasterization is
-  // retained as a fallback, but Railway performs the heavy PDF optimization.
-  const runGhostscript = async (inputPath: string, outputPath: string, profile: {
-    pdfSettings?: string;
-    dpi: number;
-    jpegQuality?: number;
-  }) => {
+  app.get('/api/ready', async (_req, res) => {
+    const checks: Record<string, boolean> = {
+      storageWritable: false,
+      serverResponsive: true,
+    };
+
+    try {
+      await fs.mkdir(serverConfig.uploadDir, { recursive: true });
+      await fs.mkdir(serverConfig.compressedDir, { recursive: true });
+      checks.storageWritable = true;
+    } catch {
+      checks.storageWritable = false;
+    }
+
+    const isReady = Object.values(checks).every(Boolean);
+    const statusCode = isReady ? 200 : 503;
+
+    res.status(statusCode).json({
+      status: isReady ? 'ready' : 'not_ready',
+      checks,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // ─── Issue Reporting Route (Vercel parity & Local Express Support) ────────
+  app.all('/api/report-issue', (req, res) => {
+    return reportIssueHandler(req, res);
+  });
+
+  // ─── WebRTC STUN/TURN ICE Configuration ──────────────────────────────────
+  app.get('/api/webrtc-config', (_req, res) => {
+    res.json({
+      iceServers: getIceServers(),
+    });
+  });
+
+  // ─── Ghostscript PDF Compression Engine (PRESERVED CORE ALGORITHM) ───────
+  const runGhostscript = async (
+    inputPath: string,
+    outputPath: string,
+    profile: { pdfSettings?: string; dpi: number; jpegQuality?: number }
+  ) => {
     const args = [
       '-dSAFER',
       '-dBATCH',
@@ -226,179 +236,174 @@ async function startServer() {
     }
     args.push(`-sOutputFile=${outputPath}`, inputPath);
     await execFileAsync(process.env.GHOSTSCRIPT_PATH || 'gs', args, {
-      timeout: 180000,
+      timeout: serverConfig.timeouts.pdfMs,
       maxBuffer: 8 * 1024 * 1024,
     });
   };
- 
-  // Distributed multi-format compression engine (PDF, Image, Video, Audio)
+
+  // Subsystem Routers
   app.use('/api/compress', compressionRouter);
-
-  // High-fidelity Office Word-to-PDF conversion engine (LibreOffice headless)
   app.use('/api/convert', wordConversionRouter);
-
-  // Modular Indian-language Sarvam AI Intelligence Engine
   app.use('/api/sarvam', sarvamRouter);
 
-  app.post('/api/compress/pdf', express.raw({
-    type: ['application/pdf', 'application/octet-stream'],
-    limit: '100mb',
-  }), async (req, res) => {
-    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []);
-    if (!body.length) return res.status(400).json({ error: 'PDF body is empty' });
-    if (body.length > 80 * 1024 * 1024) return res.status(413).json({ error: 'PDF exceeds the 80MB compression limit' });
-    if (body.subarray(0, 5).toString('ascii') !== '%PDF-') {
-      return res.status(400).json({ error: 'Invalid PDF file' });
-    }
+  // Wrapped PDF Compression Endpoint (Strict rate-limit + Validation + Preserved Engine)
+  app.post(
+    '/api/compress/pdf',
+    createRateLimiter('compression'),
+    express.raw({
+      type: ['application/pdf', 'application/octet-stream'],
+      limit: '100mb',
+    }),
+    async (req: Request, res: Response) => {
+      const requestId = (req.header('x-request-id') || crypto.randomUUID()) as string;
+      const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []);
 
-    const originalSize = body.length;
-    const requestedTarget = Number(req.header('x-target-size-bytes') || 0);
-    const level = req.header('x-compression-level') || 'medium';
-    const targetMax = requestedTarget > 0 ? Math.min(requestedTarget, originalSize - 1) : Math.floor(
-      originalSize * (level === 'high' ? 0.35 : level === 'low' ? 0.78 : 0.58)
-    );
+      if (!body.length) {
+        return sendError(res, 400, 'EMPTY_FILE', 'PDF body is empty', undefined, requestId);
+      }
+      if (body.length > 80 * 1024 * 1024) {
+        return sendError(res, 413, 'FILE_TOO_LARGE', 'PDF exceeds the 80MB compression limit', undefined, requestId);
+      }
+      if (!isValidPdfBuffer(body)) {
+        return sendError(res, 400, 'INVALID_PDF', 'Invalid PDF file. Header does not match PDF format.', undefined, requestId);
+      }
 
-    const profiles = [
-      { pdfSettings: level === 'low' ? '/printer' : level === 'high' ? '/screen' : '/ebook', dpi: level === 'low' ? 150 : level === 'high' ? 72 : 110, jpegQuality: level === 'low' ? 85 : level === 'high' ? 55 : 70 },
-      { pdfSettings: '/ebook', dpi: 96, jpegQuality: 62 },
-      { pdfSettings: '/screen', dpi: 72, jpegQuality: 50 },
-      { pdfSettings: '/screen', dpi: 60, jpegQuality: 42 },
-      { pdfSettings: '/screen', dpi: 48, jpegQuality: 34 },
-    ];
+      const originalSize = body.length;
+      const requestedTarget = Number(req.header('x-target-size-bytes') || 0);
+      const level = req.header('x-compression-level') || 'medium';
+      const targetMax = requestedTarget > 0 ? Math.min(requestedTarget, originalSize - 1) : Math.floor(
+        originalSize * (level === 'high' ? 0.35 : level === 'low' ? 0.78 : 0.58)
+      );
 
-    const jobId = crypto.randomUUID();
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), `zipstream-${jobId}-`));
-    const inputPath = path.join(dir, 'input.pdf');
-    try {
-      await fs.writeFile(inputPath, body);
-      const candidates: Buffer[] = [];
-      let successfulProfiles = 0;
+      const profiles = [
+        { pdfSettings: level === 'low' ? '/printer' : level === 'high' ? '/screen' : '/ebook', dpi: level === 'low' ? 150 : level === 'high' ? 72 : 110, jpegQuality: level === 'low' ? 85 : level === 'high' ? 55 : 70 },
+        { pdfSettings: '/ebook', dpi: 96, jpegQuality: 62 },
+        { pdfSettings: '/screen', dpi: 72, jpegQuality: 50 },
+        { pdfSettings: '/screen', dpi: 60, jpegQuality: 42 },
+        { pdfSettings: '/screen', dpi: 48, jpegQuality: 34 },
+      ];
 
-      for (let i = 0; i < profiles.length; i++) {
-        const outputPath = path.join(dir, `output-${i}.pdf`);
-        try {
-          await runGhostscript(inputPath, outputPath, profiles[i]);
-          successfulProfiles++;
-          const out = await fs.readFile(outputPath);
-          if (out.length > 0 && out.length < originalSize) {
-            candidates.push(out);
-            // Stop once the requested maximum is actually met.
-            if (requestedTarget > 0 && out.length <= targetMax) break;
-            if (!requestedTarget && out.length <= targetMax) break;
+      const jobId = crypto.randomUUID();
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), `zipstream-${jobId}-`));
+      const inputPath = path.join(dir, 'input.pdf');
+
+      try {
+        await fs.writeFile(inputPath, body);
+        const candidates: Buffer[] = [];
+        let successfulProfiles = 0;
+
+        for (let i = 0; i < profiles.length; i++) {
+          const outputPath = path.join(dir, `output-${i}.pdf`);
+          try {
+            await runGhostscript(inputPath, outputPath, profiles[i]);
+            successfulProfiles++;
+            const out = await fs.readFile(outputPath);
+            if (out.length > 0 && out.length < originalSize) {
+              candidates.push(out);
+              if (requestedTarget > 0 && out.length <= targetMax) break;
+              if (!requestedTarget && out.length <= targetMax) break;
+            }
+          } catch (err: any) {
+            logWarn(`Ghostscript profile ${i + 1} failed: ${err.message}`, undefined, requestId);
           }
-        } catch (err) {
-          console.warn(`Ghostscript profile ${i + 1} failed`, err);
         }
-      }
 
-      if (!candidates.length) {
-        // If Ghostscript wasn't installed or failed, run native in-stream optimizer
-        try {
-          const { processPdf } = await import('./server/compression/processors/pdfWorker');
-          const fallbackOutput = path.join(dir, 'output-fallback.pdf');
-          await processPdf({
-            jobId,
-            originalFileName: 'document.pdf',
-            originalSize,
-            mimeType: 'application/pdf',
-            category: 'pdf',
-            inputFilePath: inputPath,
-            outputFilePath: fallbackOutput,
-            options: { level: level as any },
-            createdAt: Date.now(),
-          });
-          const fallbackBuf = await fs.readFile(fallbackOutput);
-          if (fallbackBuf.length > 0 && fallbackBuf.length < originalSize) {
-            candidates.push(fallbackBuf);
+        if (!candidates.length) {
+          // If Ghostscript wasn't installed or failed, run native in-stream optimizer
+          try {
+            const { processPdf } = await import('./server/compression/processors/pdfWorker');
+            const fallbackOutput = path.join(dir, 'output-fallback.pdf');
+            await processPdf({
+              jobId,
+              originalFileName: 'document.pdf',
+              originalSize,
+              mimeType: 'application/pdf',
+              category: 'pdf',
+              inputFilePath: inputPath,
+              outputFilePath: fallbackOutput,
+              options: { level: level as any },
+              createdAt: Date.now(),
+            });
+            const fallbackBuf = await fs.readFile(fallbackOutput);
+            if (fallbackBuf.length > 0 && fallbackBuf.length < originalSize) {
+              candidates.push(fallbackBuf);
+            }
+          } catch (fbErr: any) {
+            logWarn(`Native PDF fallback in legacy endpoint failed: ${fbErr.message}`, undefined, requestId);
           }
-        } catch (fbErr) {
-          console.warn('[Server] Native PDF fallback in legacy endpoint failed:', fbErr);
         }
-      }
 
-      if (!candidates.length) {
-        // Ghostscript succeeded but the source is already efficiently encoded: return
-        // an integrity-preserving identity result so the UI completes normally.
-        if (successfulProfiles > 0) {
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''zipstream-compressed.pdf");
-          res.setHeader('X-Original-Size', String(originalSize));
-          res.setHeader('X-Compressed-Size', String(originalSize));
-          res.setHeader('X-Compression-Engine', 'ghostscript');
-          res.setHeader('X-Compression-Status', 'unchanged');
-          return res.send(body);
+        if (!candidates.length) {
+          if (successfulProfiles > 0) {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''zipstream-compressed.pdf");
+            res.setHeader('X-Original-Size', String(originalSize));
+            res.setHeader('X-Compressed-Size', String(originalSize));
+            res.setHeader('X-Compression-Engine', 'ghostscript');
+            res.setHeader('X-Compression-Status', 'unchanged');
+            return res.send(body);
+          }
+          return sendError(res, 503, 'ENGINE_UNAVAILABLE', 'PDF compression engine is temporarily unavailable.', undefined, requestId);
         }
-        return res.status(503).json({ error: 'PDF compression engine is temporarily unavailable.' });
+
+        const underTarget = requestedTarget > 0 ? candidates.filter(b => b.length <= targetMax) : [];
+        const selected = (underTarget.length ? underTarget : candidates)
+          .reduce((best, current) => current.length > best.length ? current : best);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="zipstream-compressed.pdf"');
+        res.setHeader('X-Original-Size', String(originalSize));
+        res.setHeader('X-Compressed-Size', String(selected.length));
+        res.setHeader('X-Compression-Engine', 'ghostscript');
+        return res.send(selected);
+      } catch (err: any) {
+        return sendError(res, 500, 'COMPRESSION_FAILED', 'Server PDF compression failed.', err, requestId);
+      } finally {
+        await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
       }
-
-      const underTarget = requestedTarget > 0 ? candidates.filter(b => b.length <= targetMax) : [];
-      const selected = (underTarget.length ? underTarget : candidates)
-        .reduce((best, current) => current.length > best.length ? current : best);
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="zipstream-compressed.pdf"');
-      res.setHeader('X-Original-Size', String(originalSize));
-      res.setHeader('X-Compressed-Size', String(selected.length));
-      res.setHeader('X-Compression-Engine', 'ghostscript');
-      return res.send(selected);
-    } catch (err) {
-      console.error('PDF compression endpoint failed:', err);
-      return res.status(500).json({ error: 'Server PDF compression failed' });
-    } finally {
-      await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
     }
-  });
+  );
 
-  // ─── Ephemeral Room Document Cache (Held in volatile RAM during room lifetime) ───
-  interface EphemeralDocument {
-    fileName: string;
-    fileSize: number;
-    fileType?: string;
-    filePath: string;
-    updatedAt: number;
-    page: number;
-    zoom: number;
-    scrollRatio: number;
-    sha256: string;
-  }
-  const roomDocuments = new Map<string, EphemeralDocument>();
-  // Keep documents across short reconnects; expire stale ephemeral data after four hours.
-  setInterval(() => {
-    const cutoff = Date.now() - 4 * 60 * 60 * 1000;
-    for (const [id, doc] of roomDocuments.entries()) {
-      if (doc.updatedAt < cutoff) { roomDocuments.delete(id); void fs.rm(doc.filePath, { force: true }).catch(() => undefined); }
-    }
-  }, 30 * 60 * 1000);
-
-  // ─── Socket.io WebRTC Signaling Server ─────────────────────────────────
+  // ─── Socket.IO WebRTC Signaling & Relay Server ───────────────────────────
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: '*', methods: ['GET', 'POST'] },
-    maxHttpBufferSize: 1e8,
+    cors: socketIoCorsOptions,
+    maxHttpBufferSize: 1e7, // 10MB maximum message size
     pingTimeout: 60000,
   });
 
   io.on('connection', (socket) => {
-    // Join room as host or peer
-    socket.on('join-room', ({ roomId, role }: { roomId: string; role: 'host' | 'peer' }) => {
-      if (!roomId || !/^[a-zA-Z0-9_-]{4,64}$/.test(roomId)) return;
-      socket.join(roomId);
-      const existing = (rooms.get(roomId) || []).filter(member => member.socketId !== socket.id);
-      if (existing.length >= 8) {
+    // 1. Join room with capability validation
+    socket.on('join-room', ({ roomId, role, token }: { roomId: string; role: 'host' | 'peer'; token?: string }) => {
+      if (!roomId || !isValidRoomId(roomId)) return;
+
+      const room = getOrCreateRoom(roomId, token);
+
+      // Enforce room token verification if room has an established token
+      if (room.roomToken && token && !isAuthorizedForRoom(roomId, token)) {
+        socket.emit('room-error', { error: 'Invalid room capability token.' });
+        return;
+      }
+
+      if (room.members.size >= MAX_ROOM_PARTICIPANTS && !room.members.has(socket.id)) {
         socket.emit('room-full');
         return;
       }
-      const member: RoomMember = { socketId: socket.id, role, joinedAt: Date.now() };
-      existing.push(member);
-      rooms.set(roomId, existing);
+
+      socket.join(roomId);
+      const member = { socketId: socket.id, role, joinedAt: Date.now() };
+      room.members.set(socket.id, member);
+      if (role === 'host') room.hostSocketId = socket.id;
+
       socket.to(roomId).emit('peer-joined', { socketId: socket.id, role });
-      const others = existing.filter(m => m.socketId !== socket.id);
+      const others = Array.from(room.members.values()).filter(m => m.socketId !== socket.id);
       socket.emit('room-info', {
-        roomId, yourId: socket.id,
+        roomId,
+        yourId: socket.id,
         members: others.map(m => ({ socketId: m.socketId, role: m.role })),
-        roomSize: existing.length,
+        roomSize: room.members.size,
       });
 
-      // If room already has an active document, immediately notify newcomer!
+      // If document is cached, notify newcomer
       const activeDoc = roomDocuments.get(roomId);
       if (activeDoc) {
         socket.emit('room-document-available', {
@@ -414,7 +419,7 @@ async function startServer() {
       }
     });
 
-    // WebRTC offer relay
+    // WebRTC Signaling Relays
     socket.on('webrtc-offer', ({ roomId, offer, targetId }: any) => {
       if (targetId) io.to(targetId).emit('webrtc-offer', { offer, senderId: socket.id });
       else socket.to(roomId).emit('webrtc-offer', { offer, senderId: socket.id });
@@ -423,7 +428,6 @@ async function startServer() {
       io.to(targetPeerId).emit('signal-offer', { senderId: socket.id, sdp });
     });
 
-    // WebRTC answer relay
     socket.on('webrtc-answer', ({ roomId, answer, targetId }: any) => {
       if (targetId) io.to(targetId).emit('webrtc-answer', { answer, senderId: socket.id });
       else socket.to(roomId).emit('webrtc-answer', { answer, senderId: socket.id });
@@ -432,7 +436,6 @@ async function startServer() {
       io.to(targetPeerId).emit('signal-answer', { senderId: socket.id, sdp });
     });
 
-    // ICE candidate relay
     socket.on('webrtc-ice', ({ roomId, candidate, targetId }: any) => {
       if (targetId) io.to(targetId).emit('webrtc-ice', { candidate, senderId: socket.id });
       else socket.to(roomId).emit('webrtc-ice', { candidate, senderId: socket.id });
@@ -441,12 +444,10 @@ async function startServer() {
       io.to(targetPeerId).emit('signal-ice', { senderId: socket.id, candidate });
     });
 
-    // Synchronized PDF page events
+    // Synchronized Viewport State
     socket.on('sync-page', ({ roomId, page }: any) => {
       socket.to(roomId).emit('sync-page', { page, senderId: socket.id });
     });
-
-    // Synchronized document view state
     socket.on('sync-state', ({ roomId, event }: any) => {
       const doc = roomDocuments.get(roomId);
       if (doc && event) {
@@ -457,8 +458,21 @@ async function startServer() {
       socket.to(roomId).emit('sync-state', { event, senderId: socket.id });
     });
 
-    // Relay chunk fallback when WebRTC data channels are blocked by symmetric NAT/firewalls
+    // Relay chunk fallback with strict bandwidth & chunk size limits
     socket.on('relay-chunk-fallback', ({ roomId, chunk, targetId }: any) => {
+      if (!roomId || !chunk) return;
+      const chunkLen = typeof chunk === 'string' ? chunk.length : (chunk.byteLength || 0);
+
+      if (chunkLen > MAX_RELAY_CHUNK_BYTES) {
+        socket.emit('relay-error', { error: 'Chunk exceeds maximum allowed relay chunk size.' });
+        return;
+      }
+
+      if (!trackRelayBandwidth(roomId, chunkLen)) {
+        socket.emit('relay-error', { error: 'Room relay bandwidth quota exceeded.' });
+        return;
+      }
+
       if (targetId) {
         io.to(targetId).emit('relay-chunk-fallback', { chunk, senderId: socket.id });
       } else {
@@ -475,216 +489,324 @@ async function startServer() {
 
     // Disconnect cleanup
     socket.on('disconnect', () => {
-      for (const [roomId, members] of rooms.entries()) {
-        const remaining = members.filter(m => m.socketId !== socket.id);
-        if (remaining.length === 0) {
-          rooms.delete(roomId);
-          // Preserve the ephemeral document so a reconnecting guest can recover it.
-        } else {
-          rooms.set(roomId, remaining);
+      const room = Array.from(io.sockets.adapter.rooms.keys());
+      for (const roomId of room) {
+        const activeRoom = getRoom(roomId);
+        if (activeRoom && activeRoom.members.has(socket.id)) {
+          activeRoom.members.delete(socket.id);
+          if (activeRoom.hostSocketId === socket.id) activeRoom.hostSocketId = null;
           socket.to(roomId).emit('peer-left', { socketId: socket.id });
         }
       }
     });
   });
 
-  // Health check endpoint (used by Railway and monitors)
-  app.get('/api/health', (_req, res) => {
-    res.json({
-      status: 'ok',
-      service: 'ZipStream Server',
-      timestamp: new Date().toISOString(),
-      roomsCount: rooms.size,
-      activeDocuments: roomDocuments.size,
-      uptime: process.uptime(),
-    });
-  });
+  // ─── P2P Room Document Storage (Protected by Cryptographic Capability Token) ─
+  app.post(
+    '/api/rooms/:roomId/document',
+    createRateLimiter('roomDocument'),
+    express.raw({ type: () => true, limit: `${Math.ceil(MAX_ROOM_DOCUMENT_BYTES / (1024 * 1024))}mb` }),
+    async (req: Request, res: Response) => {
+      const { roomId } = req.params;
+      const requestId = (req.header('x-request-id') || crypto.randomUUID()) as string;
 
-  // WebRTC STUN/TURN configuration endpoint
-  app.get('/api/webrtc-config', (_req, res) => {
-    res.json({
-      iceServers: [
-        ...(process.env.TURN_URL && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL
-          ? [{ urls: process.env.TURN_URL.split(',').map(v => v.trim()), username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL }]
-          : []),
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        { urls: 'stun:stun.services.mozilla.com' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
-      ],
-    });
-  });
+      if (!roomId || !isValidRoomId(roomId)) {
+        return sendError(res, 400, 'INVALID_ROOM_ID', 'Invalid room identifier format.', undefined, requestId);
+      }
 
-  // Upload/cache room document. Binary uploads are the production path; a legacy
-  // JSON/Base64 request is still accepted for backward compatibility.
-  app.post('/api/rooms/:roomId/document', express.raw({ type: () => true, limit: `${Math.ceil(MAX_ROOM_DOCUMENT_BYTES / (1024 * 1024))}mb` }), async (req, res) => {
-    const { roomId } = req.params;
-    if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
+      const clientToken = (req.header('x-room-token') || req.query.token) as string | undefined;
+      const room = getOrCreateRoom(roomId, clientToken);
 
-    let rawBuffer: Buffer;
-    let rawFileName = String(req.query.fileName || req.header('x-file-name') || 'Shared File');
-    let fileType = String(req.query.fileType || req.header('x-file-type') || req.header('content-type') || 'application/octet-stream');
-    let page = 1, zoom = 1, scrollRatio = 0;
+      // Verify token authorization
+      if (room.roomToken && clientToken && !isAuthorizedForRoom(roomId, clientToken)) {
+        return sendError(res, 403, 'UNAUTHORIZED_ROOM_ACCESS', 'Invalid room capability token.', undefined, requestId);
+      }
 
-    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-    const maybeJson = (req.header('content-type') || '').includes('application/json');
-    if (maybeJson && body.length) {
-      try {
-        const parsed = JSON.parse(body.toString('utf8'));
-        if (typeof parsed.dataBase64 === 'string') {
-          rawBuffer = Buffer.from(parsed.dataBase64, 'base64');
-          rawFileName = parsed.fileName || rawFileName;
-          fileType = parsed.fileType || fileType;
-          page = Number(parsed.page) || 1;
-          zoom = Number(parsed.zoom) || 1;
-          scrollRatio = Number(parsed.scrollRatio) || 0;
-        } else rawBuffer = body;
-      } catch { rawBuffer = body; }
-    } else {
-      rawBuffer = body;
-    }
-    let fileName: string;
-    try {
-      fileName = decodeURIComponent(rawFileName).replace(/[\\/]/g, '_').slice(0, 240) || 'Shared File';
-    } catch {
-      fileName = rawFileName.replace(/[\\/]/g, '_').slice(0, 240) || 'Shared File';
-    }
+      let rawBuffer: Buffer;
+      let rawFileName = String(req.query.fileName || req.header('x-file-name') || 'Shared File');
+      let fileType = String(req.query.fileType || req.header('x-file-type') || req.header('content-type') || 'application/octet-stream');
+      let page = 1, zoom = 1, scrollRatio = 0;
 
-    if (!rawBuffer?.length) return res.status(400).json({ error: 'File body is empty' });
-    if (rawBuffer.length > MAX_ROOM_DOCUMENT_BYTES) return res.status(413).json({ error: `File exceeds the ${Math.round(MAX_ROOM_DOCUMENT_BYTES / 1024 / 1024)}MB room limit` });
+      const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      const maybeJson = (req.header('content-type') || '').includes('application/json');
 
-    const sha256 = crypto.createHash('sha256').update(rawBuffer).digest('hex');
-    const roomDir = await fs.mkdtemp(path.join(os.tmpdir(), `zipstream-room-${roomId}-`));
-    const filePath = path.join(roomDir, 'payload.bin');
-    await fs.writeFile(filePath, rawBuffer);
-    const previous = roomDocuments.get(roomId);
-    if (previous) await fs.rm(previous.filePath, { force: true }).catch(() => undefined);
+      if (maybeJson && body.length) {
+        try {
+          const parsed = JSON.parse(body.toString('utf8'));
+          if (typeof parsed.dataBase64 === 'string') {
+            rawBuffer = Buffer.from(parsed.dataBase64, 'base64');
+            rawFileName = parsed.fileName || rawFileName;
+            fileType = parsed.fileType || fileType;
+            page = Number(parsed.page) || 1;
+            zoom = Number(parsed.zoom) || 1;
+            scrollRatio = Number(parsed.scrollRatio) || 0;
+          } else {
+            rawBuffer = body;
+          }
+        } catch {
+          rawBuffer = body;
+        }
+      } else {
+        rawBuffer = body;
+      }
 
-    const doc: EphemeralDocument = { fileName, fileSize: rawBuffer.length, fileType, filePath, updatedAt: Date.now(), page, zoom, scrollRatio, sha256 };
-    roomDocuments.set(roomId, doc);
-    res.set('Cache-Control', 'no-store');
-    io.to(roomId).emit('room-document-available', { fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, hasDocument: true, page: doc.page, zoom: doc.zoom, scrollRatio: doc.scrollRatio, sha256: doc.sha256 });
-    return res.json({ success: true, fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, sha256: doc.sha256 });
-  });
+      const fileName = sanitizeFileName(rawFileName, 'Shared Document');
 
-  // Stream cached room document as raw bytes. This is the lossless recovery path.
-  app.get('/api/rooms/:roomId/document/raw', async (req, res) => {
-    const { roomId } = req.params;
-    if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
-    const doc = roomDocuments.get(roomId);
-    if (!doc) return res.status(404).json({ error: 'No document active in this room' });
-    try {
-      const stat = await fs.stat(doc.filePath);
-      res.status(200).set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Content-Type': doc.fileType || 'application/octet-stream',
-        'Content-Length': String(stat.size),
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(doc.fileName)}`,
-        'X-File-Name': encodeURIComponent(doc.fileName),
-        'X-File-Sha256': doc.sha256,
-        'X-File-Size': String(stat.size),
-        'Access-Control-Expose-Headers': 'Content-Length, Content-Disposition, X-File-Name, X-File-Sha256, X-File-Size',
+      if (!rawBuffer?.length) {
+        return sendError(res, 400, 'EMPTY_FILE', 'File payload is empty.', undefined, requestId);
+      }
+      if (rawBuffer.length > MAX_ROOM_DOCUMENT_BYTES) {
+        return sendError(res, 413, 'FILE_TOO_LARGE', `File exceeds ${Math.round(MAX_ROOM_DOCUMENT_BYTES / 1024 / 1024)}MB room limit.`, undefined, requestId);
+      }
+
+      const sha256 = crypto.createHash('sha256').update(rawBuffer).digest('hex');
+      const roomDir = await fs.mkdtemp(path.join(os.tmpdir(), `zipstream-room-${roomId}-`));
+      const filePath = path.join(roomDir, 'payload.bin');
+      await fs.writeFile(filePath, rawBuffer);
+
+      const previous = roomDocuments.get(roomId);
+      if (previous) await fs.rm(previous.filePath, { force: true }).catch(() => undefined);
+
+      const doc: EphemeralDocument = {
+        fileName,
+        fileSize: rawBuffer.length,
+        fileType,
+        filePath,
+        updatedAt: Date.now(),
+        page,
+        zoom,
+        scrollRatio,
+        sha256,
+      };
+      roomDocuments.set(roomId, doc);
+
+      res.set('Cache-Control', 'no-store');
+      io.to(roomId).emit('room-document-available', {
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        fileType: doc.fileType,
+        hasDocument: true,
+        page: doc.page,
+        zoom: doc.zoom,
+        scrollRatio: doc.scrollRatio,
+        sha256: doc.sha256,
       });
-      doc.updatedAt = Date.now();
-      return createReadStream(doc.filePath).pipe(res);
-    } catch { return res.status(404).json({ error: 'Room file is no longer available' }); }
-  });
 
-  app.get('/api/rooms/:roomId/document', (req, res) => {
-    const { roomId } = req.params;
-    if (!roomId || !roomIdPattern.test(roomId)) return res.status(400).json({ error: 'Invalid room ID' });
-    const doc = roomDocuments.get(roomId);
-    if (!doc) return res.status(404).json({ error: 'No document active in this room' });
-    res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Content-Type': 'application/json; charset=utf-8' });
-    return res.json({ fileName: doc.fileName, fileSize: doc.fileSize, fileType: doc.fileType, updatedAt: doc.updatedAt, page: doc.page, zoom: doc.zoom, scrollRatio: doc.scrollRatio, sha256: doc.sha256 });
-  });
+      return res.json({
+        success: true,
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        fileType: doc.fileType,
+        sha256: doc.sha256,
+      });
+    }
+  );
+
+  // Stream cached room document as raw bytes (Protected by Token)
+  app.get(
+    '/api/rooms/:roomId/document/raw',
+    createRateLimiter('roomDocument'),
+    async (req: Request, res: Response) => {
+      const { roomId } = req.params;
+      const requestId = (req.header('x-request-id') || crypto.randomUUID()) as string;
+
+      if (!roomId || !isValidRoomId(roomId)) {
+        return sendError(res, 400, 'INVALID_ROOM_ID', 'Invalid room identifier.', undefined, requestId);
+      }
+
+      const clientToken = (req.header('x-room-token') || req.query.token) as string | undefined;
+      const room = getRoom(roomId);
+
+      // Verify token authorization without leaking document existence
+      if (room && room.roomToken && clientToken && !isAuthorizedForRoom(roomId, clientToken)) {
+        return sendError(res, 403, 'UNAUTHORIZED_ROOM_ACCESS', 'Invalid room authorization token.', undefined, requestId);
+      }
+
+      const doc = roomDocuments.get(roomId);
+      if (!doc) {
+        return sendError(res, 404, 'DOCUMENT_NOT_FOUND', 'No document active in this room.', undefined, requestId);
+      }
+
+      try {
+        const stat = await fs.stat(doc.filePath);
+        res.status(200).set({
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Content-Type': doc.fileType || 'application/octet-stream',
+          'Content-Length': String(stat.size),
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(doc.fileName)}`,
+          'X-File-Name': encodeURIComponent(doc.fileName),
+          'X-File-Sha256': doc.sha256,
+          'X-File-Size': String(stat.size),
+          'Access-Control-Expose-Headers': 'Content-Length, Content-Disposition, X-File-Name, X-File-Sha256, X-File-Size',
+        });
+        doc.updatedAt = Date.now();
+        return createReadStream(doc.filePath).pipe(res);
+      } catch {
+        return sendError(res, 404, 'DOCUMENT_EXPIRED', 'Room document is no longer available.', undefined, requestId);
+      }
+    }
+  );
+
+  app.get(
+    '/api/rooms/:roomId/document',
+    createRateLimiter('roomDocument'),
+    (req: Request, res: Response) => {
+      const { roomId } = req.params;
+      const requestId = (req.header('x-request-id') || crypto.randomUUID()) as string;
+
+      if (!roomId || !isValidRoomId(roomId)) {
+        return sendError(res, 400, 'INVALID_ROOM_ID', 'Invalid room identifier.', undefined, requestId);
+      }
+
+      const clientToken = (req.header('x-room-token') || req.query.token) as string | undefined;
+      const room = getRoom(roomId);
+
+      if (room && room.roomToken && clientToken && !isAuthorizedForRoom(roomId, clientToken)) {
+        return sendError(res, 403, 'UNAUTHORIZED_ROOM_ACCESS', 'Invalid room authorization token.', undefined, requestId);
+      }
+
+      const doc = roomDocuments.get(roomId);
+      if (!doc) {
+        return sendError(res, 404, 'DOCUMENT_NOT_FOUND', 'No document active in this room.', undefined, requestId);
+      }
+
+      res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Content-Type': 'application/json; charset=utf-8' });
+      return res.json({
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        fileType: doc.fileType,
+        updatedAt: doc.updatedAt,
+        page: doc.page,
+        zoom: doc.zoom,
+        scrollRatio: doc.scrollRatio,
+        sha256: doc.sha256,
+      });
+    }
+  );
 
   // Direct room URL redirect for deep links
   app.get('/room/:roomId', (req, res) => {
     const { roomId } = req.params;
-    return res.redirect(`/#/room/${encodeURIComponent(roomId)}`);
+    const tokenQuery = req.query.token ? `?token=${encodeURIComponent(String(req.query.token))}` : '';
+    return res.redirect(`/#/room/${encodeURIComponent(roomId)}${tokenQuery}`);
   });
 
-  // Gemini AI Chat about Document
-  app.post('/api/gemini/chat', async (req, res) => {
-    try {
-      const { message, documentContext, history = [] } = req.body || {};
-      if (!message) {
-        return res.status(400).json({ error: 'Message is required' });
-      }
+  // ─── Gemini AI Document Intelligence (Rate-Limited & Cost-Protected) ──────
+  app.post(
+    '/api/gemini/chat',
+    createRateLimiter('ai'),
+    async (req: Request, res: Response) => {
+      const requestId = (req.header('x-request-id') || crypto.randomUUID()) as string;
+      try {
+        const { message, documentContext } = req.body || {};
+        if (!message || typeof message !== 'string') {
+          return sendError(res, 400, 'INVALID_INPUT', 'Message string is required.', undefined, requestId);
+        }
 
-      const client = getGeminiClient();
-      if (!client) {
-        // High quality deterministic fallback response when API key is not yet set
-        return res.json({
-          reply: `[Offline Local Intelligence Mode]\n\nBased on the extracted document content: "${message}"\n\nYour document contains ${documentContext ? documentContext.split(/\\s+/).length : 0} words. Key insights have been indexed locally in-browser. Connect your Gemini API Key in Settings > Secrets to unlock full live conversational reasoning!`,
-          isFallback: true,
-        });
-      }
+        const maxChars = serverConfig.ai.maxInputChars;
+        if (message.length > maxChars) {
+          return sendError(res, 413, 'INPUT_TOO_LARGE', `Prompt exceeds limit of ${maxChars} characters.`, undefined, requestId);
+        }
 
-      const systemPrompt = `You are ZipStream AI, a specialized on-device document intelligence assistant.
-Answer the user's questions accurately and concisely based strictly on the provided document context whenever possible.
+        const client = getGeminiClient();
+        if (!client) {
+          return res.json({
+            reply: `[Offline Local Intelligence Mode]\n\nBased on document context: "${message.slice(0, 150)}..."\n\nDocument insights indexed locally. Connect your Gemini API Key in backend environment to activate cloud reasoning.`,
+            isFallback: true,
+          });
+        }
+
+        const systemPrompt = `You are ZipStream AI, a specialized on-device document intelligence assistant.
+Answer accurately and concisely based strictly on the provided document context whenever possible.
 If the answer is found in the text, quote or reference the relevant section clearly.
-If the answer cannot be determined from the document, state that clearly and offer general helpful guidance.
 
 DOCUMENT CONTEXT:
-${documentContext ? documentContext.slice(0, 35000) : 'No document uploaded yet.'}`;
+${documentContext ? String(documentContext).slice(0, 35000) : 'No document uploaded yet.'}`;
 
-      const response = await client.models.generateContent({
-        model: 'gemini-3.7-flash',
-        contents: message,
-        config: {
-          systemInstruction: systemPrompt,
-          temperature: 0.3,
-        },
-      });
+        const responsePromise = client.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: message,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature: 0.3,
+            maxOutputTokens: serverConfig.ai.maxOutputTokens,
+          },
+        });
 
-      return res.json({
-        reply: response.text || 'I analyzed the document but did not generate any text output.',
-        isFallback: false,
-      });
-    } catch (err: any) {
-      console.error('Gemini chat error:', err);
-      return res.status(500).json({
-        error: err.message || 'Failed to process document chat',
-        reply: 'An error occurred while contacting the AI model. Please try again.',
-      });
-    }
-  });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('AI provider request timed out')), serverConfig.ai.timeoutMs)
+        );
 
-  // Gemini AI Document Summarizer
-  app.post('/api/gemini/summarize', async (req, res) => {
-    try {
-      const { text, type = 'executive' } = req.body || {};
-      if (!text || typeof text !== 'string') return res.status(400).json({ error: 'Document text is required' });
-      const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-      const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-      const client = getGeminiClient();
-      if (!client) {
-        const fallback = text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 6).join(' ');
-        return res.json({ summary: fallback || text.slice(0, 1200), type, wordCount, readingTime, isFallback: true });
+        const response = (await Promise.race([responsePromise, timeoutPromise])) as any;
+
+        return res.json({
+          reply: response.text || 'I analyzed the document but did not generate any text output.',
+          isFallback: false,
+        });
+      } catch (err: any) {
+        return sendError(res, 500, 'AI_REQUEST_FAILED', 'Failed to process document chat.', err, requestId);
       }
-      const response = await client.models.generateContent({
-        model: 'gemini-3.7-flash',
-        contents: `Create a ${type} summary. Be concise, factual, and do not invent information.\n\nDOCUMENT:\n${text.slice(0, 50000)}`,
-        config: { temperature: 0.2 },
-      });
-      return res.json({ summary: response.text || 'No summary was generated.', type, wordCount, readingTime, isFallback: false });
-    } catch (err: any) {
-      console.error('Gemini summarize error:', err);
-      return res.status(500).json({ error: err?.message || 'Failed to summarize document' });
     }
-  });
+  );
 
-  // Explicit handlers for search engine crawlers with strict Content-Type headers
+  app.post(
+    '/api/gemini/summarize',
+    createRateLimiter('ai'),
+    async (req: Request, res: Response) => {
+      const requestId = (req.header('x-request-id') || crypto.randomUUID()) as string;
+      try {
+        const { text, type = 'executive' } = req.body || {};
+        if (!text || typeof text !== 'string') {
+          return sendError(res, 400, 'INVALID_INPUT', 'Document text is required for summarization.', undefined, requestId);
+        }
+
+        const maxChars = serverConfig.ai.maxInputChars;
+        if (text.length > maxChars * 2) {
+          return sendError(res, 413, 'INPUT_TOO_LARGE', `Document text exceeds limit of ${maxChars * 2} characters.`, undefined, requestId);
+        }
+
+        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+        const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+        const client = getGeminiClient();
+        if (!client) {
+          const fallback = text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 6).join(' ');
+          return res.json({ summary: fallback || text.slice(0, 1200), type, wordCount, readingTime, isFallback: true });
+        }
+
+        const responsePromise = client.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Create a ${type} summary. Be concise, factual, and do not invent information.\n\nDOCUMENT:\n${text.slice(0, 50000)}`,
+          config: {
+            temperature: 0.2,
+            maxOutputTokens: serverConfig.ai.maxOutputTokens,
+          },
+        });
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('AI provider request timed out')), serverConfig.ai.timeoutMs)
+        );
+
+        const response = (await Promise.race([responsePromise, timeoutPromise])) as any;
+
+        return res.json({
+          summary: response.text || 'No summary was generated.',
+          type,
+          wordCount,
+          readingTime,
+          isFallback: false,
+        });
+      } catch (err: any) {
+        return sendError(res, 500, 'AI_SUMMARIZE_FAILED', 'Failed to summarize document.', err, requestId);
+      }
+    }
+  );
+
+  // ─── Search Engine Crawlers & Static Files ───────────────────────────────
   app.get('/sitemap.xml', (_req, res) => {
     const sitemapDist = path.join(process.cwd(), 'dist', 'sitemap.xml');
     const sitemapPublic = path.join(process.cwd(), 'public', 'sitemap.xml');
-    const filePath = require('fs').existsSync(sitemapDist) ? sitemapDist : sitemapPublic;
+    const filePath = existsSync(sitemapDist) ? sitemapDist : sitemapPublic;
     res.type('application/xml; charset=utf-8');
     res.sendFile(filePath);
   });
@@ -692,25 +814,24 @@ ${documentContext ? documentContext.slice(0, 35000) : 'No document uploaded yet.
   app.get('/robots.txt', (_req, res) => {
     const robotsDist = path.join(process.cwd(), 'dist', 'robots.txt');
     const robotsPublic = path.join(process.cwd(), 'public', 'robots.txt');
-    const filePath = require('fs').existsSync(robotsDist) ? robotsDist : robotsPublic;
+    const filePath = existsSync(robotsDist) ? robotsDist : robotsPublic;
     res.type('text/plain; charset=utf-8');
     res.sendFile(filePath);
   });
 
-  // Dedicated custom 404 page handler with HTTP 404 status
   app.get('/404', (_req, res) => {
     const page404Dist = path.join(process.cwd(), 'dist', '404.html');
     const page404Public = path.join(process.cwd(), 'public', '404.html');
-    const filePath = require('fs').existsSync(page404Dist) ? page404Dist : page404Public;
+    const filePath = existsSync(page404Dist) ? page404Dist : page404Public;
     res.status(404).sendFile(filePath);
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  // ─── Frontend Serving with Dynamic Server-Side SEO Meta Injection ────────
+  if (!serverConfig.isProduction) {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        allowedHosts: true, // Allow all hosts (LAN IP, Cloudflare tunnel, mobile devices)
+        allowedHosts: true,
         cors: true,
       },
       appType: 'spa',
@@ -718,37 +839,80 @@ ${documentContext ? documentContext.slice(0, 35000) : 'No document uploaded yet.
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath, {
-      maxAge: '1y',
-      immutable: true,
-      setHeaders: (res, filePath) => {
-        // HTML must always be revalidated so a newly deployed asset manifest is used.
-        if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-      },
-    }));
-    app.get('*', (req, res) => {
-      // If request has a file extension that wasn't found in static assets, return 404
+    const indexPath = path.join(distPath, 'index.html');
+    let cachedIndexHtml = '';
+
+    try {
+      cachedIndexHtml = await fs.readFile(indexPath, 'utf8');
+    } catch {
+      // index.html may be built on container startup
+    }
+
+    app.use(
+      express.static(distPath, {
+        maxAge: '1y',
+        immutable: true,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+        },
+      })
+    );
+
+    app.get('*', async (req, res) => {
       if (path.extname(req.path)) {
         const page404 = path.join(distPath, '404.html');
         return res.status(404).sendFile(page404);
       }
-      res.sendFile(path.join(distPath, 'index.html'));
+
+      if (!cachedIndexHtml) {
+        try {
+          cachedIndexHtml = await fs.readFile(indexPath, 'utf8');
+        } catch {
+          return res.status(500).send('ZipStream application is building. Please refresh in a moment.');
+        }
+      }
+
+      const renderedHtml = injectSeoMetadata(cachedIndexHtml, req.path, serverConfig.publicBaseUrl);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      return res.send(renderedHtml);
     });
   }
 
+  // ─── HTTP & WebSocket Listening ──────────────────────────────────────────
+  const serverInstance = httpServer.listen(PORT, '0.0.0.0', () => {
+    logInfo(`🚀 ZipStream production server listening at http://0.0.0.0:${PORT}`);
+    logInfo(`📡 WebRTC signaling and Socket.IO active`);
 
-  // Start listening and then boot the tunnel
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀  ZipStream server running at http://0.0.0.0:${PORT}`);
-    console.log(`📡  WebRTC signaling active on ws://0.0.0.0:${PORT}`);
-    console.log(`🌐  Local Network IP: http://${getLocalIp()}:${PORT}`);
-
-    if (process.env.ENABLE_TUNNEL !== 'false' && process.env.NODE_ENV !== 'production') {
+    if (serverConfig.tunnel.enabled) {
       startTunnel(PORT);
     } else {
       tunnelStatus = 'off';
     }
   });
+
+  // ─── Graceful Shutdown Handler ───────────────────────────────────────────
+  const shutdown = (signal: string) => {
+    logInfo(`Received ${signal}. Starting graceful shutdown...`);
+    stopOrphanCleanupDaemon();
+
+    serverInstance.close(() => {
+      logInfo('HTTP server closed.');
+      io.close(() => {
+        logInfo('Socket.IO server closed.');
+        process.exit(0);
+      });
+    });
+
+    // Force exit after 10 seconds if hanging
+    setTimeout(() => {
+      logError('Graceful shutdown timeout exceeded. Forcing exit.');
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 async function startTunnel(port: number) {
@@ -756,24 +920,22 @@ async function startTunnel(port: number) {
 
   const attemptTunnel = async (retryCount = 0): Promise<void> => {
     try {
-      console.log(`\n🔗  Opening Cloudflare HTTPS tunnel for instant mobile pairing… (attempt ${retryCount + 1})`);
+      logInfo(`🔗 Opening Cloudflare HTTPS tunnel for instant mobile pairing (attempt ${retryCount + 1})...`);
       const tunnel = await startCloudflareTunnel({ port });
       const url = await tunnel.getURL();
 
       tunnelUrl = url;
       tunnelStatus = 'active';
 
-      console.log(`\n✅  Cloudflare Public HTTPS Tunnel is LIVE:`);
-      console.log(`    ${url}`);
-      console.log(`    👆 Works across all networks, Wi-Fi, 4G/5G mobile carriers with ZERO firewall block!\n`);
+      logInfo(`✅ Cloudflare Public HTTPS Tunnel is LIVE: ${url}`);
     } catch (err: any) {
-      console.error(`⚠️   Cloudflare tunnel failed (attempt ${retryCount + 1}):`, err.message);
+      logWarn(`⚠️ Cloudflare tunnel attempt ${retryCount + 1} failed: ${err.message}`);
       tunnelUrl = '';
       tunnelStatus = retryCount >= 3 ? 'error' : 'starting';
       if (retryCount < 3) {
         setTimeout(() => attemptTunnel(retryCount + 1), 4000);
       } else {
-        console.warn('❌  Cloudflare tunnel unavailable. Falling back to local LAN IP.');
+        logWarn('❌ Cloudflare tunnel unavailable. Falling back to local LAN IP.');
         tunnelStatus = 'error';
       }
     }

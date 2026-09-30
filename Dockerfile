@@ -19,6 +19,9 @@ RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 RUN npm run build
+RUN chown -R node:node /app /data/storage
+
+USER node
 
 ENV NODE_ENV=production
 ENV PORT=3000
