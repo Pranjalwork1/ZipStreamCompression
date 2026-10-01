@@ -68,6 +68,7 @@ export interface ToolItem {
 
 export const TOOL_CANONICAL_PATHS: Record<string, string> = {
   compress: '/compress-pdf',
+  edit_pdf: '/edit-pdf',
   merge_pdf: '/merge-pdf',
   split_pdf: '/split-pdf',
   images_to_pdf: '/images-to-pdf',
@@ -510,6 +511,25 @@ export const HOME_TOOLS: ToolItem[] = [
   },
 
   // 3. VIEW & EDIT
+  {
+    id: 'edit_pdf',
+    name: 'Edit PDF',
+    category: 'view-edit',
+    categoryLabel: 'View & Edit',
+    description: 'Add text, images, shapes, highlights, comments, and freehand markup to your PDF documents.',
+    badge: 'New',
+    colorScheme: {
+      bg: 'bg-indigo-500/5 dark:bg-indigo-500/10',
+      border: 'border-indigo-500/20 dark:border-indigo-500/30',
+      iconBg: 'bg-indigo-500/15 dark:bg-indigo-500/25',
+      iconColor: 'text-[#5856d6]',
+      badgeBg: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
+      badgeColor: 'text-[#5856d6]',
+      hoverBorder: 'hover:border-indigo-500/50',
+    },
+    icon: <PenTool className="w-5 h-5 text-[#5856d6]" />,
+    keywords: ['edit pdf', 'pdf editor', 'add text to pdf', 'annotate pdf', 'draw on pdf', 'highlight pdf', 'pdf annotation', 'write on pdf'],
+  },
   {
     id: 'watermark_pdf',
     name: 'Watermark PDF',

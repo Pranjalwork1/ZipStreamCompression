@@ -32,10 +32,35 @@ export const TOOL_PAGES: ToolPageDefinition[] = [
     keywords: ['compress PDF online', 'reduce PDF size', 'PDF compressor', 'shrink PDF'],
     benefits: ['Adjust quality and target size', 'Preview the result before downloading', 'Process supported files locally in your browser'],
     steps: ['Choose a PDF from your device', 'Select compression quality and options', 'Download the compressed PDF'],
-    related: ['/merge-pdf', '/split-pdf', '/watermark-pdf'],
+    related: ['/merge-pdf', '/split-pdf', '/watermark-pdf', '/edit-pdf'],
     faqs: [
       { question: 'Can I compress a PDF for email?', answer: 'Yes. Use the email or target-size settings to reduce a large PDF before attaching it.' },
       { question: 'Are my compression files uploaded?', answer: 'Core compression runs in the browser. P2P sharing is a separate session feature that uses the active signaling service.' },
+    ],
+  },
+  {
+    path: '/edit-pdf', tool: 'edit_pdf', title: 'Edit PDF Online Free',
+    description: 'Edit PDF documents online for free. Add custom text, shapes, signatures, images, highlighters, and notes with 100% private in-browser editing.',
+    intro: 'Add text annotations, images, highlighters, and vector shapes to any PDF directly in your browser. Download the finished PDF without watermark or registration.',
+    keywords: ['edit PDF online', 'edit PDF free', 'PDF editor', 'add text to PDF', 'annotate PDF', 'draw on PDF', 'highlight PDF'],
+    benefits: [
+      'Add sharp vector text with custom fonts, colors, and formatting',
+      'Freehand drawing, highlighters, underline, and shape markup tools',
+      'Embed photos, stamps, and signatures directly onto document pages',
+      '100% private and client-side: your document never leaves your browser',
+    ],
+    steps: [
+      'Upload your PDF document or drag and drop it into the editor',
+      'Use the top toolbar to insert text, shapes, images, or drawings',
+      'Move, resize, and style your elements with real-time preview',
+      'Click Export PDF to download your high-resolution edited document',
+    ],
+    related: ['/compress-pdf', '/merge-pdf', '/split-pdf', '/watermark-pdf', '/protect-pdf'],
+    faqs: [
+      { question: 'Does ZipStream re-compress or degrade my PDF when editing?', answer: 'No. ZipStream preserves the original PDF pages and vector geometry. New text, shapes, and images are stamped as clean PDF overlays at native resolution.' },
+      { question: 'Can I edit multi-page PDF documents?', answer: 'Yes. You can navigate through all pages using the thumbnail sidebar or page controls, adding edits to any page.' },
+      { question: 'Are my confidential documents uploaded to a remote server?', answer: 'No. The entire editing and PDF generation engine runs locally inside your browser using WebAssembly and pdf-lib. No document data is sent to external servers.' },
+      { question: 'Can I add images or signatures to my PDF?', answer: 'Yes. Click the Image tool to insert PNG, JPG, or WebP graphics and drag them into position.' },
     ],
   },
   {

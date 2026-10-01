@@ -22,6 +22,37 @@ interface ToolRouteMeta {
 
 export const TOOL_ROUTES: ToolRouteMeta[] = [
   {
+    path: '/edit-pdf',
+    toolTitle: 'Edit PDF',
+    seoTitle: 'Edit PDF Online — Add Text, Images & Annotations | ZipStream',
+    description: 'Edit PDF documents online for free. Add text, insert images, draw vector shapes, highlight, strikethrough, leave comments, and freehand annotate directly in your browser with zero cloud uploads.',
+    h1: 'Edit PDF Online',
+    intro: 'Add text, insert images, draw vector shapes, and highlight content directly on your PDF pages. Fast, secure, and 100% private in-browser editing with zero cloud uploads.',
+    keywords: ['edit PDF', 'edit PDF online', 'PDF editor', 'add text to PDF', 'PDF annotation', 'draw on PDF', 'highlight PDF', 'insert image to PDF', 'online PDF editor free'],
+    benefits: [
+      'Add crisp text overlays with custom font, size, weight, color, alignment, and opacity',
+      'Insert PNG, JPG, and WebP images with free moving, proportional scaling, and rotation',
+      'Draw vector rectangles, circles, lines, arrows, and smooth freehand pen markup',
+      'Translucent highlighting, underline, strikethrough, and sticky note annotations',
+      'Multi-level undo/redo history, zoom, page thumbnail navigation, and keyboard shortcuts',
+      '100% on-device editing via PDF.js and pdf-lib — files never leave your computer',
+    ],
+    steps: [
+      'Upload your PDF into the private browser-based editing workspace',
+      'Use the toolbar to insert text, images, shapes, highlights, or draw freehand',
+      'Select any element to adjust fonts, colors, line widths, opacity, or position',
+      'Click Export PDF to download your high-quality edited document with original vector pages preserved',
+    ],
+    faqs: [
+      { question: 'Does ZipStream preserve the original quality of my PDF?', answer: 'Yes. ZipStream uses a non-destructive vector overlay architecture powered by pdf-lib. Your original vector text, embedded high-resolution graphics, and page layouts are preserved without rasterizing pages into blurry screenshots.' },
+      { question: 'Are my confidential documents uploaded to any server?', answer: 'No. The entire editing process runs 100% locally in your web browser using PDF.js and pdf-lib WebAssembly/JavaScript. Your documents and annotations never leave your device.' },
+      { question: 'Can I add images and logos to a PDF document?', answer: 'Yes. You can upload PNG, JPG, or WebP images, place them anywhere on any page, resize them while preserving aspect ratio, and adjust opacity.' },
+      { question: 'How do I undo an accidental change or delete an annotation?', answer: 'Press Ctrl+Z (or Cmd+Z on Mac) or use the Undo button in the top toolbar. You can also select any annotation or element and press Delete or Backspace to remove it.' },
+      { question: 'Can I edit password-protected or encrypted PDFs?', answer: 'Encrypted PDFs must be unlocked before editing. ZipStream automatically detects password-protected files and provides a direct shortcut to the Unlock PDF tool.' },
+    ],
+    related: ['/compress-pdf', '/merge-pdf', '/split-pdf', '/watermark-pdf', '/protect-pdf', '/unlock-pdf', '/ocr-pdf'],
+  },
+  {
     path: '/compress-pdf',
     toolTitle: 'Compress PDF',
     seoTitle: 'Compress PDF Online Free — Reduce PDF Size | ZipStream',

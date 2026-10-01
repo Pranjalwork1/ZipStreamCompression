@@ -47,6 +47,7 @@ const ConvertToPdfView = lazy(() => import('./components/views/ConvertToPdfView'
 const AboutView = lazy(() => import('./components/views/AboutView').then(module => ({ default: module.AboutView })));
 const PdfToolsDirectory = lazy(() => import('./components/PdfToolsDirectory').then(module => ({ default: module.PdfToolsDirectory })));
 const WorkflowsView = lazy(() => import('./components/workflows/WorkflowsView').then(module => ({ default: module.WorkflowsView })));
+const EditPdfView = lazy(() => import('./components/pdf-editor/EditPdfView').then(module => ({ default: module.EditPdfView })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -60,6 +61,8 @@ const DEFAULT_SETTINGS: CompressionSettings = {
 
 export const TOOL_CANONICAL_PATHS: Record<ToolMode, string> = {
   compress: '/compress-pdf',
+  edit_pdf: '/edit-pdf',
+  workflows: '/workflows',
   merge_pdf: '/merge-pdf',
   split_pdf: '/split-pdf',
   images_to_pdf: '/images-to-pdf',
@@ -97,6 +100,8 @@ export const TOOL_CANONICAL_PATHS: Record<ToolMode, string> = {
 
 export const TOOL_PATHS: Record<string, ToolMode> = {
   '/compress-pdf': 'compress',
+  '/edit-pdf': 'edit_pdf',
+  '/pdf-editor': 'edit_pdf',
   '/merge-pdf': 'merge_pdf',
   '/split-pdf': 'split_pdf',
   '/images-to-pdf': 'images_to_pdf',
@@ -141,6 +146,8 @@ export const TOOL_PATHS: Record<string, ToolMode> = {
 
 const TOOL_METADATA: Record<string, { title: string; description: string }> = {
   '/compress-pdf': { title: 'Compress PDF Online | ZipStream', description: 'Reduce PDF file size quickly with ZipStream privacy-first compression tools.' },
+  '/edit-pdf': { title: 'Edit PDF Online — Add Text, Images & Annotations | ZipStream', description: 'Edit PDF documents online for free. Add text, images, shapes, highlights, comments, and freehand drawings directly in your browser with zero cloud uploads.' },
+  '/pdf-editor': { title: 'Edit PDF Online — Add Text, Images & Annotations | ZipStream', description: 'Edit PDF documents online for free. Add text, images, shapes, highlights, comments, and freehand drawings directly in your browser with zero cloud uploads.' },
   '/merge-pdf': { title: 'Merge PDF Files Online | ZipStream', description: 'Combine PDF files in your browser with ZipStream.' },
   '/split-pdf': { title: 'Split PDF Online | ZipStream', description: 'Extract and split PDF pages with ZipStream.' },
   '/images-to-pdf': { title: 'Images to PDF Online | ZipStream', description: 'Convert JPG and PNG images into a PDF in your browser.' },
@@ -751,6 +758,13 @@ export default function App() {
             onNavigate={(path, tool) => navigateTo(path, tool)}
           >
             {/* 1. PDF Tools (Core) */}
+            {activeTool === 'edit_pdf' && (
+              <EditPdfView
+                key="edit_pdf"
+                onBackToHome={() => navigateTo('/')}
+              />
+            )}
+
             {activeTool === 'merge_pdf' && (
               <MergePdfView
                 key="merge_pdf"

@@ -15,6 +15,7 @@ export interface TypewriterToolItem {
 export const TYPEWRITER_TOOLS: TypewriterToolItem[] = [
   // 1. PDF Essentials
   { phrase: 'Compress PDFs', toolId: 'compress', targetCategory: 'pdf', category: 'Essentials' },
+  { phrase: 'Edit PDFs', toolId: 'edit_pdf', targetCategory: 'pdf', category: 'Essentials' },
   { phrase: 'Merge PDFs', toolId: 'merge_pdf', targetCategory: 'pdf', category: 'Essentials' },
   { phrase: 'Split PDFs', toolId: 'split_pdf', targetCategory: 'pdf', category: 'Essentials' },
   { phrase: 'Repair Corrupted PDFs', toolId: 'repair_pdf', targetCategory: 'pdf', category: 'Essentials' },

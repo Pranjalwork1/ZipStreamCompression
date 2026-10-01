@@ -10,6 +10,7 @@ export type ToolCategory =
 
 export type ToolMode =
   | 'compress'
+  | 'edit_pdf'
   | 'workflows'
   | 'merge_pdf'
   | 'scan_document'

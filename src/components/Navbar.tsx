@@ -267,6 +267,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </span>
                       {[
                         { id: 'compress', name: 'Compress PDF', icon: <FileText className="w-3.5 h-3.5 text-[#055EFE]" /> },
+                        { id: 'edit_pdf', name: 'Edit PDF', icon: <PenTool className="w-3.5 h-3.5 text-indigo-500" /> },
                         { id: 'merge_pdf', name: 'Merge PDF', icon: <FilePlus className="w-3.5 h-3.5 text-blue-500" /> },
                         { id: 'split_pdf', name: 'Split & Extract', icon: <Scissors className="w-3.5 h-3.5 text-amber-500" /> },
                         { id: 'scan_document', name: 'Scan Document', icon: <Camera className="w-3.5 h-3.5 text-emerald-500" /> },
@@ -707,6 +708,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="p-2.5 pt-0 grid grid-cols-2 gap-1 border-t border-black/[0.04] dark:border-white/[0.06]">
                     {[
                       { id: 'compress', name: 'Compress PDF' },
+                      { id: 'edit_pdf', name: 'Edit PDF' },
                       { id: 'merge_pdf', name: 'Merge PDF' },
                       { id: 'split_pdf', name: 'Split PDF' },
                       { id: 'scan_document', name: 'Scan Document' },

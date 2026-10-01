@@ -52,7 +52,15 @@ export const ALL_TOOLS: SearchToolItem[] = [
     keywords: ['workflow', 'workflows', 'automate', 'pipeline', 'batch', 'chain', 'sequence', 'multi tool', 'multi-tool', 'automation', 'combine tools'],
     iconName: 'Layers',
   },
-  // Existing Core
+  {
+    id: 'edit_pdf',
+    name: 'Edit PDF',
+    category: 'PDF Tools',
+    description: 'Add text, images, shapes, highlights, comments, and freehand annotations directly to your PDF.',
+    badge: 'New',
+    keywords: ['edit pdf', 'pdf editor', 'pdf annotation', 'add text to pdf', 'edit pdf online', 'draw on pdf', 'highlight pdf', 'annotate pdf', 'write on pdf', 'insert image to pdf', 'markup'],
+    iconName: 'PenTool',
+  },
   {
     id: 'merge_pdf',
     name: 'Merge PDF',
