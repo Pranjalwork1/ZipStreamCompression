@@ -170,7 +170,7 @@ const ADDITIONAL_TOOL_PAGES: ToolPageDefinition[] = [
   ['file-fingerprint', 'fingerprint_gen', 'Generate a File Fingerprint', 'Create a SHA integrity fingerprint for a document.'],
   ['chat-pdf', 'chat_pdf', 'Chat with a PDF', 'Ask questions about a PDF using the ZipStream document assistant.'],
   ['summarize-pdf', 'ai_summarize', 'Summarize a PDF', 'Create a concise summary of supported PDF content.'],
-  ['ocr-pdf', 'searchable_pdf', 'Create a Searchable PDF', 'Add searchable text to supported scanned documents with OCR.'],
+  ['ocr-pdf', 'searchable_pdf', 'OCR PDF — Make PDF Searchable', 'Convert scanned paper documents and image-based PDFs into searchable, selectable text with multi-language OCR.'],
   ['compare-pdf', 'compare_pdfs', 'Compare PDF Documents', 'Review differences between two document versions.'],
   ['repair-pdf', 'repair_pdf', 'Repair a PDF', 'Try to recover supported damaged PDF structures in your browser.'],
   ['gst-invoice', 'gst_invoice', 'Create a GST Invoice', 'Build a professional GST invoice with tax calculations and PDF export.'],

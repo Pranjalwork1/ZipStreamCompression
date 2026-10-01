@@ -100,7 +100,7 @@ export const PDF_TOOL_CATEGORIES: ToolCategoryGroup[] = [
     name: 'AI, OCR & Collaboration',
     description: 'Smart document intelligence, text extraction from scans, and direct P2P sharing.',
     tools: [
-      { path: '/ocr-pdf', tool: 'searchable_pdf', name: 'Searchable PDF (OCR)', description: 'Synthesize selectable text layers over scanned image documents.' },
+      { path: '/ocr-pdf', tool: 'searchable_pdf', name: 'OCR PDF — Make PDF Searchable', description: 'Convert scanned paper documents and image-only PDFs into searchable, selectable text.', badge: 'OCR' },
       { path: '/summarize-pdf', tool: 'ai_summarize', name: 'Summarize PDF', description: 'Generate concise executive summaries and bullet points with AI.' },
       { path: '/chat-pdf', tool: 'chat_pdf', name: 'Chat with PDF', description: 'Ask questions and converse with complex documents in natural language.' },
       { path: '/p2p-share', tool: 'p2p_share', name: 'Private P2P Share', description: 'Direct browser-to-browser encrypted file transfer with zero cloud storage.' },

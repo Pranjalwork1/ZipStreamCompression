@@ -40,6 +40,7 @@ import compressionRouter from './server/compression/api';
 import wordConversionRouter from './server/conversion/wordToPdf/api';
 import sarvamRouter from './server/ai/sarvamRouter';
 import workflowRouter from './server/workflows/api';
+import ocrRouter from './server/ocr/api';
 import reportIssueHandler from './api/report-issue';
 
 // Shared tunnel state — readable by API routes
@@ -247,6 +248,7 @@ async function startServer() {
   app.use('/api/convert', wordConversionRouter);
   app.use('/api/sarvam', sarvamRouter);
   app.use('/api/workflows', workflowRouter);
+  app.use('/api/ocr', ocrRouter);
 
   // Wrapped PDF Compression Endpoint (Strict rate-limit + Validation + Preserved Engine)
   app.post(

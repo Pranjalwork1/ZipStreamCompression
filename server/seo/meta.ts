@@ -147,9 +147,9 @@ export const SEO_TOOL_METADATA: Record<string, PageSeoMetadata> = {
     h1: 'Summarize PDF Online',
   },
   '/ocr-pdf': {
-    title: 'OCR PDF Online Free — Make PDF Searchable | ZipStream',
-    description: 'Recognize text in scanned documents and images to create searchable, selectable PDF files online.',
-    h1: 'Make PDF Searchable (OCR)',
+    title: 'OCR PDF Online — Make Scanned PDFs Searchable | ZipStream',
+    description: 'Convert scanned paper documents and image-only PDFs into searchable, selectable text with multi-language OCR and automated file deletion.',
+    h1: 'OCR PDF — Make PDF Searchable',
   },
   '/compare-pdf': {
     title: 'Compare PDF Documents Free — Side-by-Side Visual Diff | ZipStream',

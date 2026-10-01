@@ -13,6 +13,7 @@ export type RateLimitCategory =
   | 'general'
   | 'upload'
   | 'compression'
+  | 'ocr'
   | 'ai'
   | 'roomCreate'
   | 'roomDocument';
@@ -38,6 +39,11 @@ const CATEGORY_LIMITS: Record<RateLimitCategory, CategoryConfig> = {
     windowSeconds: 60,
     maxRequests: 15,
     message: 'CPU-intensive compression limit exceeded. Please wait before starting another job.',
+  },
+  ocr: {
+    windowSeconds: 60,
+    maxRequests: 15,
+    message: 'OCR processing limit reached. Please wait a minute before submitting more documents.',
   },
   ai: {
     windowSeconds: 60,

@@ -738,10 +738,11 @@ export const HOME_TOOLS: ToolItem[] = [
   },
   {
     id: 'searchable_pdf',
-    name: 'Searchable PDF (OCR)',
+    name: 'OCR PDF — Make PDF Searchable',
     category: 'ai-business',
     categoryLabel: 'AI & Business',
-    description: 'Index scanned documents with a hidden selectable text layer using optical character recognition.',
+    description: 'Convert scanned paper documents and image-only PDFs into searchable, selectable text with multi-language OCR.',
+    badge: 'OCR',
     colorScheme: {
       bg: 'bg-indigo-500/5 dark:bg-indigo-500/10',
       border: 'border-indigo-500/20 dark:border-indigo-500/30',
@@ -752,7 +753,7 @@ export const HOME_TOOLS: ToolItem[] = [
       hoverBorder: 'hover:border-indigo-500/50',
     },
     icon: <Search className="w-5 h-5 text-[#5856d6]" />,
-    keywords: ['ocr', 'searchable pdf', 'text recognition', 'scanned'],
+    keywords: ['ocr', 'ocr pdf', 'searchable pdf', 'make pdf searchable', 'scanned pdf to searchable pdf', 'optical character recognition', 'hindi ocr'],
   },
   {
     id: 'gst_invoice',

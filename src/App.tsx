@@ -48,6 +48,7 @@ const AboutView = lazy(() => import('./components/views/AboutView').then(module 
 const PdfToolsDirectory = lazy(() => import('./components/PdfToolsDirectory').then(module => ({ default: module.PdfToolsDirectory })));
 const WorkflowsView = lazy(() => import('./components/workflows/WorkflowsView').then(module => ({ default: module.WorkflowsView })));
 const EditPdfView = lazy(() => import('./components/pdf-editor/EditPdfView').then(module => ({ default: module.EditPdfView })));
+const OcrPdfView = lazy(() => import('./components/OcrPdfView').then(module => ({ default: module.OcrPdfView })));
 
 const DEFAULT_SETTINGS: CompressionSettings = {
   level: 'medium',
@@ -564,7 +565,6 @@ export default function App() {
   const isAiTool = [
     'chat_pdf',
     'ai_summarize',
-    'searchable_pdf',
     'compare_pdfs',
     'repair_pdf',
   ].includes(activeTool);
@@ -758,6 +758,14 @@ export default function App() {
             onNavigate={(path, tool) => navigateTo(path, tool)}
           >
             {/* 1. PDF Tools (Core) */}
+            {activeTool === 'searchable_pdf' && (
+              <OcrPdfView
+                key="searchable_pdf"
+                onBackToHome={() => navigateTo('/')}
+                onNavigate={(path, tool) => navigateTo(path, tool as any)}
+              />
+            )}
+
             {activeTool === 'edit_pdf' && (
               <EditPdfView
                 key="edit_pdf"

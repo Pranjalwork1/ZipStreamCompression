@@ -320,10 +320,11 @@ export const ALL_TOOLS: SearchToolItem[] = [
   },
   {
     id: 'searchable_pdf',
-    name: 'Searchable PDF (OCR)',
-    category: 'AI Tools',
-    description: 'Recognize scanned text layer to make scanned PDFs searchable & selectable.',
-    keywords: ['searchable pdf', 'ocr', 'text recognition', 'scanned pdf'],
+    name: 'OCR PDF — Make PDF Searchable',
+    category: 'PDF Tools',
+    description: 'Convert scanned paper documents and image-only PDFs into searchable, selectable text.',
+    badge: 'OCR',
+    keywords: ['ocr pdf', 'searchable pdf', 'make pdf searchable', 'scanned pdf to searchable pdf', 'pdf ocr', 'optical character recognition', 'extract text from scan', 'hindi ocr'],
     iconName: 'Search',
   },
   {
