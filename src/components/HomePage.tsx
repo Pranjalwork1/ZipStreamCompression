@@ -96,6 +96,8 @@ export const TOOL_CANONICAL_PATHS: Record<string, string> = {
   gst_filing_prep: '/gst-filing-prep',
   p2p_share: '/p2p-share',
   collab_whiteboard: '/collaborative-whiteboard',
+  workflows: '/workflows',
+  workflow: '/workflows',
 };
 
 interface HomePageProps {
@@ -411,8 +413,26 @@ export const HOME_TOOLS: ToolItem[] = [
     keywords: ['html to pdf', 'webpage to pdf', 'html file', 'code to pdf'],
   },
 
-  // 3. SPLIT & MERGE
-
+  // 3. SPLIT & MERGE & WORKFLOWS
+  {
+    id: 'workflows',
+    name: 'Automated PDF Workflows',
+    category: 'split-merge',
+    categoryLabel: 'Split & Merge',
+    description: 'Chain multiple tools into automated pipelines (Merge → Compress → Convert) with zero intermediate downloads.',
+    badge: 'New',
+    colorScheme: {
+      bg: 'bg-emerald-500/5 dark:bg-emerald-500/10',
+      border: 'border-emerald-500/20 dark:border-emerald-500/30',
+      iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+      iconColor: 'text-emerald-500 dark:text-emerald-400',
+      badgeBg: 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-400',
+      badgeColor: 'text-emerald-500',
+      hoverBorder: 'hover:border-emerald-500/50',
+    },
+    icon: <Layers className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />,
+    keywords: ['workflow', 'workflows', 'automate', 'pipeline', 'batch', 'chain', 'multi tool', 'multi-tool', 'automation', 'combine tools', 'pipeline'],
+  },
   {
     id: 'merge_pdf',
     name: 'Merge PDF',

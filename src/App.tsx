@@ -131,6 +131,12 @@ export const TOOL_PATHS: Record<string, ToolMode> = {
   '/gst-filing-prep': 'gst_filing_prep',
   '/p2p-share': 'p2p_share',
   '/collaborative-whiteboard': 'collab_whiteboard',
+  '/workflows': 'workflows',
+  '/workflow': 'workflows',
+  '/pdf-workflow': 'workflows',
+  '/pdf-workflows': 'workflows',
+  '/pipelines': 'workflows',
+  '/automation': 'workflows',
 };
 
 const TOOL_METADATA: Record<string, { title: string; description: string }> = {
@@ -316,7 +322,10 @@ export default function App() {
 
   // Centralized SPA navigation function
   const navigateTo = (path: string, tool?: ToolMode) => {
-    const normalized = path.replace(/\/$/, '') || '/';
+    let normalized = path.replace(/\/$/, '') || '/';
+    if (['/workflow', '/pdf-workflow', '/pdf-workflows', '/pipelines', '/automation'].includes(normalized)) {
+      normalized = '/workflows';
+    }
     try {
       window.history.pushState({}, '', normalized);
     } catch {
@@ -324,7 +333,7 @@ export default function App() {
     }
     setCurrentPath(normalized);
 
-    const targetTool = tool || toolFromPath(normalized) || 'compress';
+    const targetTool = tool || (normalized === '/workflows' ? 'workflows' : (toolFromPath(normalized) || 'compress'));
     setActiveTool(targetTool);
 
     if (normalized === '/') {
@@ -564,11 +573,19 @@ export default function App() {
     'collab_whiteboard',
   ].includes(activeTool);
 
+  const isWorkflowsPage =
+    currentPath === '/workflows' ||
+    currentPath === '/workflow' ||
+    currentPath === '/pdf-workflow' ||
+    currentPath === '/pdf-workflows' ||
+    currentPath === '/pipelines' ||
+    currentPath === '/automation';
+
   const isNotFound =
     currentPath !== '/' &&
     currentPath !== '/about' &&
     currentPath !== '/pdf-tools' &&
-    currentPath !== '/workflows' &&
+    !isWorkflowsPage &&
     currentPath !== '/p2p-share' &&
     !getToolPage(currentPath) &&
     !TOOL_PATHS[currentPath] &&
@@ -673,7 +690,7 @@ export default function App() {
             }}
             onNavigateHome={() => navigateTo('/')}
           />
-        ) : currentPath === '/workflows' ? (
+        ) : isWorkflowsPage ? (
           /* DEDICATED WORKFLOWS VIEW */
           <WorkflowsView
             onBackToHome={() => navigateTo('/')}

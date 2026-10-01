@@ -42,6 +42,16 @@ interface SearchCommandPaletteProps {
 }
 
 export const ALL_TOOLS: SearchToolItem[] = [
+  // Workflows & Pipelines
+  {
+    id: 'workflows',
+    name: 'Automated PDF Workflows',
+    category: 'PDF Tools',
+    description: 'Chain multiple tools into automated pipelines (Merge → Compress → Convert) with zero intermediate downloads.',
+    badge: 'New',
+    keywords: ['workflow', 'workflows', 'automate', 'pipeline', 'batch', 'chain', 'sequence', 'multi tool', 'multi-tool', 'automation', 'combine tools'],
+    iconName: 'Layers',
+  },
   // Existing Core
   {
     id: 'merge_pdf',

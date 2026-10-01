@@ -56,6 +56,7 @@ export const PDF_TOOL_CATEGORIES: ToolCategoryGroup[] = [
     name: 'Merge, Split & Organize',
     description: 'Combine multiple documents, extract custom page ranges, and rearrange pages.',
     tools: [
+      { path: '/workflows', tool: 'workflows', name: 'Automated PDF Workflows', description: 'Chain multiple tools sequentially (Merge → Compress → Convert) in one automated pipeline.', badge: 'New' },
       { path: '/merge-pdf', tool: 'merge_pdf', name: 'Merge PDF', description: 'Combine multiple PDF files into one neatly organized document.', badge: 'Popular' },
       { path: '/split-pdf', tool: 'split_pdf', name: 'Split PDF', description: 'Separate pages or extract custom page intervals into new PDFs.' },
       { path: '/scan-document', tool: 'scan_document', name: 'Camera Scanner', description: 'Capture documents with smartphone or webcam with auto-border detection.' },
