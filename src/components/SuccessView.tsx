@@ -284,11 +284,11 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
               <FileText className="w-5 h-5 text-[#ff3b30]" />
               <div>
                 <h4 className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  PDF Stream & XRef Rebuilt Successfully
+                  PDF file rebuilt successfully
                 </h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93]">
-                  Full compatibility across Adobe Acrobat, Preview, Chrome, and iOS Files.
-                  {result.pdfPageCount ? ` (${result.pdfPageCount} pages preserved)` : ''}
+                  {result.pdfPageCount ? `${result.pdfPageCount} pages preserved. ` : ''}
+                  Aggressive raster compression can flatten selectable text, forms, and links.
                 </p>
               </div>
             </div>
