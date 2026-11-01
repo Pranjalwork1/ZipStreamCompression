@@ -363,7 +363,6 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
             A maximum size is a best-effort goal, not an exact-size promise. The final file size is measured after compression.
           </p>
         )}
-        </div>
 
         {/* Advanced Options Accordion */}
         <div className="border border-black/[0.06] dark:border-white/[0.08] rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1e]">
