@@ -18,11 +18,5 @@
     "OCR_TIMEOUT_MS": "180000",
     "OCR_SUPPORTED_LANGUAGES": "eng,hin,fra,deu,spa",
     "OCR_CONTAINER_NAME": "zipstream-ocr-container"
-  },
-  "r2_buckets": [
-    {
-      "binding": "OCR_TEMP_BUCKET",
-      "bucket_name": "zipstream-ocr-temp"
-    }
-  ]
+  }
 }
