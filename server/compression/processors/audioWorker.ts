@@ -9,20 +9,25 @@ const execFileAsync = promisify(execFile);
 /**
  * Validates whether the audio file is readable and non-corrupted using ffprobe.
  */
-async function probeAudio(ffprobePath: string, filePath: string): Promise<number> {
+async function probeAudio(ffprobePath: string, filePath: string): Promise<{ duration: number; channels: number }> {
   try {
     const { stdout } = await execFileAsync(
       ffprobePath,
       [
         '-v', 'error',
-        '-show_entries', 'format=duration',
+        '-show_entries', 'format=duration:stream=channels,codec_type',
         '-of', 'json',
         filePath,
       ],
       { timeout: 10000 }
     );
     const data = JSON.parse(stdout);
-    return parseFloat(data.format?.duration || '0');
+    const audioStream = Array.isArray(data.streams) ? data.streams.find((stream: any) => stream.codec_type === 'audio') : undefined;
+    if (!audioStream) throw new Error('No audio stream found.');
+    return {
+      duration: parseFloat(data.format?.duration || '0'),
+      channels: Math.min(2, Math.max(1, Number(audioStream.channels) || 2)),
+    };
   } catch (err: any) {
     throw new Error(`Corrupted audio file: unable to read audio streams (${err.message}).`);
   }
@@ -63,7 +68,7 @@ export async function processAudio(
   if (onProgress) await onProgress(10);
 
   // 1. Corrupted file check
-  const duration = await probeAudio(ffprobePath, job.inputFilePath);
+  const { duration, channels } = await probeAudio(ffprobePath, job.inputFilePath);
 
   if (onProgress) await onProgress(20);
 
@@ -85,11 +90,15 @@ export async function processAudio(
   if (Number.isFinite(targetBytes) && targetBytes > 0 && duration > 0) {
     // Leave room for container/tags and avoid choosing a bitrate that cannot
     // plausibly fit the requested output budget.
-    const budgetBps = Math.floor((targetBytes * 0.97 * 8) / duration);
-    const minimumBps = audioCodec === 'opus' ? 24000 : 32000;
-    const targetBps = Math.max(minimumBps, Math.min(320000, budgetBps));
+    const budgetBps = Math.floor((targetBytes * 0.92 * 8) / duration);
+    const minimumBps = audioCodec === 'opus' ? 8000 : 16000;
+    const targetBps = Math.max(minimumBps, Math.min(320000, Number(job.options?.audioBitrate) > 0 ? Math.min(budgetBps, Number(job.options?.audioBitrate) * 1000) : budgetBps));
     mp3Bitrate = `${Math.floor(targetBps / 1000)}k`;
     opusBitrate = `${Math.floor(targetBps / 1000)}k`;
+  } else if (Number(job.options?.audioBitrate) > 0) {
+    const requestedKbps = Math.floor(Number(job.options?.audioBitrate));
+    mp3Bitrate = `${Math.min(320, Math.max(16, requestedKbps))}k`;
+    opusBitrate = `${Math.min(256, Math.max(8, requestedKbps))}k`;
   }
 
   const codecArgs =
@@ -98,12 +107,13 @@ export async function processAudio(
       : ['-c:a', 'libmp3lame', '-b:a', mp3Bitrate];
 
   // FFmpeg arguments:
-  // -ac 2 (downmix to stereo)
-  // preset bitrate
+  // Preserve mono sources as mono. Multichannel sources are safely downmixed
+  // to stereo instead of silently producing a large, unintended stream.
   const args = [
     '-y',
     '-i', job.inputFilePath,
-    '-ac', '2',
+    '-map', '0:a:0',
+    '-ac', String(channels),
     ...codecArgs,
     '-progress', 'pipe:1',
     job.outputFilePath,
@@ -170,6 +180,10 @@ export async function processAudio(
       const stat = await fs.stat(job.outputFilePath).catch(() => null);
       if (!stat || stat.size === 0) {
         return reject(new Error('Audio compression completed but generated an empty output file.'));
+      }
+      if (job.options?.targetSizeBytes && stat.size > job.options.targetSizeBytes) {
+        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
+        return reject(new Error('Audio output exceeds the requested size cap; try a larger cap or a lower bitrate.'));
       }
       if (job.originalSize > 0 && stat.size >= job.originalSize) {
         await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
