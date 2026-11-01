@@ -61,7 +61,7 @@ async function runJobLocally(jobData: CompressionJobData): Promise<void> {
   try {
     await fs.mkdir(path.dirname(jobData.outputFilePath), { recursive: true });
 
-    let processResult: { outputFilePath: string; compressedSize: number };
+    let processResult: { outputFilePath: string; compressedSize: number; mimeType?: string };
     const updateProgress = async (pct: number) => {
       const record = localJobs.get(jobId);
       if (record) record.progress = pct;
