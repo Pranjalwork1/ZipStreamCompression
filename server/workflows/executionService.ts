@@ -276,7 +276,10 @@ async function executeIndividualTool(
                   .toBuffer();
 
                 if (recompressed.length < origBuffer.length) {
-                  obj.contents = new Uint8Array(recompressed);
+                  // pdf-lib marks the raw stream's contents readonly in its public
+                  // type definitions, although the stream object is mutable at runtime.
+                  const mutableStream = obj as unknown as { contents: Uint8Array };
+                  mutableStream.contents = new Uint8Array(recompressed);
                   dict.set(PDFName.of('Length'), PDFNumber.of(recompressed.length));
                   dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
                   dict.delete(PDFName.of('DecodeParms'));
