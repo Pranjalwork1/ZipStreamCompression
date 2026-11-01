@@ -279,6 +279,18 @@ async function startServer() {
         originalSize * (level === 'high' ? 0.35 : level === 'low' ? 0.78 : 0.58)
       );
 
+      if (Number.isFinite(requestedTarget) && requestedTarget >= originalSize && requestedTarget > 0) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''zipstream-compressed.pdf");
+        res.setHeader('X-Original-Size', String(originalSize));
+        res.setHeader('X-Compressed-Size', String(originalSize));
+        res.setHeader('X-Compression-Engine', 'ghostscript');
+        res.setHeader('X-Compression-Status', 'already-under-target');
+        res.setHeader('X-Compression-Target-Met', 'true');
+        res.setHeader('X-Requested-Target-Size', String(requestedTarget));
+        return res.send(body);
+      }
+
       const profiles = [
         { pdfSettings: level === 'low' ? '/printer' : level === 'high' ? '/screen' : '/ebook', dpi: level === 'low' ? 150 : level === 'high' ? 72 : 110, jpegQuality: level === 'low' ? 85 : level === 'high' ? 55 : 70 },
         { pdfSettings: '/ebook', dpi: 96, jpegQuality: 62 },
