@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import { CompressionJobData } from '../types';
 import { ProcessResult } from './pdfWorker';
-import { getOutputPathForExtension, getTargetSizeBytes, preserveOriginal } from '../optimization';
+import { getOutputPathForExtension, getTargetSizeBytes, isTargetAlreadySatisfied, preserveOriginal } from '../optimization';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 
@@ -77,6 +77,12 @@ export async function processAudio(
   job: CompressionJobData,
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
+  if (isTargetAlreadySatisfied(job)) {
+    const preserved = await preserveOriginal(job);
+    if (onProgress) await onProgress(100);
+    return preserved;
+  }
+
   const ffmpegPath = getFfmpegPath();
   const ffprobePath = getFfprobePath();
   const timeoutMs = Math.max(30000, Number(process.env.AUDIO_TIMEOUT_MS) || 240000);
