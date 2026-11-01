@@ -71,7 +71,7 @@ export interface CompressionSettings {
   outputFormat: string; // 'original' | 'image/webp' | 'image/jpeg' | 'image/png' | 'audio/mp3' | 'audio/wav'
   scalePercent: number; // 50 to 100
   removeMetadata: boolean;
-  targetSizeBytes?: number; // Target exact file size limit in bytes (e.g. 4MB -> 4 * 1024 * 1024)
+  targetSizeBytes?: number; // Best-effort maximum output size in bytes (e.g. 4MB -> 4 * 1024 * 1024)
   targetDpi?: number; // for pdf (72, 96, 120, 150, 200, 300)
   imageQuality?: number; // 20 to 100 (e.g. 40, 65, 85)
   pdfMode?: 'raster_downsample' | 'lossless_stream'; // default raster_downsample for real size reduction
