@@ -65,7 +65,8 @@ export async function processVideo(
   if (onProgress) await onProgress(5);
 
   // 1. Guard against corrupted videos via ffprobe
-  const { duration } = await probeVideo(ffprobePath, job.inputFilePath);
+  const { duration, hasVideo } = await probeVideo(ffprobePath, job.inputFilePath);
+  if (!hasVideo) throw new Error('No video stream found in the selected file.');
 
   if (onProgress) await onProgress(10);
 
@@ -190,7 +191,7 @@ export async function processVideo(
         return reject(new Error('Video compression completed but generated an empty output file.'));
       }
 
-      if (stat.size >= job.originalSize && job.originalSize > 0) {
+      if ((stat.size >= job.originalSize && job.originalSize > 0) || (targetBytes && stat.size > targetBytes)) {
         // Run secondary aggressive pass to guarantee byte savings
         try {
           const pass2Output = job.outputFilePath + '.pass2.mp4';
@@ -209,7 +210,7 @@ export async function processVideo(
           ];
           await execFileAsync(ffmpegPath, pass2Args, { timeout: Math.min(120000, timeoutMs) });
           const stat2 = await fs.stat(pass2Output).catch(() => null);
-          if (stat2 && stat2.size > 0 && stat2.size < job.originalSize) {
+          if (stat2 && stat2.size > 0 && stat2.size < job.originalSize && (!targetBytes || stat2.size <= targetBytes)) {
             await fs.rename(pass2Output, job.outputFilePath);
             if (onProgress) await onProgress(100);
             return resolve({
@@ -221,6 +222,11 @@ export async function processVideo(
         } catch (pass2Err) {
           console.warn('[VideoWorker] Pass 2 reduction fallback skipped:', pass2Err);
         }
+      }
+
+      if (targetBytes && stat.size > targetBytes) {
+        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
+        return reject(new Error('Video output exceeds the requested size cap. Try a larger cap or a stronger compression level.'));
       }
 
       if (job.originalSize > 0 && stat.size >= job.originalSize) {
