@@ -81,6 +81,17 @@ export async function processAudio(
     opusBitrate = '160k';
   }
 
+  const targetBytes = Number(job.options?.targetSizeBytes);
+  if (Number.isFinite(targetBytes) && targetBytes > 0 && duration > 0) {
+    // Leave room for container/tags and avoid choosing a bitrate that cannot
+    // plausibly fit the requested output budget.
+    const budgetBps = Math.floor((targetBytes * 0.97 * 8) / duration);
+    const minimumBps = audioCodec === 'opus' ? 24000 : 32000;
+    const targetBps = Math.max(minimumBps, Math.min(320000, budgetBps));
+    mp3Bitrate = `${Math.floor(targetBps / 1000)}k`;
+    opusBitrate = `${Math.floor(targetBps / 1000)}k`;
+  }
+
   const codecArgs =
     audioCodec === 'opus'
       ? ['-c:a', 'libopus', '-b:a', opusBitrate, '-vbr', 'on']
@@ -159,6 +170,10 @@ export async function processAudio(
       const stat = await fs.stat(job.outputFilePath).catch(() => null);
       if (!stat || stat.size === 0) {
         return reject(new Error('Audio compression completed but generated an empty output file.'));
+      }
+      if (job.originalSize > 0 && stat.size >= job.originalSize) {
+        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
+        return reject(new Error('This audio is already optimized or cannot be reduced safely with the selected output codec.'));
       }
 
       if (onProgress) await onProgress(100);

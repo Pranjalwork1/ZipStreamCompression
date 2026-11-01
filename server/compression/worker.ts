@@ -8,8 +8,12 @@ import { processPdf } from './processors/pdfWorker';
 import { processImage } from './processors/imageWorker';
 import { processVideo } from './processors/videoWorker';
 import { processAudio } from './processors/audioWorker';
+import { getOutputMimeType } from './formats';
 
-const concurrency = Number(process.env.WORKER_CONCURRENCY) || 4;
+// PDF and media transcodes can each use substantial memory. Keep the default
+// conservative on typical app hosts; deployments can raise it after measuring
+// their available CPU and memory with WORKER_CONCURRENCY.
+const concurrency = Number(process.env.WORKER_CONCURRENCY) || 2;
 
 console.log(`[Worker] Starting ZipStream Compression Worker Pool (concurrency: ${concurrency})...`);
 
@@ -72,7 +76,7 @@ export const compressionWorker = new Worker<CompressionJobData, CompressionJobRe
       reductionPercentage,
       outputFileName: path.basename(processResult.outputFilePath),
       outputFilePath: processResult.outputFilePath,
-      mimeType: data.mimeType,
+      mimeType: getOutputMimeType(data.category, data),
       category: data.category,
       downloadToken,
       durationMs,

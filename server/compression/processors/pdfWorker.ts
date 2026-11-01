@@ -22,7 +22,7 @@ async function compressPdfInStream(
   targetBytes?: number,
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<number> {
-  const { PDFDocument, PDFName, PDFRawStream, PDFNumber } = await import('pdf-lib');
+    const { PDFDocument, PDFName, PDFRawStream, PDFNumber } = await import('pdf-lib');
   const sourceBytes = await fs.readFile(inputFilePath);
   const hasTarget = Number.isFinite(targetBytes) && Number(targetBytes) > 0 && Number(targetBytes) < sourceBytes.length;
   const target = hasTarget ? Math.floor(Number(targetBytes)) : undefined;
@@ -76,7 +76,10 @@ async function compressPdfInStream(
         const subtype = dict.get(PDFName.of('Subtype'));
         if (subtype === PDFName.of('Image')) {
           const filterStr = dict.get(PDFName.of('Filter'))?.toString() || '';
-          if (filterStr.includes('DCTDecode') || filterStr.includes('FlateDecode')) {
+          // Sharp accepts JPEG payloads directly. Flate streams contain PDF
+          // predictor/DecodeParms data and are not safe to reinterpret as image
+          // bytes here; leave them to Ghostscript's PDF-aware decoder.
+          if (filterStr === '/DCTDecode') {
             imageTasks.push({ obj, dict, origBuffer: Buffer.from(obj.contents) });
           }
         }
@@ -112,6 +115,9 @@ async function compressPdfInStream(
             const meta = await sharp(recompressed).metadata();
             if (meta.width) dict.set(PDFName.of('Width'), PDFNumber.of(meta.width));
             if (meta.height) dict.set(PDFName.of('Height'), PDFNumber.of(meta.height));
+            dict.set(PDFName.of('BitsPerComponent'), PDFNumber.of(8));
+            dict.set(PDFName.of('ColorSpace'), PDFName.of(meta.channels === 1 ? 'DeviceGray' : 'DeviceRGB'));
+            dict.delete(PDFName.of('Decode'));
           }
         } catch {
           // Unsupported image filters are left unchanged rather than risking corruption.
@@ -139,6 +145,15 @@ async function compressPdfInStream(
           (!bestUnderTarget || compressedBytes.length > bestUnderTarget.length)) {
         bestUnderTarget = compressedBytes;
       }
+    }
+
+    // The native profiles are also ordered from higher to lower quality.
+    // Stop at the first valid output under the cap instead of decoding and
+    // rebuilding every remaining profile.
+    if (target && compressedBytes.length > 0 && compressedBytes.length <= target &&
+        compressedBytes.length < sourceBytes.length) {
+      bestUnderTarget = compressedBytes;
+      break;
     }
 
     if (!hasTarget) break;
@@ -216,7 +231,8 @@ export async function processPdf(
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
   const gsPath = process.env.GHOSTSCRIPT_PATH || 'gs';
-  const timeoutMs = Number(process.env.PDF_TIMEOUT_MS) || 15000;
+  const timeoutMs = Number(process.env.PDF_TIMEOUT_MS) || 180000;
+  const deadline = Date.now() + timeoutMs;
   const level = job.options?.level || 'medium';
   const requestedTarget = Number(job.options?.targetSizeBytes);
   if (Number.isFinite(requestedTarget) && requestedTarget >= job.originalSize && requestedTarget > 0) {
@@ -242,6 +258,8 @@ export async function processPdf(
 
   try {
     for (let i = 0; i < profiles.length; i++) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) break;
       const profile = profiles[i];
       const candidatePath = job.outputFilePath + '.ghostscript-' + i + '.pdf';
       temporaryPaths.push(candidatePath);
@@ -254,6 +272,9 @@ export async function processPdf(
         '-dPDFSTOPONERROR',
         '-sDEVICE=pdfwrite',
         '-dCompatibilityLevel=1.4',
+        // PDFSETTINGS initializes a broad preset. Apply it before the explicit
+        // controls below so this profile's DPI and JPEG quality actually win.
+        '-dPDFSETTINGS=' + profile.pdfSettings,
         '-dDetectDuplicateImages=true',
         '-dCompressFonts=true',
         '-dSubsetFonts=true',
@@ -272,7 +293,6 @@ export async function processPdf(
         '-dGrayImageResolution=' + profile.dpi,
         '-dMonoImageResolution=' + profile.monoDpi,
         '-dJPEGQ=' + profile.jpegQuality,
-        '-dPDFSETTINGS=' + profile.pdfSettings,
         '-sOutputFile=' + candidatePath,
         job.inputFilePath,
       ];
@@ -280,7 +300,9 @@ export async function processPdf(
       try {
         if (onProgress) await onProgress(20 + Math.floor((i / profiles.length) * 55));
         await execFileAsync(gsPath, args, {
-          timeout: timeoutMs,
+          // Bound each full-document render while keeping all attempts within
+          // the overall PDF job budget.
+          timeout: Math.min(45_000, remainingMs),
           maxBuffer: 16 * 1024 * 1024,
         });
 
@@ -288,6 +310,11 @@ export async function processPdf(
         if (stat && stat.size > 0 && stat.size < job.originalSize &&
             await isValidPdfFile(candidatePath)) {
           candidates.push({ filePath: candidatePath, size: stat.size });
+
+          // Profiles are ordered from higher to lower quality. Once a valid
+          // result meets the requested cap, later passes can only reduce
+          // quality further, so stop here and keep this first fitting result.
+          if (targetBytes !== undefined && stat.size <= targetBytes) break;
         }
       } catch (err: any) {
         console.warn('[PDFWorker] Ghostscript profile failed: ' + err.message);

@@ -12,6 +12,7 @@ import { processPdf } from './processors/pdfWorker';
 import { processImage } from './processors/imageWorker';
 import { processVideo } from './processors/videoWorker';
 import { processAudio } from './processors/audioWorker';
+import { getOutputExtension, getOutputMimeType, normalizeAudioCodec, normalizeImageFormat } from './formats';
 
 const router = Router();
 
@@ -103,7 +104,7 @@ async function runJobLocally(jobData: CompressionJobData): Promise<void> {
       reductionPercentage,
       outputFileName: path.basename(processResult.outputFilePath),
       outputFilePath: processResult.outputFilePath,
-      mimeType: jobData.mimeType,
+      mimeType: getOutputMimeType(jobData.category, jobData),
       category: jobData.category,
       downloadToken,
       durationMs,
@@ -127,24 +128,6 @@ async function runJobLocally(jobData: CompressionJobData): Promise<void> {
       failedReason: err.message || 'Compression failed.',
       createdAt: Date.now(),
     });
-  }
-}
-
-/**
- * Helper to determine clean output extension based on category and options
- */
-function getOutputExtension(category: FileCategory, options?: any): string {
-  switch (category) {
-    case 'pdf':
-      return 'pdf';
-    case 'image':
-      return options?.imageFormat === 'jpeg' ? 'jpg' : 'webp';
-    case 'video':
-      return 'mp4';
-    case 'audio':
-      return options?.audioCodec === 'opus' ? 'opus' : 'mp3';
-    default:
-      return 'bin';
   }
 }
 
@@ -185,7 +168,15 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     }
 
     const jobId = crypto.randomUUID();
-    const outputExtension = getOutputExtension(detected.category, req.body);
+    const imageFormat = detected.category === 'image'
+      ? normalizeImageFormat(req.body.imageFormat, detected.mime)
+      : undefined;
+    const audioCodec = normalizeAudioCodec(req.body.audioCodec);
+    const requestedOptions = {
+      mimeType: detected.mime,
+      options: { imageFormat, audioCodec },
+    } satisfies Pick<CompressionJobData, 'mimeType' | 'options'>;
+    const outputExtension = getOutputExtension(detected.category, requestedOptions);
     const outputFileName = `compressed-${jobId}.${outputExtension}`;
     const outputFilePath = path.join(COMPRESSED_DIR, outputFileName);
 
@@ -196,10 +187,10 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       targetSizeBytes: Number.isFinite(parsedTargetSize) && parsedTargetSize > 0
         ? Math.floor(parsedTargetSize)
         : undefined,
-      imageFormat: req.body.imageFormat,
+      imageFormat,
       videoCodec: req.body.videoCodec || 'libx264',
       crf: req.body.crf ? Number(req.body.crf) : 28,
-      audioCodec: req.body.audioCodec || 'mp3',
+      audioCodec,
     };
 
     const jobData: CompressionJobData = {

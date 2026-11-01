@@ -188,7 +188,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
           </div>
         </div>
 
-        {result.originalFile.category === 'pdf' && result.settings.targetSizeBytes && (
+        {result.settings.targetSizeBytes && (
           <div className={`p-4 rounded-2xl border ${
             result.compressedSize <= result.settings.targetSizeBytes
               ? 'bg-[#34c759]/5 dark:bg-[#34c759]/10 border-[#34c759]/20 dark:border-[#34c759]/30'
@@ -198,7 +198,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
               <>
                 <p className="text-[13px] font-semibold text-[#248a3d] dark:text-[#4ade80]">
                   {result.originalFile.size <= result.settings.targetSizeBytes && result.compressedSize === result.originalFile.size
-                    ? 'Your PDF was already under the requested limit'
+                    ? 'Your file was already under the requested maximum'
                     : 'Requested size limit reached'}
                 </p>
                 <p className="text-[12px] text-[#6e6e73] dark:text-[#c4c4c8] mt-1">
@@ -212,7 +212,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
                 </p>
                 <p className="text-[12px] text-[#6e6e73] dark:text-[#c4c4c8] mt-1">
                   Best safe output: {formatBytes(result.compressedSize)} · Requested maximum: {formatBytes(result.settings.targetSizeBytes)}.
-                  This PDF may already contain optimized or non-compressible content. We kept the smallest valid result rather than damaging the document.
+                  This file may already contain optimized or non-compressible content. We kept the best available result rather than damaging it.
                 </p>
               </>
             )}

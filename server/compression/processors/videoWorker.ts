@@ -209,7 +209,7 @@ export async function processVideo(
           ];
           await execFileAsync(ffmpegPath, pass2Args, { timeout: Math.min(120000, timeoutMs) });
           const stat2 = await fs.stat(pass2Output).catch(() => null);
-          if (stat2 && stat2.size > 0 && stat2.size < stat.size) {
+          if (stat2 && stat2.size > 0 && stat2.size < job.originalSize) {
             await fs.rename(pass2Output, job.outputFilePath);
             if (onProgress) await onProgress(100);
             return resolve({
@@ -221,6 +221,11 @@ export async function processVideo(
         } catch (pass2Err) {
           console.warn('[VideoWorker] Pass 2 reduction fallback skipped:', pass2Err);
         }
+      }
+
+      if (job.originalSize > 0 && stat.size >= job.originalSize) {
+        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
+        return reject(new Error('This video is already optimized or cannot be reduced safely with the selected codec.'));
       }
 
       if (onProgress) await onProgress(100);
