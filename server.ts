@@ -325,7 +325,12 @@ async function startServer() {
               category: 'pdf',
               inputFilePath: inputPath,
               outputFilePath: fallbackOutput,
-              options: { level: level as any },
+              options: {
+                level: level as any,
+                targetSizeBytes: Number.isFinite(requestedTarget) && requestedTarget > 0
+                  ? Math.floor(requestedTarget)
+                  : undefined,
+              },
               createdAt: Date.now(),
             });
             const fallbackBuf = await fs.readFile(fallbackOutput);
@@ -334,6 +339,35 @@ async function startServer() {
             }
           } catch (fbErr: any) {
             logWarn(`Native PDF fallback in legacy endpoint failed: ${fbErr.message}`, undefined, requestId);
+          }
+        }
+
+        if (requestedTarget > 0 && !candidates.some(candidate => candidate.length <= targetMax)) {
+          // Try the native optimizer with the same target before declaring that
+          // the requested cap could not be reached by Ghostscript alone.
+          try {
+            const { processPdf } = await import('./server/compression/processors/pdfWorker');
+            const fallbackOutput = path.join(dir, 'output-target-fallback.pdf');
+            await processPdf({
+              jobId,
+              originalFileName: 'document.pdf',
+              originalSize,
+              mimeType: 'application/pdf',
+              category: 'pdf',
+              inputFilePath: inputPath,
+              outputFilePath: fallbackOutput,
+              options: {
+                level: level as any,
+                targetSizeBytes: Math.floor(requestedTarget),
+              },
+              createdAt: Date.now(),
+            });
+            const fallbackBuf = await fs.readFile(fallbackOutput);
+            if (fallbackBuf.length > 0 && fallbackBuf.length < originalSize) {
+              candidates.push(fallbackBuf);
+            }
+          } catch (fbErr: any) {
+            logWarn(`Native PDF target fallback failed: ${fbErr.message}`, undefined, requestId);
           }
         }
 
@@ -351,14 +385,19 @@ async function startServer() {
         }
 
         const underTarget = requestedTarget > 0 ? candidates.filter(b => b.length <= targetMax) : [];
-        const selected = (underTarget.length ? underTarget : candidates)
-          .reduce((best, current) => current.length > best.length ? current : best);
+        const selected = underTarget.length || requestedTarget <= 0
+          ? candidates.reduce((best, current) => current.length > best.length ? current : best)
+          : candidates.reduce((best, current) => current.length < best.length ? current : best);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="zipstream-compressed.pdf"');
         res.setHeader('X-Original-Size', String(originalSize));
         res.setHeader('X-Compressed-Size', String(selected.length));
         res.setHeader('X-Compression-Engine', 'ghostscript');
+        if (requestedTarget > 0) {
+          res.setHeader('X-Compression-Target-Met', String(selected.length <= targetMax));
+          res.setHeader('X-Requested-Target-Size', String(requestedTarget));
+        }
         return res.send(selected);
       } catch (err: any) {
         return sendError(res, 500, 'COMPRESSION_FAILED', 'Server PDF compression failed.', err, requestId);
