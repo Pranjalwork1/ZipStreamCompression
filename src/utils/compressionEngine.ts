@@ -155,15 +155,8 @@ export function estimateCompressedSize(
   category: 'pdf' | 'image' | 'video' | 'audio' | 'document',
   settings: CompressionSettings
 ): { estimatedBytes: number; savedPercentage: number } {
-  // If user set an explicit target size in MB/Bytes and original is larger than target:
-  if (settings.targetSizeBytes && settings.targetSizeBytes > 0 && originalSize > settings.targetSizeBytes) {
-    const target = Math.min(originalSize * 0.95, settings.targetSizeBytes);
-    const savedPercentage = Math.round(((originalSize - target) / originalSize) * 1000) / 10;
-    return {
-      estimatedBytes: Math.round(target),
-      savedPercentage: Math.max(1, savedPercentage),
-    };
-  }
+  // A target is a maximum, not a prediction. Keep the estimate independent of
+  // the requested cap so the UI never implies that an unverified target is guaranteed.
 
   let reductionPercent = 0.50; // default medium
 
@@ -223,12 +216,16 @@ export function estimateCompressedSize(
     reductionPercent = Math.min(0.95, reductionPercent + scaleFactor * 0.25);
   }
 
-  const estimatedBytes = Math.max(1024, Math.round(originalSize * (1 - reductionPercent)));
-  const actualSavedPercentage = Math.round(((originalSize - estimatedBytes) / originalSize) * 1000) / 10;
+  const estimatedBytes = originalSize > 0
+    ? Math.min(originalSize, Math.max(1, Math.round(originalSize * (1 - reductionPercent))))
+    : 0;
+  const actualSavedPercentage = originalSize > 0
+    ? Math.round(((originalSize - estimatedBytes) / originalSize) * 1000) / 10
+    : 0;
 
   return {
     estimatedBytes,
-    savedPercentage: Math.max(1, actualSavedPercentage),
+    savedPercentage: Math.max(0, actualSavedPercentage),
   };
 }
 
@@ -408,7 +405,8 @@ async function compressOnServerUnified(
 
   const controller = new AbortController();
   const isMedia = file.type?.startsWith('video/') || file.type?.startsWith('audio/') || /\.(mp4|mov|mkv|webm|avi|mp3|wav|flac)$/i.test(file.name);
-  const defaultTimeout = isMedia ? 120_000 : 45_000;
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  const defaultTimeout = isMedia ? 120_000 : isPdf ? 180_000 : 45_000;
   const timeoutMs = Number((import.meta as any).env?.VITE_COMPRESSION_TIMEOUT_MS) || defaultTimeout;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
@@ -497,8 +495,21 @@ async function compressPdfReal(
 ): Promise<{ blob: Blob; previewUrl?: string; pageCount: number; downloadUrl?: string }> {
   const originalSize = file.size;
 
-  // Production-first path: Railway + Ghostscript gives real PDF object/image
-  // optimization (the same class of server-side approach used by mature PDF services).
+  // When the source is already below the requested maximum, do not degrade it
+  // just to manufacture a smaller number. Return the original PDF unchanged.
+  if (settings.targetSizeBytes && settings.targetSizeBytes > 0 &&
+      originalSize <= settings.targetSizeBytes) {
+    const source = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(source, { ignoreEncryption: true });
+    const blob = new Blob([source], { type: 'application/pdf' });
+    return {
+      blob,
+      pageCount: pdfDoc.getPageCount(),
+      previewUrl: URL.createObjectURL(blob),
+    };
+  }
+
+  // Production-first path: server profiles perform real PDF object/image optimization.
   // Fall back to the browser engine if the backend is unavailable.
   if (originalSize > 0) {
     try {
@@ -545,7 +556,7 @@ async function compressPdfReal(
         addDefaultPage: false,
       });
       const blob = new Blob([compressedBytes], { type: 'application/pdf' });
-      if (blob.size < originalSize) {
+      if (blob.size < originalSize && blob.size <= targetMaxBytes) {
         return {
           blob,
           pageCount: pdfDoc.getPageCount(),
@@ -734,8 +745,11 @@ async function compressPdfReal(
     // Fast adaptive search space: at most 2 profiles instead of 21 CPU-locking profiles
     const requestedDpi = Math.max(36, Math.min(180, settings.targetDpi || (settings.level === 'high' ? 85 : settings.level === 'low' ? 160 : 120)));
     const retryProfiles = [
-      { dpi: requestedDpi, quality: settings.level === 'high' ? 0.40 : 0.65 },
+      { dpi: requestedDpi, quality: settings.level === 'high' ? 0.40 : settings.level === 'low' ? 0.72 : 0.58 },
       { dpi: 72, quality: 0.35 },
+      { dpi: 60, quality: 0.28 },
+      { dpi: 48, quality: 0.22 },
+      { dpi: 36, quality: 0.16 },
     ];
 
     for (const profile of retryProfiles) {
