@@ -155,6 +155,12 @@ export function estimateCompressedSize(
   category: 'pdf' | 'image' | 'video' | 'audio' | 'document',
   settings: CompressionSettings
 ): { estimatedBytes: number; savedPercentage: number } {
+  // A PDF that already meets the requested maximum is returned unchanged.
+  if (category === 'pdf' && settings.targetSizeBytes && settings.targetSizeBytes > 0 &&
+      originalSize <= settings.targetSizeBytes) {
+    return { estimatedBytes: originalSize, savedPercentage: 0 };
+  }
+
   // A target is a maximum, not a prediction. Keep the estimate independent of
   // the requested cap so the UI never implies that an unverified target is guaranteed.
 
