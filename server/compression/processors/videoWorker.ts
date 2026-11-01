@@ -1,15 +1,19 @@
-import { spawn, execFile } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
+import path from 'path';
 import { CompressionJobData } from '../types';
 import { ProcessResult } from './pdfWorker';
+import { getOutputPathForExtension, getTargetSizeBytes, preserveOriginal } from '../optimization';
 
 const execFileAsync = promisify(execFile);
 
-/**
- * Validates whether the media file is readable and non-corrupted using ffprobe.
- */
-async function probeVideo(ffprobePath: string, filePath: string): Promise<{ duration: number; hasVideo: boolean }> {
+type ProbeResult = {
+  duration: number;
+  hasVideo: boolean;
+};
+
+async function probeVideo(ffprobePath: string, filePath: string): Promise<ProbeResult> {
   try {
     const { stdout } = await execFileAsync(
       ffprobePath,
@@ -19,40 +23,118 @@ async function probeVideo(ffprobePath: string, filePath: string): Promise<{ dura
         '-of', 'json',
         filePath,
       ],
-      { timeout: 15000 }
+      { timeout: 30000, maxBuffer: 4 * 1024 * 1024, windowsHide: true }
     );
     const data = JSON.parse(stdout);
-    const duration = parseFloat(data.format?.duration || '0');
-    const hasVideo = Array.isArray(data.streams) && data.streams.some((s: any) => s.codec_type === 'video');
+    const duration = Number.parseFloat(data.format?.duration || '0');
+    const hasVideo = Array.isArray(data.streams) &&
+      data.streams.some((stream: any) => stream.codec_type === 'video');
+    if (!Number.isFinite(duration) || duration <= 0 || !hasVideo) {
+      throw new Error('No valid video stream or duration was found.');
+    }
     return { duration, hasVideo };
   } catch (err: any) {
-    throw new Error(`Corrupted video file: ffprobe was unable to read file streams (${err.message}).`);
+    throw new Error(`Unable to read video streams: ${err.message}`);
   }
 }
 
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import ffprobeInstaller from '@ffprobe-installer/ffprobe';
-
 function getFfmpegPath(): string {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
-  const p = (ffmpegInstaller as any)?.path || (ffmpegInstaller as any)?.default?.path;
-  if (p) return p;
-  return 'ffmpeg';
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const installer = require('@ffmpeg-installer/ffmpeg');
+    return installer.path || 'ffmpeg';
+  } catch {
+    return 'ffmpeg';
+  }
 }
 
 function getFfprobePath(): string {
   if (process.env.FFPROBE_PATH) return process.env.FFPROBE_PATH;
-  const p = (ffprobeInstaller as any)?.path || (ffprobeInstaller as any)?.default?.path;
-  if (p) return p;
-  return 'ffprobe';
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const installer = require('@ffprobe-installer/ffprobe');
+    return installer.path || 'ffprobe';
+  } catch {
+    return 'ffprobe';
+  }
+}
+
+async function encodeVideo(
+  ffmpegPath: string,
+  inputPath: string,
+  outputPath: string,
+  codec: 'libx264' | 'libx265',
+  crf: number,
+  maxWidth: number,
+  timeoutMs: number,
+  targetVideoBitrate?: number
+): Promise<void> {
+  const preset = 'slow';
+  const common = [
+    '-y',
+    '-i', inputPath,
+    '-map', '0:v:0',
+    '-map', '0:a?',
+    '-vf', `scale='min(${maxWidth},iw)':-2:force_original_aspect_ratio=decrease`,
+    '-c:v', codec,
+    '-preset', preset,
+    '-pix_fmt', 'yuv420p',
+    '-map_metadata', '-1',
+    '-threads', '0',
+  ];
+
+  if (targetVideoBitrate && targetVideoBitrate > 0) {
+    const passLog = `${outputPath}.passlog`;
+    const passOne = [
+      ...common,
+      '-b:v', String(targetVideoBitrate),
+      '-pass', '1',
+      '-passlogfile', passLog,
+      '-an',
+      '-f', 'null',
+      process.platform === 'win32' ? 'NUL' : '/dev/null',
+    ];
+    const passTwo = [
+      ...common,
+      '-b:v', String(targetVideoBitrate),
+      '-pass', '2',
+      '-passlogfile', passLog,
+      '-c:a', 'aac',
+      '-b:a', '96k',
+      '-ac', '2',
+      '-movflags', '+faststart',
+      outputPath,
+    ];
+    try {
+      await execFileAsync(ffmpegPath, passOne, { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+      await execFileAsync(ffmpegPath, passTwo, { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+    } finally {
+      await Promise.all([
+        fs.rm(`${passLog}-0.log`, { force: true }).catch(() => undefined),
+        fs.rm(`${passLog}-0.log.mbtree`, { force: true }).catch(() => undefined),
+        fs.rm(`${passLog}-0.log.temp`, { force: true }).catch(() => undefined),
+      ]);
+    }
+    return;
+  }
+
+  await execFileAsync(ffmpegPath, [
+    ...common,
+    '-crf', String(crf),
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-ac', '2',
+    '-movflags', '+faststart',
+    outputPath,
+  ], { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024, windowsHide: true });
 }
 
 /**
- * Video Worker: Re-encodes video according to user preset:
- * - high (Extreme / Smaller): 720p max, CRF 32, AAC 96k, preset medium
- * - medium (Recommended / Balanced): 1080p max, CRF 28, AAC 128k, preset medium
- * - low (Less / Best Quality): 1080p max, CRF 23, AAC 192k, preset medium
- * Incorporates strict process timeouts and corrupted file guards.
+ * Video optimizer uses slow x264/x265 encoding presets for better rate-distortion
+ * efficiency. Size-capped jobs use two-pass average-bitrate encoding with a
+ * retry ladder. Outputs are probed before acceptance, and larger-than-source
+ * encodes are discarded in favour of the untouched original.
  */
 export async function processVideo(
   job: CompressionJobData,
@@ -60,175 +142,108 @@ export async function processVideo(
 ): Promise<ProcessResult> {
   const ffmpegPath = getFfmpegPath();
   const ffprobePath = getFfprobePath();
-  const timeoutMs = Number(process.env.VIDEO_TIMEOUT_MS) || 600000; // 10 minutes default
-
-  if (onProgress) await onProgress(5);
-
-  // 1. Guard against corrupted videos via ffprobe
+  const timeoutMs = Math.max(60000, Number(process.env.VIDEO_TIMEOUT_MS) || 900000);
   const { duration } = await probeVideo(ffprobePath, job.inputFilePath);
+  const targetBytes = getTargetSizeBytes(job);
+  const codec = job.options?.videoCodec || 'libx264';
+  const level = job.options?.level || 'medium';
 
   if (onProgress) await onProgress(10);
 
-  const level = job.options?.level || 'medium';
-  const codec = job.options?.videoCodec || 'libx264';
-  const targetBytes = job.options?.targetSizeBytes ? Number(job.options.targetSizeBytes) : undefined;
+  const targetBps = targetBytes
+    ? Math.floor((targetBytes * 8 * 0.94) / duration)
+    : undefined;
+  const audioBps = targetBps ? 96000 : 128000;
+  const baseVideoBps = targetBps ? Math.max(80000, targetBps - audioBps) : undefined;
+  const profiles = targetBytes
+    ? [
+        { factor: 1, width: 1920, crf: 24 },
+        { factor: 0.88, width: 1920, crf: 26 },
+        { factor: 0.76, width: 1600, crf: 28 },
+        { factor: 0.64, width: 1280, crf: 30 },
+        { factor: 0.52, width: 960, crf: 32 },
+        { factor: 0.40, width: 854, crf: 35 },
+      ]
+    : [level === 'high'
+      ? { factor: 1, width: 1280, crf: 29 }
+      : level === 'low'
+        ? { factor: 1, width: 1920, crf: 22 }
+        : { factor: 1, width: 1600, crf: 25 }];
 
-  let crf = 28;
-  let maxScaleWidth = 1280;
-  let audioBitrate = '96k';
-  let videoBitrateArgs: string[] = [];
+  const candidates: Array<{ path: string; size: number }> = [];
+  const temporaryPaths: string[] = [];
+  const outputFilePath = getOutputPathForExtension(job.outputFilePath, '.mp4');
 
-  if (targetBytes && targetBytes > 0 && duration > 0) {
-    const totalBits = targetBytes * 8;
-    const targetTotalBps = Math.floor(totalBits / duration);
-    const targetAudioBps = Math.min(128000, Math.max(48000, Math.floor(targetTotalBps * 0.15)));
-    const targetVideoBps = Math.max(100000, targetTotalBps - targetAudioBps);
-    videoBitrateArgs = [
-      '-b:v', `${targetVideoBps}`,
-      '-maxrate', `${Math.floor(targetVideoBps * 1.3)}`,
-      '-bufsize', `${Math.floor(targetVideoBps * 2)}`,
-    ];
-    audioBitrate = `${Math.floor(targetAudioBps / 1000)}k`;
-    maxScaleWidth = targetVideoBps < 400000 ? 854 : targetVideoBps < 800000 ? 1280 : 1920;
-  } else if (level === 'high') {
-    // Smaller / Extreme compression
-    crf = job.options?.crf !== undefined ? job.options.crf : 32;
-    maxScaleWidth = 960;
-    audioBitrate = '64k';
-  } else if (level === 'low') {
-    // Best Quality
-    crf = job.options?.crf !== undefined ? job.options.crf : 23;
-    maxScaleWidth = 1920;
-    audioBitrate = '160k';
-  } else {
-    // Balanced
-    crf = job.options?.crf !== undefined ? job.options.crf : 28;
-    maxScaleWidth = 1280;
-    audioBitrate = '96k';
-  }
+  try {
+    for (let index = 0; index < profiles.length; index++) {
+      const profile = profiles[index];
+      const candidatePath = `${outputFilePath}.candidate-${index}.mp4`;
+      temporaryPaths.push(candidatePath);
 
-  // FFmpeg arguments
-  const args = [
-    '-y',
-    '-i', job.inputFilePath,
-    '-vf', `scale='min(${maxScaleWidth},iw)':-2`,
-    '-c:v', codec,
-    ...(videoBitrateArgs.length > 0 ? videoBitrateArgs : ['-crf', String(crf)]),
-    '-preset', 'faster',
-    '-c:a', 'aac',
-    '-b:a', audioBitrate,
-    '-ac', '2',
-    '-movflags', '+faststart',
-    '-progress', 'pipe:1',
-    job.outputFilePath,
-  ];
+      const bitrate = baseVideoBps
+        ? Math.max(64000, Math.floor(baseVideoBps * profile.factor))
+        : undefined;
 
-  return new Promise((resolve, reject) => {
-    let timer: NodeJS.Timeout | null = null;
-    let timedOut = false;
-    let lastProgressPct = 10;
-
-    const child = spawn(ffmpegPath, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    // Timeout guard with clean SIGTERM / SIGKILL cascade
-    timer = setTimeout(() => {
-      timedOut = true;
-      console.warn(`[VideoWorker] Job ${job.jobId} timed out after ${timeoutMs}ms. Terminating FFmpeg...`);
-      child.kill('SIGTERM');
-      setTimeout(() => {
-        if (!child.killed) child.kill('SIGKILL');
-      }, 5000);
-    }, timeoutMs);
-
-    let stderrBuffer = '';
-
-    child.stderr.on('data', (chunk) => {
-      stderrBuffer += chunk.toString();
-      if (stderrBuffer.length > 32768) {
-        stderrBuffer = stderrBuffer.slice(-16384);
-      }
-    });
-
-    // Parse progress stream
-    child.stdout.on('data', (chunk) => {
-      const text = chunk.toString();
-      const match = text.match(/out_time_us=(\d+)/);
-      if (match && duration > 0) {
-        const timeSec = parseInt(match[1], 10) / 1000000;
-        const pct = Math.min(95, Math.max(10, Math.floor((timeSec / duration) * 90) + 10));
-        if (pct > lastProgressPct) {
-          lastProgressPct = pct;
-          if (onProgress) {
-            onProgress(pct).catch(() => undefined);
-          }
-        }
-      }
-    });
-
-    child.on('error', (err) => {
-      if (timer) clearTimeout(timer);
-      reject(new Error(`Failed to start FFmpeg for video processing: ${err.message}`));
-    });
-
-    child.on('close', async (code) => {
-      if (timer) clearTimeout(timer);
-
-      if (timedOut) {
-        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
-        return reject(new Error(`Video compression timed out after ${Math.round(timeoutMs / 1000)} seconds.`));
+      if (onProgress) {
+        await onProgress(Math.min(90, 15 + Math.floor((index / profiles.length) * 70)));
       }
 
-      if (code !== 0) {
-        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
-        return reject(new Error(`FFmpeg exited with error code ${code}: ${stderrBuffer.slice(-500)}`));
+      try {
+        await encodeVideo(
+          ffmpegPath,
+          job.inputFilePath,
+          candidatePath,
+          codec,
+          profile.crf,
+          profile.width,
+          timeoutMs,
+          bitrate
+        );
+      } catch (error: any) {
+        console.warn(`[VideoWorker] Encoding profile ${index + 1} failed: ${error.message}`);
+        if (index === 0) throw error;
+        continue;
       }
 
-      const stat = await fs.stat(job.outputFilePath).catch(() => null);
-      if (!stat || stat.size === 0) {
-        return reject(new Error('Video compression completed but generated an empty output file.'));
+      const stat = await fs.stat(candidatePath).catch(() => null);
+      if (!stat || stat.size <= 0 || stat.size >= job.originalSize) continue;
+
+      try {
+        await probeVideo(ffprobePath, candidatePath);
+      } catch {
+        continue;
       }
 
-      if (stat.size >= job.originalSize && job.originalSize > 0) {
-        // Run secondary aggressive pass to guarantee byte savings
-        try {
-          const pass2Output = job.outputFilePath + '.pass2.mp4';
-          const pass2Args = [
-            '-y',
-            '-i', job.inputFilePath,
-            '-vf', "scale='min(854,trunc(iw*0.75/2)*2)':-2",
-            '-c:v', codec,
-            '-crf', String(Math.min(42, crf + 6)),
-            '-preset', 'faster',
-            '-c:a', 'aac',
-            '-b:a', '64k',
-            '-ac', '2',
-            '-movflags', '+faststart',
-            pass2Output,
-          ];
-          await execFileAsync(ffmpegPath, pass2Args, { timeout: Math.min(120000, timeoutMs) });
-          const stat2 = await fs.stat(pass2Output).catch(() => null);
-          if (stat2 && stat2.size > 0 && stat2.size < stat.size) {
-            await fs.rename(pass2Output, job.outputFilePath);
-            if (onProgress) await onProgress(100);
-            return resolve({
-              outputFilePath: job.outputFilePath,
-              compressedSize: stat2.size,
-            });
-          }
-          await fs.rm(pass2Output, { force: true }).catch(() => undefined);
-        } catch (pass2Err) {
-          console.warn('[VideoWorker] Pass 2 reduction fallback skipped:', pass2Err);
-        }
-      }
+      candidates.push({ path: candidatePath, size: stat.size });
+      if (!targetBytes) break;
+    }
 
+    const fitting = targetBytes
+      ? candidates.filter(candidate => candidate.size <= targetBytes)
+      : [];
+    const selected = fitting.length
+      ? fitting.reduce((best, current) => current.size > best.size ? current : best)
+      : candidates.length
+        ? candidates.reduce((best, current) => current.size < best.size ? current : best)
+        : undefined;
+
+    if (!selected) {
+      const preserved = await preserveOriginal(job);
       if (onProgress) await onProgress(100);
+      return preserved;
+    }
 
-      resolve({
-        outputFilePath: job.outputFilePath,
-        compressedSize: stat.size,
-      });
-    });
-  });
+    await fs.copyFile(selected.path, outputFilePath);
+    const stat = await fs.stat(outputFilePath);
+    if (onProgress) await onProgress(100);
+    return {
+      outputFilePath,
+      compressedSize: stat.size,
+      mimeType: 'video/mp4',
+    };
+  } finally {
+    await Promise.all(temporaryPaths.map(filePath =>
+      fs.rm(filePath, { force: true }).catch(() => undefined)
+    ));
+  }
 }
