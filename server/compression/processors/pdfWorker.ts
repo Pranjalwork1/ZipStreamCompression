@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import { PDFDocument, PDFName } from 'pdf-lib';
 import { CompressionJobData } from '../types';
-import { getTargetSizeBytes, preserveOriginal } from '../optimization';
+import { getTargetSizeBytes, isTargetAlreadySatisfied, preserveOriginal } from '../optimization';
 
 const execFileAsync = promisify(execFile);
 
@@ -99,9 +99,7 @@ export async function processPdf(
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
   const targetBytes = getTargetSizeBytes(job);
-  if (Number.isFinite(Number(job.options?.targetSizeBytes)) &&
-      Number(job.options?.targetSizeBytes) >= job.originalSize &&
-      Number(job.options?.targetSizeBytes) > 0) {
+  if (isTargetAlreadySatisfied(job)) {
     const preserved = await preserveOriginal(job);
     if (onProgress) await onProgress(100);
     return preserved;
