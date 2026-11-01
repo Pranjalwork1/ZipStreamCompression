@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:security": "tsx scripts/verify_security.ts",
-    "test:compression": "vitest run server/__tests__/compressionRegression.test.ts",
+    "test:compression": "vitest run server/__tests__/compressionRegression.test.ts server/compression/__tests__",
     "test:word": "tsx scripts/test_word_to_pdf.ts",
     "test:seo": "tsx scripts/verify_seo.ts",
     "deploy": "npm run build && wrangler deploy"
