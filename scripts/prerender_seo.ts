@@ -1001,7 +1001,10 @@ function generateDirectoryHtml(baseHtml: string): string {
 }
 
 export function prerenderAllRoutes() {
-  const indexHtmlPath = path.join(DIST_DIR, 'index.html');
+  const targetDir = fs.existsSync(path.join(DIST_DIR, 'client', 'index.html'))
+    ? path.join(DIST_DIR, 'client')
+    : DIST_DIR;
+  const indexHtmlPath = path.join(targetDir, 'index.html');
   if (!fs.existsSync(indexHtmlPath)) {
     console.error('Error: dist/index.html not found. Run vite build first.');
     return;
@@ -1012,7 +1015,7 @@ export function prerenderAllRoutes() {
 
   // Prerender Tool Routes
   for (const route of TOOL_ROUTES) {
-    const routeDir = path.join(DIST_DIR, route.path.replace(/^\//, ''));
+    const routeDir = path.join(targetDir, route.path.replace(/^\//, ''));
     if (!fs.existsSync(routeDir)) {
       fs.mkdirSync(routeDir, { recursive: true });
     }
@@ -1022,7 +1025,7 @@ export function prerenderAllRoutes() {
   }
 
   // Prerender /pdf-tools directory
-  const dirPath = path.join(DIST_DIR, 'pdf-tools');
+  const dirPath = path.join(targetDir, 'pdf-tools');
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
@@ -1031,7 +1034,7 @@ export function prerenderAllRoutes() {
   console.log('  ✓ Prerendered /pdf-tools/index.html');
 
   // Verify and update sitemap.xml in dist/
-  const sitemapPath = path.join(DIST_DIR, 'sitemap.xml');
+  const sitemapPath = path.join(targetDir, 'sitemap.xml');
   const allUrls = [
     { loc: 'https://zipstream.online/', priority: '1.0', changefreq: 'daily' },
     { loc: 'https://zipstream.online/pdf-tools', priority: '0.9', changefreq: 'daily' },

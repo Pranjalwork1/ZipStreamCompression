@@ -26,5 +26,15 @@ export function canonicalRedirectMiddleware(req: Request, res: Response, next: N
     return res.redirect(301, targetUrl.toString());
   }
 
+  // Enforce no trailing slash on paths (excluding root '/') for SEO canonicalization
+  if (req.path.length > 1 && req.path.endsWith('/')) {
+    const cleanPath = req.path.slice(0, -1);
+    const search = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const targetUrl = isLocal
+      ? `${cleanPath}${search}`
+      : new URL(`${cleanPath}${search}`, serverConfig.publicBaseUrl).toString();
+    return res.redirect(301, targetUrl);
+  }
+
   next();
 }

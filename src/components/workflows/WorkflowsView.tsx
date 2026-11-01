@@ -404,7 +404,7 @@ export const WorkflowsView: React.FC<WorkflowsViewProps> = ({ onBackToHome }) =>
                           return (
                             <React.Fragment key={st.id || idx}>
                               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/80 dark:bg-white/[0.06] text-[11.5px] font-medium text-slate-700 dark:text-slate-200">
-                                <span>{toolInfo?.icon || '⚙️'}</span>
+                                <span>{(toolInfo as any)?.icon || '⚙️'}</span>
                                 <span>{toolInfo?.label || st.tool_key}</span>
                               </div>
                               {idx < wf.steps.length - 1 && (
@@ -500,7 +500,7 @@ export const WorkflowsView: React.FC<WorkflowsViewProps> = ({ onBackToHome }) =>
                         return (
                           <React.Fragment key={idx}>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/80 dark:bg-white/[0.06] text-[11.5px] font-medium text-slate-700 dark:text-slate-200">
-                              <span>{toolInfo?.icon || '⚙️'}</span>
+                              <span>{(toolInfo as any)?.icon || '⚙️'}</span>
                               <span>{toolInfo?.label || st.tool_key}</span>
                             </div>
                             {idx < tmpl.steps.length - 1 && (
