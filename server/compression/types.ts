@@ -12,7 +12,13 @@ export interface CompressionJobData {
     level?: 'low' | 'medium' | 'high';
     targetSizeBytes?: number;
     // Format-specific overrides
-    imageFormat?: 'webp' | 'jpeg';
+    imageFormat?: 'original' | 'webp' | 'jpeg' | 'png';
+    scalePercent?: number;
+    imageQuality?: number;
+    targetDpi?: number;
+    audioBitrate?: number;
+    grayscale?: boolean;
+    removeMetadata?: boolean;
     videoCodec?: 'libx264' | 'libx265';
     crf?: number;
     audioCodec?: 'mp3' | 'opus';
