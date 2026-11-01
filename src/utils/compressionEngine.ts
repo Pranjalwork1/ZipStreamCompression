@@ -423,6 +423,11 @@ async function compressOnServerUnified(
     formData.append('level', settings.level || 'medium');
     if (settings.targetSizeBytes) formData.append('targetSizeBytes', String(settings.targetSizeBytes));
     if (settings.outputFormat) formData.append('imageFormat', settings.outputFormat);
+    if (file.type?.startsWith('audio/')) {
+      formData.append('audioCodec', settings.outputFormat?.toLowerCase().includes('opus') ? 'opus' : 'mp3');
+      if (settings.audioBitrate) formData.append('audioBitrate', String(settings.audioBitrate));
+    }
+    if (file.type?.startsWith('video/')) formData.append('videoCodec', 'libx264');
 
     const uploadRes = await fetch(`${backend}/api/compress/upload`, {
       method: 'POST',
@@ -1026,22 +1031,17 @@ async function compressVideoReal(
           recorder.onstop = () => {
             cleanup();
             const compressedBlob = new Blob(chunks, { type: mimeType.split(';')[0] });
-            if (compressedBlob.size > 0) {
+            if (compressedBlob.size > 0 && compressedBlob.size < file.size) {
               resolve({
                 blob: compressedBlob,
                 previewUrl: URL.createObjectURL(compressedBlob),
               });
             } else {
-              reject(new Error('Video transcoding produced an empty output.'));
+              reject(new Error('Browser video conversion did not produce a smaller file. Try another compression level.'));
             }
           };
 
           recorder.start(250);
-
-          // Fast playback acceleration (2.0x) so encoding finishes in half the runtime
-          try {
-            video.playbackRate = 2.0;
-          } catch {}
 
           video.currentTime = 0;
           await video.play();
@@ -1085,103 +1085,17 @@ async function compressVideoReal(
 }
 
 /**
- * Real Audio Compression using Web Audio API downsampling
+ * Audio compression uses the server FFmpeg encoder. Web Audio can decode and
+ * resample audio, but its PCM WAV output is not a valid lossy compression path.
  */
 async function compressAudioReal(
   file: File,
   settings: CompressionSettings,
   onProgress?: (pct: number, text: string) => void
 ): Promise<{ blob: Blob; previewUrl?: string }> {
-  // Try backend FFmpeg worker first!
   const remote = await compressOnServerUnified(file, settings, onProgress);
-  if (remote) return remote;
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) {
-      const blob = new Blob([arrayBuffer], { type: file.type || 'audio/wav' });
-      return { blob };
-    }
-
-    const audioCtx = new AudioContextClass();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
-
-    let targetSampleRate = 22050;
-    if (settings.level === 'low') targetSampleRate = 32000;
-    if (settings.level === 'high') targetSampleRate = 16000;
-
-    const numChannels = settings.level === 'high' ? 1 : Math.min(2, audioBuffer.numberOfChannels);
-    const length = Math.ceil(audioBuffer.duration * targetSampleRate);
-    const offlineCtx = new OfflineAudioContext(numChannels, length, targetSampleRate);
-
-    const source = offlineCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(offlineCtx.destination);
-    source.start(0);
-
-    const renderedBuffer = await offlineCtx.startRendering();
-    await audioCtx.close();
-
-    const wavBlob = encodeWavBlob(renderedBuffer, targetSampleRate, numChannels);
-    return {
-      blob: wavBlob,
-      previewUrl: URL.createObjectURL(wavBlob),
-    };
-  } catch (err) {
-    console.warn('Audio compression fallback:', err);
-    const arrayBuffer = await file.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: file.type || 'audio/wav' });
-    return { blob };
-  }
-}
-
-/**
- * Encodes an AudioBuffer into a binary WAV Blob
- */
-function encodeWavBlob(buffer: AudioBuffer, sampleRate: number, numChannels: number): Blob {
-  const numSamples = buffer.length;
-  const blockAlign = numChannels * 2;
-  const byteRate = sampleRate * blockAlign;
-  const dataSize = numSamples * blockAlign;
-  const outBuffer = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(outBuffer);
-
-  const writeString = (offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
-  writeString(0, 'RIFF');
-  view.setUint32(4, 36 + dataSize, true);
-  writeString(8, 'WAVE');
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, 16, true); // 16-bit
-  writeString(36, 'data');
-  view.setUint32(40, dataSize, true);
-
-  const channelData = [];
-  for (let c = 0; c < numChannels; c++) {
-    channelData.push(buffer.getChannelData(c));
-  }
-
-  let offset = 44;
-  for (let i = 0; i < numSamples; i++) {
-    for (let c = 0; c < numChannels; c++) {
-      const s = Math.max(-1, Math.min(1, channelData[c][i]));
-      const intSample = s < 0 ? s * 0x8000 : s * 0x7fff;
-      view.setInt16(offset, intSample, true);
-      offset += 2;
-    }
-  }
-
-  return new Blob([outBuffer], { type: 'audio/wav' });
+  if (remote && remote.blob.size > 0 && remote.blob.size < file.size) return remote;
+  throw new Error('Audio compression requires the FFmpeg service. Browser-only processing cannot reliably create a smaller MP3 or Opus file.');
 }
 
 /**
