@@ -1,7 +1,7 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
-import { PDFDocument, PDFName } from 'pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNull } from 'pdf-lib';
 import { CompressionJobData } from '../types';
 import { getTargetSizeBytes, isTargetAlreadySatisfied, preserveOriginal } from '../optimization';
 
@@ -47,6 +47,21 @@ function getGhostscriptProfiles(level: 'high' | 'medium' | 'low'): GhostscriptPr
   return profiles[level] || profiles.medium;
 }
 
+function hasNonEmptyPdfObject(document: PDFDocument, value: any): boolean {
+  if (value === undefined || value === null) return false;
+  try {
+    const resolved = document.context.lookup(value);
+    if (resolved instanceof PDFNull) return false;
+    if (resolved instanceof PDFArray || resolved instanceof PDFDict) {
+      return resolved.size() > 0;
+    }
+    return true;
+  } catch {
+    // Unknown or malformed objects are treated conservatively.
+    return true;
+  }
+}
+
 async function inspectPdf(filePath: string): Promise<{ pageCount: number; hasInteractiveContent: boolean }> {
   const bytes = await fs.readFile(filePath);
   if (bytes.length < 8 || bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
@@ -60,19 +75,30 @@ async function inspectPdf(filePath: string): Promise<{ pageCount: number; hasInt
   const pageCount = document.getPageCount();
   if (pageCount < 1) throw new Error('PDF contains no pages.');
 
-  // Ghostscript's pdfwrite device can flatten/drop interactive structures.
-  // Preserve source PDFs containing forms, annotations, or named destinations.
+  // pdf-lib may materialize an empty /Names dictionary. Only mark the PDF as
+  // interactive when actual forms, annotations, name-tree entries, outlines,
+  // actions, or tagged structure are present.
   const catalog = document.catalog;
-  const hasAcroForm = catalog.get(PDFName.of('AcroForm')) !== undefined;
-  const hasNames = catalog.get(PDFName.of('Names')) !== undefined;
-  const hasAnnotations = document.getPages().some(page => {
-    const annotations = page.node.get(PDFName.of('Annots'));
-    return annotations !== undefined;
-  });
+  const hasAcroForm = hasNonEmptyPdfObject(document, catalog.get(PDFName.of('AcroForm')));
+  const namesValue = catalog.get(PDFName.of('Names'));
+  const namesDictionary = namesValue ? document.context.lookup(namesValue) : undefined;
+  const hasNameTreeContent = namesDictionary instanceof PDFDict &&
+    ['Dests', 'JavaScript', 'EmbeddedFiles'].some(key =>
+      hasNonEmptyPdfObject(document, namesDictionary.get(PDFName.of(key)))
+    );
+  const hasAnnotations = document.getPages().some(page =>
+    hasNonEmptyPdfObject(document, page.node.get(PDFName.of('Annots')))
+  );
+  const hasOtherInteractiveContent = [
+    'Outlines',
+    'OpenAction',
+    'AA',
+    'StructTreeRoot',
+  ].some(key => hasNonEmptyPdfObject(document, catalog.get(PDFName.of(key))));
 
   return {
     pageCount,
-    hasInteractiveContent: hasAcroForm || hasNames || hasAnnotations,
+    hasInteractiveContent: hasAcroForm || hasNameTreeContent || hasAnnotations || hasOtherInteractiveContent,
   };
 }
 
