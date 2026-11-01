@@ -72,7 +72,7 @@ export const compressionWorker = new Worker<CompressionJobData, CompressionJobRe
       reductionPercentage,
       outputFileName: path.basename(processResult.outputFilePath),
       outputFilePath: processResult.outputFilePath,
-      mimeType: data.mimeType,
+      mimeType: processResult.mimeType || data.mimeType,
       category: data.category,
       downloadToken,
       durationMs,
