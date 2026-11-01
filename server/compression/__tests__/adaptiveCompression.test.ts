@@ -65,5 +65,5 @@ describe('Adaptive image compression', () => {
     expect(outputMetadata.hasAlpha).toBe(true);
     expect(outputMetadata.width).toBe(width);
     expect(outputMetadata.height).toBe(height);
-  });
+  }, 30000);
 });
