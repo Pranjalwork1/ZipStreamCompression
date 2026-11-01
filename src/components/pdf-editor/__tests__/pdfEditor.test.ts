@@ -79,10 +79,10 @@ describe('PDF Editor HistoryManager', () => {
       fontSize: 16,
       fontWeight: 'bold',
       fontStyle: 'normal',
-      underline: false,
+      textDecoration: 'none',
       color: '#0C162C',
       opacity: 1,
-      align: 'left',
+      textAlign: 'left',
     };
 
     history.push([textElement], 'Add Text');
@@ -125,10 +125,10 @@ describe('PDF Editor HistoryManager', () => {
         fontSize: 12,
         fontWeight: 'normal',
         fontStyle: 'normal',
-        underline: false,
+        textDecoration: 'none',
         color: '#000000',
         opacity: 1,
-        align: 'left',
+        textAlign: 'left',
       },
     ]);
 
@@ -151,10 +151,10 @@ describe('PDF Editor HistoryManager', () => {
         fontSize: 14,
         fontWeight: 'normal',
         fontStyle: 'normal',
-        underline: false,
+        textDecoration: 'none',
         color: '#000000',
         opacity: 1,
-        align: 'left',
+        textAlign: 'left',
       },
     ]);
 

@@ -188,6 +188,37 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
           </div>
         </div>
 
+        {result.originalFile.category === 'pdf' && result.settings.targetSizeBytes && (
+          <div className={`p-4 rounded-2xl border ${
+            result.compressedSize <= result.settings.targetSizeBytes
+              ? 'bg-[#34c759]/5 dark:bg-[#34c759]/10 border-[#34c759]/20 dark:border-[#34c759]/30'
+              : 'bg-[#fff7ed] dark:bg-[#3a2b1c] border-[#f59e0b]/30 dark:border-[#f59e0b]/30'
+          }`}>
+            {result.compressedSize <= result.settings.targetSizeBytes ? (
+              <>
+                <p className="text-[13px] font-semibold text-[#248a3d] dark:text-[#4ade80]">
+                  {result.originalFile.size <= result.settings.targetSizeBytes && result.compressedSize === result.originalFile.size
+                    ? 'Your PDF was already under the requested limit'
+                    : 'Requested size limit reached'}
+                </p>
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#c4c4c8] mt-1">
+                  Actual output: {formatBytes(result.compressedSize)} · Maximum: {formatBytes(result.settings.targetSizeBytes)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] font-semibold text-[#9a5800] dark:text-[#fbbf24]">
+                  Could not reach the requested size limit
+                </p>
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#c4c4c8] mt-1">
+                  Best safe output: {formatBytes(result.compressedSize)} · Requested maximum: {formatBytes(result.settings.targetSizeBytes)}.
+                  This PDF may already contain optimized or non-compressible content. We kept the smallest valid result rather than damaging the document.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Visual Preview for Images */}
         {result.originalFile.category === 'image' && result.compressedPreviewUrl && (
           <div className="p-4 rounded-2xl bg-[#fafafc] dark:bg-[#252528] border border-black/[0.06] dark:border-white/[0.08] space-y-2">
@@ -253,11 +284,11 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
               <FileText className="w-5 h-5 text-[#ff3b30]" />
               <div>
                 <h4 className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  PDF Stream & XRef Rebuilt Successfully
+                  PDF file rebuilt successfully
                 </h4>
                 <p className="text-[12px] text-[#86868b] dark:text-[#8e8e93]">
-                  Full compatibility across Adobe Acrobat, Preview, Chrome, and iOS Files.
-                  {result.pdfPageCount ? ` (${result.pdfPageCount} pages preserved)` : ''}
+                  {result.pdfPageCount ? `${result.pdfPageCount} pages preserved. ` : ''}
+                  Aggressive raster compression can flatten selectable text, forms, and links.
                 </p>
               </div>
             </div>

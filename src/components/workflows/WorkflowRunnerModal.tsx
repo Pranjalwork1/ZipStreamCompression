@@ -45,8 +45,8 @@ export const WorkflowRunnerModal: React.FC<WorkflowRunnerModalProps> = ({
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const droppedFiles = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+    const droppedFiles = (Array.from(e.dataTransfer.files as FileList) as File[]).filter((file: File) =>
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
     );
 
     if (droppedFiles.length > 0) {

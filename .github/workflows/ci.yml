@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "fix/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Lint, PDF compression tests, and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Ghostscript
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ghostscript
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript lint
+        run: npm run lint
+
+      - name: PDF compression regression tests
+        run: npm run test:compression
+
+      - name: Production build
+        run: npm run build

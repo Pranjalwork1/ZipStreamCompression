@@ -73,7 +73,7 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({
       <div className="text-center pb-5 border-b border-black/[0.06] dark:border-white/[0.08] relative z-10">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0071e3]/10 dark:bg-[#2997ff]/20 text-[#0071e3] dark:text-[#2997ff] text-[12px] font-semibold mb-2.5">
           <Zap className="w-3.5 h-3.5 fill-[#0071e3]/20" />
-          <span>ZipStream In-Memory Engine Active</span>
+          <span>{fileInfo.category === 'pdf' ? 'ZipStream PDF Compression Engine Active' : 'ZipStream Compression Engine Active'}</span>
         </div>
         <h3 className="text-[18px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate max-w-md mx-auto">
           Optimizing “{fileInfo.name}”
@@ -83,7 +83,7 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({
           <span>•</span>
           <span className="capitalize font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
             {settings.targetSizeBytes
-              ? `Target Cap: ${formatBytes(settings.targetSizeBytes)}`
+              ? `Maximum Size Goal: ${formatBytes(settings.targetSizeBytes)}`
               : settings.level === 'low'
               ? 'Best Quality'
               : settings.level === 'medium'
@@ -161,7 +161,7 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({
             id="processing-status-text"
             className="text-[14px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] min-h-[1.4rem]"
           >
-            {steps[Math.min(steps.length - 1, progress.stepIndex - 1)] || progress.currentStep}
+            {progress.currentStep || steps[Math.min(steps.length - 1, progress.stepIndex - 1)]}
           </p>
 
           {/* Animated Linear Progress Bar */}

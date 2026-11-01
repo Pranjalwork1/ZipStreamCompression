@@ -24,6 +24,7 @@ export interface WorkflowToolItem {
   category: ToolCategory;
   description: string;
   iconName: string;
+  icon?: React.ReactNode;
   inputTypes: FileType[];
   outputType: FileType;
   defaultConfig: Record<string, any>;
@@ -38,6 +39,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Organize',
     description: 'Combine multiple PDF files or pages into one document.',
     iconName: 'FilePlus',
+    icon: React.createElement(FilePlus, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf', 'pdf[]'],
     outputType: 'pdf',
     defaultConfig: { addBlankSeparators: false },
@@ -48,6 +50,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Organize',
     description: 'Extract specific page intervals or single pages.',
     iconName: 'Scissors',
+    icon: React.createElement(Scissors, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'pdf',
     defaultConfig: { pageRanges: '1-3' },
@@ -58,6 +61,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Organize',
     description: 'Rotate pages by 90°, 180°, or 270° clockwise.',
     iconName: 'RotateCw',
+    icon: React.createElement(RotateCw, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'pdf',
     defaultConfig: { rotationAngle: 90 },
@@ -68,6 +72,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Optimize',
     description: 'Reduce file size while preserving high visual quality.',
     iconName: 'FileText',
+    icon: React.createElement(FileText, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'pdf',
     defaultConfig: { level: 'medium' },
@@ -78,6 +83,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Security',
     description: 'Stamp custom semi-transparent text across document pages.',
     iconName: 'Stamp',
+    icon: React.createElement(Stamp, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'pdf',
     defaultConfig: {
@@ -95,6 +101,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Security',
     description: 'Add standard password protection to the PDF document.',
     iconName: 'Lock',
+    icon: React.createElement(Lock, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'pdf',
     defaultConfig: { userPassword: '' },
@@ -105,6 +112,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Security',
     description: 'Remove password protection from an authorized PDF document.',
     iconName: 'Unlock',
+    icon: React.createElement(Unlock, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'pdf',
     defaultConfig: { password: '' },
@@ -115,6 +123,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Convert',
     description: 'Convert PDF document into editable Microsoft Word (.docx) document.',
     iconName: 'FileCode',
+    icon: React.createElement(FileCode, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'docx',
     defaultConfig: { format: 'docx' },
@@ -125,6 +134,7 @@ export const FRONTEND_WORKFLOW_TOOLS: Record<string, WorkflowToolItem> = {
     category: 'Convert',
     description: 'Convert PDF pages into high-resolution JPG images packaged as a ZIP archive.',
     iconName: 'ImageIcon',
+    icon: React.createElement(ImageIcon, { className: 'w-3.5 h-3.5' }),
     inputTypes: ['pdf'],
     outputType: 'zip',
     defaultConfig: { quality: 85 },

@@ -213,11 +213,11 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#a1a1a6] uppercase tracking-wider block">
-              Quick Target Presets & Size Limits
+              Quick Presets & Maximum Output Size
             </label>
             {settings.targetSizeBytes && (
               <span className="text-[11px] font-semibold text-[#0071e3] dark:text-[#2997ff] bg-[#0071e3]/10 dark:bg-[#2997ff]/20 px-2 py-0.5 rounded-md">
-                Target Cap: {formatBytes(settings.targetSizeBytes)}
+                Best-effort cap: {formatBytes(settings.targetSizeBytes)}
               </span>
             )}
           </div>
@@ -246,7 +246,7 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
 
           {/* Quick Target Size Buttons (e.g. 2MB, 4MB, 8MB) */}
           <div className="pt-2 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93] font-medium mr-1">Target Maximum:</span>
+            <span className="text-[11px] text-[#86868b] dark:text-[#8e8e93] font-medium mr-1">Maximum output size:</span>
             {[
               { label: 'Under 2 MB', bytes: 2 * 1024 * 1024 },
               { label: 'Under 4 MB (Email)', bytes: 4 * 1024 * 1024 },
@@ -341,7 +341,7 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
         <div className="p-4 sm:p-5 rounded-2xl bg-[#f5f5f7] dark:bg-[#252528] border border-black/[0.04] dark:border-white/[0.06] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-medium text-[#86868b] dark:text-[#8e8e93] uppercase tracking-wider">
-              Estimated Output
+              Estimated Output (not guaranteed)
             </div>
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-[20px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
@@ -352,10 +352,17 @@ export const CompressionSettingsCard: React.FC<CompressionSettingsCardProps> = (
               </span>
             </div>
           </div>
-          <div className="text-[12px] text-[#34c759] font-medium px-3 py-1 rounded-full bg-[#34c759]/10 dark:bg-[#34c759]/20">
-            Saves ~{formatBytes(fileInfo.size - estimation.estimatedBytes)} space
+          <div className="text-[12px] text-[#6e6e73] dark:text-[#a1a1a6] font-medium px-3 py-1 rounded-full bg-white dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08]">
+            {settings.targetSizeBytes
+              ? `Best-effort maximum: ${formatBytes(settings.targetSizeBytes)}`
+              : `Estimated savings: ${formatBytes(Math.max(0, fileInfo.size - estimation.estimatedBytes))}`}
           </div>
         </div>
+        {settings.targetSizeBytes && (
+          <p className="text-[11px] text-[#86868b] dark:text-[#8e8e93] -mt-4">
+            A maximum size is a best-effort goal, not an exact-size promise. The final file size is measured after compression.
+          </p>
+        )}
 
         {/* Advanced Options Accordion */}
         <div className="border border-black/[0.06] dark:border-white/[0.08] rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1e]">

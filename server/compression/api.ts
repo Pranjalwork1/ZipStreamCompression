@@ -190,9 +190,12 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     const outputFilePath = path.join(COMPRESSED_DIR, outputFileName);
 
     // Optional user-specified compression settings
+    const parsedTargetSize = Number(req.body.targetSizeBytes);
     const options: CompressionJobData['options'] = {
       level: req.body.level || 'medium',
-      targetSizeBytes: req.body.targetSizeBytes ? Number(req.body.targetSizeBytes) : undefined,
+      targetSizeBytes: Number.isFinite(parsedTargetSize) && parsedTargetSize > 0
+        ? Math.floor(parsedTargetSize)
+        : undefined,
       imageFormat: req.body.imageFormat,
       videoCodec: req.body.videoCodec || 'libx264',
       crf: req.body.crf ? Number(req.body.crf) : 28,
