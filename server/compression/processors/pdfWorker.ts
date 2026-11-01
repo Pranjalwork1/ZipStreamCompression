@@ -100,10 +100,6 @@ async function inspectPdf(filePath: string): Promise<{ pageCount: number; hasInt
   ].some(key => hasNonEmptyPdfObject(document, catalog.get(PDFName.of(key))));
 
   const hasInteractiveContent = hasAcroForm || hasNameTreeContent || hasAnnotations || hasOtherInteractiveContent;
-  console.info(
-    `[PDFWorker] Safety scan pages=${pageCount} acroForm=${hasAcroForm} nameTree=${hasNameTreeContent} annotations=${hasAnnotations} otherInteractive=${hasOtherInteractiveContent}`
-  );
-
   return { pageCount, hasInteractiveContent };
 }
 
@@ -212,11 +208,8 @@ export async function processPdf(
       }
 
       const stat = await fs.stat(candidatePath).catch(() => null);
-      const valid = Boolean(stat && stat.size > 0 && await isValidPdfFile(candidatePath));
-      console.info(
-        `[PDFWorker] Candidate profile=${index + 1} size=${stat?.size ?? 0} original=${job.originalSize} valid=${valid}`
-      );
-      if (stat && stat.size > 0 && stat.size < job.originalSize && valid) {
+      if (stat && stat.size > 0 && stat.size < job.originalSize &&
+          await isValidPdfFile(candidatePath)) {
         candidates.push({ filePath: candidatePath, size: stat.size });
       }
 
