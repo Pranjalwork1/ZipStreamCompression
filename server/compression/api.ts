@@ -12,6 +12,7 @@ import { processPdf } from './processors/pdfWorker';
 import { processImage } from './processors/imageWorker';
 import { processVideo } from './processors/videoWorker';
 import { processAudio } from './processors/audioWorker';
+import { getImageOutputExtension, normalizeImageOutputFormat } from './optimization';
 
 const router = Router();
 
@@ -133,12 +134,12 @@ async function runJobLocally(jobData: CompressionJobData): Promise<void> {
 /**
  * Helper to determine clean output extension based on category and options
  */
-function getOutputExtension(category: FileCategory, options?: any): string {
+function getOutputExtension(category: FileCategory, options?: any, originalExtension = 'bin'): string {
   switch (category) {
     case 'pdf':
       return 'pdf';
     case 'image':
-      return options?.imageFormat === 'jpeg' ? 'jpg' : 'webp';
+      return getImageOutputExtension(options?.imageFormat || 'original', originalExtension);
     case 'video':
       return 'mp4';
     case 'audio':
@@ -146,6 +147,22 @@ function getOutputExtension(category: FileCategory, options?: any): string {
     default:
       return 'bin';
   }
+}
+
+function parseOptionalNumber(value: unknown, min: number, max: number): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) return undefined;
+  return Math.round(parsed);
+}
+
+function parseOptionalBoolean(value: unknown): boolean | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+  return undefined;
 }
 
 /**
@@ -185,22 +202,33 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     }
 
     const jobId = crypto.randomUUID();
-    const outputExtension = getOutputExtension(detected.category, req.body);
-    const outputFileName = `compressed-${jobId}.${outputExtension}`;
-    const outputFilePath = path.join(COMPRESSED_DIR, outputFileName);
 
-    // Optional user-specified compression settings
+    // The browser sends MIME strings (image/webp, image/jpeg, image/png), but
+    // worker jobs use a small canonical enum. Normalize once at the API edge.
+    const imageFormat = detected.category === 'image'
+      ? normalizeImageOutputFormat(req.body.imageFormat)
+      : undefined;
     const parsedTargetSize = Number(req.body.targetSizeBytes);
     const options: CompressionJobData['options'] = {
-      level: req.body.level || 'medium',
+      level: req.body.level === 'low' || req.body.level === 'high' ? req.body.level : 'medium',
       targetSizeBytes: Number.isFinite(parsedTargetSize) && parsedTargetSize > 0
         ? Math.floor(parsedTargetSize)
         : undefined,
-      imageFormat: req.body.imageFormat,
-      videoCodec: req.body.videoCodec || 'libx264',
-      crf: req.body.crf ? Number(req.body.crf) : 28,
-      audioCodec: req.body.audioCodec || 'mp3',
+      imageFormat,
+      scalePercent: parseOptionalNumber(req.body.scalePercent, 10, 100),
+      imageQuality: parseOptionalNumber(req.body.imageQuality, 20, 100),
+      targetDpi: parseOptionalNumber(req.body.targetDpi, 36, 600),
+      audioBitrate: parseOptionalNumber(req.body.audioBitrate, 24, 320),
+      grayscale: parseOptionalBoolean(req.body.grayscale),
+      removeMetadata: parseOptionalBoolean(req.body.removeMetadata),
+      videoCodec: req.body.videoCodec === 'libx265' ? 'libx265' : 'libx264',
+      crf: parseOptionalNumber(req.body.crf, 18, 40) ?? 28,
+      audioCodec: req.body.audioCodec === 'opus' ? 'opus' : 'mp3',
     };
+
+    const outputExtension = getOutputExtension(detected.category, options, detected.ext);
+    const outputFileName = `compressed-${jobId}.${outputExtension}`;
+    const outputFilePath = path.join(COMPRESSED_DIR, outputFileName);
 
     const jobData: CompressionJobData = {
       jobId,
