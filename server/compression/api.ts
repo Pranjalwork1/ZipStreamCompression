@@ -191,6 +191,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       videoCodec: req.body.videoCodec || 'libx264',
       crf: req.body.crf ? Number(req.body.crf) : 28,
       audioCodec,
+      audioBitrate: Number(req.body.audioBitrate) > 0 ? Math.floor(Number(req.body.audioBitrate)) : undefined,
     };
 
     const jobData: CompressionJobData = {
