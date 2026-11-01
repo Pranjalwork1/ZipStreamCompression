@@ -12,6 +12,11 @@ export interface PreservedOriginal {
  * Normalize a caller-supplied maximum output size. Invalid, non-positive, and
  * already-satisfied targets are treated as no-op targets.
  */
+export function isTargetAlreadySatisfied(job: CompressionJobData): boolean {
+  const value = Number(job.options?.targetSizeBytes);
+  return Number.isFinite(value) && value > 0 && value >= job.originalSize;
+}
+
 export function getTargetSizeBytes(job: CompressionJobData): number | undefined {
   const value = Number(job.options?.targetSizeBytes);
   if (!Number.isFinite(value) || value <= 0 || value >= job.originalSize) return undefined;
