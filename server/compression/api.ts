@@ -103,7 +103,7 @@ async function runJobLocally(jobData: CompressionJobData): Promise<void> {
       reductionPercentage,
       outputFileName: path.basename(processResult.outputFilePath),
       outputFilePath: processResult.outputFilePath,
-      mimeType: jobData.mimeType,
+      mimeType: processResult.mimeType || jobData.mimeType,
       category: jobData.category,
       downloadToken,
       durationMs,
