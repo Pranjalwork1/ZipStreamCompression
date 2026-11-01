@@ -219,6 +219,15 @@ export async function processPdf(
   const timeoutMs = Number(process.env.PDF_TIMEOUT_MS) || 15000;
   const level = job.options?.level || 'medium';
   const requestedTarget = Number(job.options?.targetSizeBytes);
+  if (Number.isFinite(requestedTarget) && requestedTarget >= job.originalSize && requestedTarget > 0) {
+    // The source already fits. Do not re-encode it and risk quality loss.
+    await fs.copyFile(job.inputFilePath, job.outputFilePath);
+    if (onProgress) await onProgress(100);
+    return {
+      outputFilePath: job.outputFilePath,
+      compressedSize: job.originalSize,
+    };
+  }
   const targetBytes = Number.isFinite(requestedTarget) &&
     requestedTarget > 0 &&
     requestedTarget < job.originalSize
