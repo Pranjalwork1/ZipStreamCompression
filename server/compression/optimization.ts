@@ -2,6 +2,26 @@ import fs from 'fs/promises';
 import path from 'path';
 import { CompressionJobData } from './types';
 
+export type ImageOutputFormat = 'original' | 'webp' | 'jpeg' | 'png';
+
+/** Accept both API-friendly MIME values and internal short format identifiers. */
+export function normalizeImageOutputFormat(value: unknown): ImageOutputFormat {
+  const format = String(value ?? 'original').trim().toLowerCase();
+  if (format === 'image/webp' || format === 'webp') return 'webp';
+  if (format === 'image/jpeg' || format === 'jpeg' || format === 'jpg') return 'jpeg';
+  if (format === 'image/png' || format === 'png') return 'png';
+  return 'original';
+}
+
+export function getImageOutputExtension(format: ImageOutputFormat, originalExtension: string): string {
+  switch (format) {
+    case 'webp': return 'webp';
+    case 'jpeg': return 'jpg';
+    case 'png': return 'png';
+    default: return originalExtension.replace(/^\\./, '') || 'bin';
+  }
+}
+
 export interface PreservedOriginal {
   outputFilePath: string;
   compressedSize: number;
