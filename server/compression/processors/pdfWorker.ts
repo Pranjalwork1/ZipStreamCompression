@@ -1,7 +1,7 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNull } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import { CompressionJobData } from '../types';
 import { getTargetSizeBytes, isTargetAlreadySatisfied, preserveOriginal } from '../optimization';
 
@@ -50,11 +50,14 @@ function getGhostscriptProfiles(level: 'high' | 'medium' | 'low'): GhostscriptPr
 function hasNonEmptyPdfObject(document: PDFDocument, value: any): boolean {
   if (value === undefined || value === null) return false;
   try {
-    const resolved = document.context.lookup(value);
-    if (resolved instanceof PDFNull) return false;
-    if (resolved instanceof PDFArray || resolved instanceof PDFDict) {
-      return resolved.size() > 0;
-    }
+    const resolved = document.context.lookup(value) as any;
+    if (!resolved || String(resolved) === 'null') return false;
+
+    // pdf-lib represents arrays with size() and dictionaries with entries().
+    // Use structural checks to avoid relying on classes not re-exported by
+    // the public pdf-lib package entry point.
+    if (typeof resolved.size === 'function') return resolved.size() > 0;
+    if (typeof resolved.entries === 'function') return resolved.entries().length > 0;
     return true;
   } catch {
     // Unknown or malformed objects are treated conservatively.
@@ -81,8 +84,8 @@ async function inspectPdf(filePath: string): Promise<{ pageCount: number; hasInt
   const catalog = document.catalog;
   const hasAcroForm = hasNonEmptyPdfObject(document, catalog.get(PDFName.of('AcroForm')));
   const namesValue = catalog.get(PDFName.of('Names'));
-  const namesDictionary = namesValue ? document.context.lookup(namesValue) : undefined;
-  const hasNameTreeContent = namesDictionary instanceof PDFDict &&
+  const namesDictionary = namesValue ? document.context.lookup(namesValue) as any : undefined;
+  const hasNameTreeContent = Boolean(namesDictionary && typeof namesDictionary.get === 'function') &&
     ['Dests', 'JavaScript', 'EmbeddedFiles'].some(key =>
       hasNonEmptyPdfObject(document, namesDictionary.get(PDFName.of(key)))
     );
