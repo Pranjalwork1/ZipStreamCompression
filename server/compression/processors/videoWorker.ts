@@ -1,10 +1,11 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
-import path from 'path';
 import { CompressionJobData } from '../types';
 import { ProcessResult } from './pdfWorker';
 import { getOutputPathForExtension, getTargetSizeBytes, preserveOriginal } from '../optimization';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 
 const execFileAsync = promisify(execFile);
 
@@ -40,24 +41,14 @@ async function probeVideo(ffprobePath: string, filePath: string): Promise<ProbeR
 
 function getFfmpegPath(): string {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const installer = require('@ffmpeg-installer/ffmpeg');
-    return installer.path || 'ffmpeg';
-  } catch {
-    return 'ffmpeg';
-  }
+  const installer = (ffmpegInstaller as any)?.path || (ffmpegInstaller as any)?.default?.path;
+  return installer || 'ffmpeg';
 }
 
 function getFfprobePath(): string {
   if (process.env.FFPROBE_PATH) return process.env.FFPROBE_PATH;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const installer = require('@ffprobe-installer/ffprobe');
-    return installer.path || 'ffprobe';
-  } catch {
-    return 'ffprobe';
-  }
+  const installer = (ffprobeInstaller as any)?.path || (ffprobeInstaller as any)?.default?.path;
+  return installer || 'ffprobe';
 }
 
 async function encodeVideo(
