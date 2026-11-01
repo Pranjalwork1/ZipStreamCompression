@@ -1,249 +1,133 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import { CompressionJobData } from '../types';
-import sharp from 'sharp';
+import { getTargetSizeBytes, preserveOriginal } from '../optimization';
 
 const execFileAsync = promisify(execFile);
 
 export interface ProcessResult {
   outputFilePath: string;
   compressedSize: number;
-}
-
-/**
- * Native PDF image-stream optimizer. It works on a fresh copy of the source PDF
- * for each profile, so a failed/oversized attempt can never replace a better result.
- */
-async function compressPdfInStream(
-  inputFilePath: string,
-  outputFilePath: string,
-  level: 'high' | 'medium' | 'low' = 'medium',
-  targetBytes?: number,
-  onProgress?: (percentage: number) => Promise<void>
-): Promise<number> {
-  const { PDFDocument, PDFName, PDFRawStream, PDFNumber } = await import('pdf-lib');
-  const sourceBytes = await fs.readFile(inputFilePath);
-  const hasTarget = Number.isFinite(targetBytes) && Number(targetBytes) > 0 && Number(targetBytes) < sourceBytes.length;
-  const target = hasTarget ? Math.floor(Number(targetBytes)) : undefined;
-
-  const profiles = level === 'high'
-    ? [
-        { maxDimension: 800, jpegQuality: 45 },
-        { maxDimension: 650, jpegQuality: 38 },
-        { maxDimension: 500, jpegQuality: 30 },
-        { maxDimension: 380, jpegQuality: 24 },
-      ]
-    : level === 'low'
-    ? [
-        { maxDimension: 1800, jpegQuality: 80 },
-        { maxDimension: 1400, jpegQuality: 70 },
-        { maxDimension: 1200, jpegQuality: 60 },
-        { maxDimension: 900, jpegQuality: 48 },
-        { maxDimension: 700, jpegQuality: 38 },
-        { maxDimension: 500, jpegQuality: 28 },
-        { maxDimension: 350, jpegQuality: 22 },
-      ]
-    : [
-        { maxDimension: 1200, jpegQuality: 65 },
-        { maxDimension: 1000, jpegQuality: 58 },
-        { maxDimension: 800, jpegQuality: 48 },
-        { maxDimension: 650, jpegQuality: 40 },
-        { maxDimension: 500, jpegQuality: 32 },
-        { maxDimension: 380, jpegQuality: 25 },
-      ];
-
-  const attempts = hasTarget ? profiles : profiles.slice(0, 1);
-  let bestSmaller: Uint8Array | undefined;
-  let bestUnderTarget: Uint8Array | undefined;
-
-  for (let profileIndex = 0; profileIndex < attempts.length; profileIndex++) {
-    const profile = attempts[profileIndex];
-    const pdfDoc = await PDFDocument.load(sourceBytes, { ignoreEncryption: true });
-    const context = pdfDoc.context;
-    const indirectObjects = context.enumerateIndirectObjects();
-
-    interface ImageTask {
-      obj: any;
-      dict: any;
-      origBuffer: Buffer;
-    }
-
-    const imageTasks: ImageTask[] = [];
-    for (const [, obj] of indirectObjects) {
-      if (obj instanceof PDFRawStream) {
-        const dict = obj.dict;
-        const subtype = dict.get(PDFName.of('Subtype'));
-        if (subtype === PDFName.of('Image')) {
-          const filterStr = dict.get(PDFName.of('Filter'))?.toString() || '';
-          if (filterStr.includes('DCTDecode') || filterStr.includes('FlateDecode')) {
-            imageTasks.push({ obj, dict, origBuffer: Buffer.from(obj.contents) });
-          }
-        }
-      }
-    }
-
-    let completedTasks = 0;
-    const batchSize = 6;
-    for (let i = 0; i < imageTasks.length; i += batchSize) {
-      const chunk = imageTasks.slice(i, i + batchSize);
-      await Promise.all(chunk.map(async ({ obj, dict, origBuffer }) => {
-        try {
-          const recompressed = await sharp(origBuffer, { failOn: 'none' })
-            .resize({
-              width: profile.maxDimension,
-              height: profile.maxDimension,
-              fit: 'inside',
-              withoutEnlargement: true,
-            })
-            .jpeg({
-              quality: profile.jpegQuality,
-              mozjpeg: true,
-              chromaSubsampling: level === 'high' ? '4:2:0' : '4:4:4',
-            })
-            .toBuffer();
-
-          if (recompressed.length < origBuffer.length) {
-            obj.contents = new Uint8Array(recompressed);
-            dict.set(PDFName.of('Length'), PDFNumber.of(recompressed.length));
-            dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
-            dict.delete(PDFName.of('DecodeParms'));
-
-            const meta = await sharp(recompressed).metadata();
-            if (meta.width) dict.set(PDFName.of('Width'), PDFNumber.of(meta.width));
-            if (meta.height) dict.set(PDFName.of('Height'), PDFNumber.of(meta.height));
-          }
-        } catch {
-          // Unsupported image filters are left unchanged rather than risking corruption.
-        }
-      }));
-
-      completedTasks += chunk.length;
-      if (onProgress && imageTasks.length > 0) {
-        const fraction = (profileIndex + completedTasks / imageTasks.length) / attempts.length;
-        await onProgress(Math.min(88, 30 + Math.floor(fraction * 55)));
-      }
-    }
-
-    const compressedBytes = await pdfDoc.save({
-      useObjectStreams: true,
-      addDefaultPage: false,
-      objectsPerTick: 100,
-    });
-
-    if (compressedBytes.length > 0 && compressedBytes.length < sourceBytes.length) {
-      if (!bestSmaller || compressedBytes.length < bestSmaller.length) {
-        bestSmaller = compressedBytes;
-      }
-      if (target && compressedBytes.length <= target &&
-          (!bestUnderTarget || compressedBytes.length > bestUnderTarget.length)) {
-        bestUnderTarget = compressedBytes;
-      }
-    }
-
-    if (!hasTarget) break;
-  }
-
-  // Prefer the largest valid candidate that satisfies the cap. If no candidate
-  // can meet it, preserve the smallest valid reduction and let the UI say so.
-  const selected = bestUnderTarget || bestSmaller;
-  if (!selected) {
-    throw new Error('Native PDF optimization could not produce a smaller valid file.');
-  }
-
-  await fs.writeFile(outputFilePath, selected);
-  return selected.length;
+  /** Actual encoded MIME type; omitted when it is identical to the upload MIME type. */
+  mimeType?: string;
 }
 
 type GhostscriptProfile = {
-  pdfSettings: string;
+  pdfSettings: '/screen' | '/ebook' | '/printer';
   dpi: number;
   jpegQuality: number;
   monoDpi: number;
 };
 
-function getGhostscriptProfiles(
-  level: 'high' | 'medium' | 'low',
-  includeTargetAttempts: boolean
-): GhostscriptProfile[] {
+function getGhostscriptProfiles(level: 'high' | 'medium' | 'low'): GhostscriptProfile[] {
   const profiles: Record<'high' | 'medium' | 'low', GhostscriptProfile[]> = {
     high: [
-      { pdfSettings: '/screen', dpi: 72, jpegQuality: 55, monoDpi: 150 },
-      { pdfSettings: '/screen', dpi: 60, jpegQuality: 48, monoDpi: 120 },
-      { pdfSettings: '/screen', dpi: 48, jpegQuality: 38, monoDpi: 120 },
+      { pdfSettings: '/screen', dpi: 96, jpegQuality: 60, monoDpi: 150 },
+      { pdfSettings: '/screen', dpi: 72, jpegQuality: 52, monoDpi: 150 },
+      { pdfSettings: '/screen', dpi: 60, jpegQuality: 44, monoDpi: 120 },
+      { pdfSettings: '/screen', dpi: 48, jpegQuality: 36, monoDpi: 120 },
       { pdfSettings: '/screen', dpi: 36, jpegQuality: 28, monoDpi: 120 },
     ],
     medium: [
-      { pdfSettings: '/ebook', dpi: 144, jpegQuality: 70, monoDpi: 240 },
+      { pdfSettings: '/ebook', dpi: 150, jpegQuality: 76, monoDpi: 300 },
+      { pdfSettings: '/ebook', dpi: 120, jpegQuality: 68, monoDpi: 240 },
       { pdfSettings: '/screen', dpi: 96, jpegQuality: 60, monoDpi: 150 },
-      { pdfSettings: '/screen', dpi: 72, jpegQuality: 48, monoDpi: 150 },
-      { pdfSettings: '/screen', dpi: 60, jpegQuality: 38, monoDpi: 120 },
-      { pdfSettings: '/screen', dpi: 48, jpegQuality: 28, monoDpi: 120 },
+      { pdfSettings: '/screen', dpi: 72, jpegQuality: 52, monoDpi: 150 },
+      { pdfSettings: '/screen', dpi: 60, jpegQuality: 44, monoDpi: 120 },
+      { pdfSettings: '/screen', dpi: 48, jpegQuality: 36, monoDpi: 120 },
     ],
     low: [
-      { pdfSettings: '/printer', dpi: 200, jpegQuality: 85, monoDpi: 300 },
-      { pdfSettings: '/ebook', dpi: 144, jpegQuality: 70, monoDpi: 240 },
-      { pdfSettings: '/screen', dpi: 96, jpegQuality: 58, monoDpi: 150 },
-      { pdfSettings: '/screen', dpi: 72, jpegQuality: 45, monoDpi: 150 },
-      { pdfSettings: '/screen', dpi: 48, jpegQuality: 30, monoDpi: 120 },
+      { pdfSettings: '/printer', dpi: 220, jpegQuality: 88, monoDpi: 300 },
+      { pdfSettings: '/printer', dpi: 200, jpegQuality: 84, monoDpi: 300 },
+      { pdfSettings: '/ebook', dpi: 150, jpegQuality: 76, monoDpi: 300 },
     ],
   };
-  const selected = profiles[level] || profiles.medium;
-  return includeTargetAttempts ? selected : selected.slice(0, 1);
+  return profiles[level] || profiles.medium;
+}
+
+async function inspectPdf(filePath: string): Promise<{ pageCount: number; hasInteractiveContent: boolean }> {
+  const bytes = await fs.readFile(filePath);
+  if (bytes.length < 8 || bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw new Error('File does not contain a valid PDF header.');
+  }
+
+  const document = await PDFDocument.load(bytes, {
+    ignoreEncryption: false,
+    updateMetadata: false,
+  });
+  const pageCount = document.getPageCount();
+  if (pageCount < 1) throw new Error('PDF contains no pages.');
+
+  // Ghostscript's pdfwrite device can flatten/drop interactive structures.
+  // Preserve source PDFs containing forms, annotations, or named destinations.
+  const catalog = document.catalog;
+  const hasAcroForm = catalog.get(PDFName.of('AcroForm')) !== undefined;
+  const hasNames = catalog.get(PDFName.of('Names')) !== undefined;
+  const hasAnnotations = document.getPages().some(page => {
+    const annotations = page.node.get(PDFName.of('Annots'));
+    return annotations !== undefined;
+  });
+
+  return {
+    pageCount,
+    hasInteractiveContent: hasAcroForm || hasNames || hasAnnotations,
+  };
 }
 
 async function isValidPdfFile(filePath: string): Promise<boolean> {
-  let handle: any;
   try {
-    handle = await fs.open(filePath, 'r');
-    const header = Buffer.alloc(5);
-    const read = await handle.read(header, 0, 5, 0);
-    return read.bytesRead === 5 && header.toString('ascii') === '%PDF-';
+    await inspectPdf(filePath);
+    return true;
   } catch {
     return false;
-  } finally {
-    if (handle) await handle.close().catch(() => undefined);
   }
 }
 
 /**
- * Compresses with Ghostscript profiles and a native fallback. A requested size
- * is treated as an upper bound: the worker searches progressively smaller
- * profiles, then reports the best real output. It never returns an inflated PDF.
+ * High-integrity PDF compression via Ghostscript's pdfwrite pipeline.
+ *
+ * The optimizer validates each output with pdf-lib, never accepts a larger
+ * candidate, and preserves interactive PDFs because rewriters can lose forms,
+ * links, annotations, or named destinations. A target is a hard upper bound
+ * where achievable; if it cannot be met, the smallest validated reduction is
+ * returned and the caller can communicate that the target was missed.
  */
 export async function processPdf(
   job: CompressionJobData,
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
-  const gsPath = process.env.GHOSTSCRIPT_PATH || 'gs';
-  const timeoutMs = Number(process.env.PDF_TIMEOUT_MS) || 15000;
-  const level = job.options?.level || 'medium';
-  const requestedTarget = Number(job.options?.targetSizeBytes);
-  if (Number.isFinite(requestedTarget) && requestedTarget >= job.originalSize && requestedTarget > 0) {
-    // The source already fits. Do not re-encode it and risk quality loss.
-    await fs.copyFile(job.inputFilePath, job.outputFilePath);
+  const targetBytes = getTargetSizeBytes(job);
+  if (Number.isFinite(Number(job.options?.targetSizeBytes)) &&
+      Number(job.options?.targetSizeBytes) >= job.originalSize &&
+      Number(job.options?.targetSizeBytes) > 0) {
+    const preserved = await preserveOriginal(job);
     if (onProgress) await onProgress(100);
-    return {
-      outputFilePath: job.outputFilePath,
-      compressedSize: job.originalSize,
-    };
+    return preserved;
   }
-  const targetBytes = Number.isFinite(requestedTarget) &&
-    requestedTarget > 0 &&
-    requestedTarget < job.originalSize
-      ? Math.floor(requestedTarget)
-      : undefined;
 
-  const profiles = getGhostscriptProfiles(level, Boolean(targetBytes));
+  const sourceInspection = await inspectPdf(job.inputFilePath);
+  if (sourceInspection.hasInteractiveContent) {
+    const preserved = await preserveOriginal(job);
+    if (onProgress) await onProgress(100);
+    return preserved;
+  }
+
+  const gsPath = process.env.GHOSTSCRIPT_PATH || 'gs';
+  const timeoutMs = Math.max(30000, Number(process.env.PDF_TIMEOUT_MS) || 180000);
+  const level = job.options?.level || 'medium';
+  const profiles = getGhostscriptProfiles(level);
+  const attempts = targetBytes ? profiles : profiles.slice(0, 1);
   const candidates: Array<{ filePath: string; size: number }> = [];
   const temporaryPaths: string[] = [];
 
   if (onProgress) await onProgress(10);
 
   try {
-    for (let i = 0; i < profiles.length; i++) {
-      const profile = profiles[i];
-      const candidatePath = job.outputFilePath + '.ghostscript-' + i + '.pdf';
+    for (let index = 0; index < attempts.length; index++) {
+      const profile = attempts[index];
+      const candidatePath = `${job.outputFilePath}.candidate-${index}.pdf`;
       temporaryPaths.push(candidatePath);
 
       const args = [
@@ -253,7 +137,7 @@ export async function processPdf(
         '-dQUIET',
         '-dPDFSTOPONERROR',
         '-sDEVICE=pdfwrite',
-        '-dCompatibilityLevel=1.4',
+        '-dCompatibilityLevel=1.7',
         '-dDetectDuplicateImages=true',
         '-dCompressFonts=true',
         '-dSubsetFonts=true',
@@ -268,96 +152,74 @@ export async function processPdf(
         '-dColorImageFilter=/DCTEncode',
         '-dAutoFilterGrayImages=false',
         '-dGrayImageFilter=/DCTEncode',
-        '-dColorImageResolution=' + profile.dpi,
-        '-dGrayImageResolution=' + profile.dpi,
-        '-dMonoImageResolution=' + profile.monoDpi,
-        '-dJPEGQ=' + profile.jpegQuality,
-        '-dPDFSETTINGS=' + profile.pdfSettings,
-        '-sOutputFile=' + candidatePath,
+        `-dColorImageResolution=${profile.dpi}`,
+        `-dGrayImageResolution=${profile.dpi}`,
+        `-dMonoImageResolution=${profile.monoDpi}`,
+        `-dJPEGQ=${profile.jpegQuality}`,
+        `-dPDFSETTINGS=${profile.pdfSettings}`,
+        `-sOutputFile=${candidatePath}`,
         job.inputFilePath,
       ];
 
+      if (onProgress) {
+        await onProgress(15 + Math.floor((index / attempts.length) * 70));
+      }
+
       try {
-        if (onProgress) await onProgress(20 + Math.floor((i / profiles.length) * 55));
         await execFileAsync(gsPath, args, {
           timeout: timeoutMs,
           maxBuffer: 16 * 1024 * 1024,
+          windowsHide: true,
         });
-
-        const stat = await fs.stat(candidatePath).catch(() => null);
-        if (stat && stat.size > 0 && stat.size < job.originalSize &&
-            await isValidPdfFile(candidatePath)) {
-          candidates.push({ filePath: candidatePath, size: stat.size });
-        }
-      } catch (err: any) {
-        console.warn('[PDFWorker] Ghostscript profile failed: ' + err.message);
-        // A missing executable or a failed input generally makes later passes fail too.
+      } catch (error: any) {
+        // If Ghostscript isn't installed or cannot parse this source, do not
+        // attempt unsafe native PDF stream surgery. Preserve the original.
+        console.warn(`[PDFWorker] Ghostscript profile ${index + 1} failed: ${error.message}`);
         break;
       }
 
+      const stat = await fs.stat(candidatePath).catch(() => null);
+      if (stat && stat.size > 0 && stat.size < job.originalSize &&
+          await isValidPdfFile(candidatePath)) {
+        candidates.push({ filePath: candidatePath, size: stat.size });
+      }
+
       if (!targetBytes && candidates.length > 0) break;
-    }
-
-    const hasTargetCandidate = targetBytes !== undefined &&
-      candidates.some(candidate => candidate.size <= targetBytes);
-
-    // Run the native optimizer when Ghostscript is unavailable, cannot reduce
-    // the source, or has not yet reached the requested upper bound.
-    if (candidates.length === 0 || (targetBytes !== undefined && !hasTargetCandidate)) {
-      const nativePath = job.outputFilePath + '.native.pdf';
-      temporaryPaths.push(nativePath);
-      try {
-        await compressPdfInStream(
-          job.inputFilePath,
-          nativePath,
-          level,
-          targetBytes,
-          onProgress
-        );
-        const nativeStat = await fs.stat(nativePath).catch(() => null);
-        if (nativeStat && nativeStat.size > 0 && nativeStat.size < job.originalSize &&
-            await isValidPdfFile(nativePath)) {
-          candidates.push({ filePath: nativePath, size: nativeStat.size });
-        }
-      } catch (fallbackError: any) {
-        console.warn('[PDFWorker] Native fallback could not improve the PDF: ' + fallbackError.message);
+      if (targetBytes && candidates.some(candidate => candidate.size <= targetBytes)) {
+        // Continue the ladder to find the highest-quality candidate which fits.
       }
     }
 
-    const smallerCandidates = candidates.filter(candidate => candidate.size < job.originalSize);
-    const fittingCandidates = targetBytes === undefined
-      ? []
-      : smallerCandidates.filter(candidate => candidate.size <= targetBytes);
+    const fitting = targetBytes
+      ? candidates.filter(candidate => candidate.size <= targetBytes)
+      : [];
+    const selected = fitting.length
+      ? fitting.reduce((best, current) => current.size > best.size ? current : best)
+      : candidates.length
+        ? candidates.reduce((best, current) => current.size < best.size ? current : best)
+        : undefined;
 
-    let best: { filePath: string; size: number } | undefined;
-    if (fittingCandidates.length > 0) {
-      // Largest result under the cap gives the best quality among tested profiles.
-      best = fittingCandidates.reduce((current, candidate) =>
-        candidate.size > current.size ? candidate : current
-      );
-    } else if (targetBytes !== undefined && smallerCandidates.length > 0) {
-      // The cap may be impossible for this document; keep the smallest safe result.
-      best = smallerCandidates.reduce((current, candidate) =>
-        candidate.size < current.size ? candidate : current
-      );
-    } else if (smallerCandidates.length > 0) {
-      best = smallerCandidates.reduce((current, candidate) =>
-        candidate.size > current.size ? candidate : current
-      );
+    if (!selected) {
+      const preserved = await preserveOriginal(job);
+      if (onProgress) await onProgress(100);
+      return preserved;
     }
 
-    if (!best) {
-      throw new Error('This PDF is already optimized or its contents cannot be reduced safely.');
+    await fs.copyFile(selected.filePath, job.outputFilePath);
+    const finalInspection = await inspectPdf(job.outputFilePath);
+    if (finalInspection.pageCount !== sourceInspection.pageCount) {
+      await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
+      const preserved = await preserveOriginal(job);
+      if (onProgress) await onProgress(100);
+      return preserved;
     }
 
-    await fs.copyFile(best.filePath, job.outputFilePath);
     const finalStat = await fs.stat(job.outputFilePath);
-
     if (onProgress) await onProgress(100);
-
     return {
       outputFilePath: job.outputFilePath,
       compressedSize: finalStat.size,
+      mimeType: 'application/pdf',
     };
   } finally {
     await Promise.all(temporaryPaths.map(filePath =>
