@@ -1,109 +1,168 @@
-import sharp, { Sharp, Metadata } from 'sharp';
+import sharp, { Metadata } from 'sharp';
 import fs from 'fs/promises';
 import { CompressionJobData } from '../types';
 import { ProcessResult } from './pdfWorker';
+import { getOutputPathForExtension, getTargetSizeBytes, preserveOriginal } from '../optimization';
+
+type ImageProfile = { quality: number; effort: number; maxDimension?: number };
+
+function getImageProfiles(level: 'low' | 'medium' | 'high', hasTarget: boolean): ImageProfile[] {
+  if (hasTarget) {
+    return [
+      { quality: 86, effort: 6, maxDimension: 3200 },
+      { quality: 80, effort: 6, maxDimension: 2800 },
+      { quality: 74, effort: 6, maxDimension: 2400 },
+      { quality: 68, effort: 6, maxDimension: 2000 },
+      { quality: 62, effort: 6, maxDimension: 1720 },
+      { quality: 56, effort: 6, maxDimension: 1440 },
+      { quality: 50, effort: 6, maxDimension: 1200 },
+      { quality: 44, effort: 6, maxDimension: 960 },
+      { quality: 38, effort: 6, maxDimension: 800 },
+      { quality: 32, effort: 6, maxDimension: 640 },
+    ];
+  }
+  if (level === 'high') return [{ quality: 50, effort: 5, maxDimension: 1920 }];
+  if (level === 'low') return [{ quality: 88, effort: 4, maxDimension: 3840 }];
+  return [{ quality: 80, effort: 5, maxDimension: 2560 }];
+}
+
+async function createImageCandidate(
+  inputFilePath: string,
+  metadata: Metadata,
+  profile: ImageProfile,
+  format: 'webp' | 'jpeg',
+  preserveAnimation: boolean
+): Promise<Buffer> {
+  let pipeline = sharp(inputFilePath, {
+    failOn: 'none',
+    animated: preserveAnimation,
+    limitInputPixels: 268402689,
+  }).rotate();
+
+  if (profile.maxDimension &&
+      ((metadata.width || 0) > profile.maxDimension || (metadata.height || 0) > profile.maxDimension)) {
+    pipeline = pipeline.resize({
+      width: profile.maxDimension,
+      height: profile.maxDimension,
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
+  }
+
+  if (format === 'webp') {
+    pipeline = pipeline.webp({
+      quality: profile.quality,
+      effort: profile.effort,
+      smartSubsample: true,
+      nearLossless: false,
+    });
+  } else {
+    pipeline = pipeline
+      .flatten({ background: '#ffffff' })
+      .jpeg({
+        quality: profile.quality,
+        progressive: true,
+        mozjpeg: true,
+        chromaSubsampling: '4:2:0',
+        optimiseCoding: true,
+      });
+  }
+
+  return pipeline.toBuffer();
+}
 
 /**
- * Image Worker: Converts image to WebP or optimized JPEG using libvips (via Sharp).
- * Strips EXIF metadata, resizes dimensions, and applies user-selected compression levels:
- * - high (Extreme / Smaller): max 1920px, 50% quality WebP / MozJPEG
- * - medium (Recommended / Balanced): max 2560px, 75% quality WebP / MozJPEG
- * - low (Less / Best Quality): max 3840px, 85% quality WebP / MozJPEG
+ * Adaptive raster optimizer. Searches a quality ladder for size-capped jobs,
+ * picks the largest candidate below the cap, and never replaces the source
+ * with a larger file. Transparent and animated sources default to WebP.
  */
 export async function processImage(
   job: CompressionJobData,
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
-  if (onProgress) await onProgress(15);
+  if (onProgress) await onProgress(10);
 
-  let pipeline: Sharp;
-  try {
-    pipeline = sharp(job.inputFilePath, {
-      failOn: 'none', // Attempt to recover slightly damaged images if possible
-    });
-  } catch (err: any) {
-    throw new Error(`Corrupted image file: ${err.message}`);
-  }
-
-  // Probe metadata to check dimensions & verify corruption
   let metadata: Metadata;
   try {
-    metadata = await pipeline.metadata();
+    metadata = await sharp(job.inputFilePath, {
+      failOn: 'none',
+      animated: true,
+      limitInputPixels: 268402689,
+    }).metadata();
   } catch (err: any) {
-    throw new Error(`Failed to decode image metadata (corrupted image): ${err.message}`);
+    throw new Error(`Failed to decode image metadata: ${err.message}`);
   }
 
-  if (onProgress) await onProgress(35);
-
-  const level = job.options?.level || 'medium';
-
-  // Quality & Resolution tuning according to iLoveIMG / iLovePDF presets
-  let quality = 75;
-  let maxWidth = 2560;
-  let effort = 3;
-
-  if (level === 'high') {
-    // Smaller / Extreme
-    quality = 50;
-    maxWidth = 1920;
-    effort = 4;
-  } else if (level === 'low') {
-    // Less / Best Quality
-    quality = 85;
-    maxWidth = 3840;
-    effort = 2;
+  if (!metadata.width || !metadata.height) {
+    throw new Error('The uploaded image has no readable dimensions.');
   }
 
-  // 1. Auto-rotate based on EXIF orientation first, then strip all EXIF / ICC / XMP metadata
-  pipeline = pipeline.rotate(); // Applies orientation without keeping EXIF bloat
+  const hasAlpha = metadata.hasAlpha === true;
+  const isAnimated = (metadata.pages || 1) > 1;
+  const requestedFormat = job.options?.imageFormat;
+  const format: 'webp' | 'jpeg' = requestedFormat === 'jpeg'
+    ? 'jpeg'
+    : requestedFormat === 'webp' || hasAlpha || isAnimated || job.mimeType !== 'image/jpeg'
+      ? 'webp'
+      : 'jpeg';
 
-  // 2. Resize down if the width or height exceeds maximum dimension
-  if ((metadata.width && metadata.width > maxWidth) || (metadata.height && metadata.height > maxWidth)) {
-    pipeline = pipeline.resize({
-      width: maxWidth,
-      height: maxWidth,
-      withoutEnlargement: true,
-      fit: 'inside',
-    });
+  const targetBytes = getTargetSizeBytes(job);
+  const profiles = getImageProfiles(job.options?.level || 'medium', Boolean(targetBytes));
+  const attempts = targetBytes ? profiles : profiles.slice(0, 1);
+  const candidates: Buffer[] = [];
+
+  for (let index = 0; index < attempts.length; index++) {
+    if (onProgress) {
+      await onProgress(Math.min(90, 20 + Math.floor(((index + 1) / attempts.length) * 65)));
+    }
+    try {
+      const bytes = await createImageCandidate(
+        job.inputFilePath,
+        metadata,
+        attempts[index],
+        format,
+        isAnimated && format === 'webp'
+      );
+      if (bytes.length > 0 && bytes.length < job.originalSize) candidates.push(bytes);
+    } catch (err: any) {
+      if (index === 0) throw new Error(`Image compression failed: ${err.message}`);
+    }
   }
 
-  if (onProgress) await onProgress(60);
+  const fitting = targetBytes ? candidates.filter(bytes => bytes.length <= targetBytes) : [];
+  const selected = fitting.length
+    ? fitting.reduce((best, current) => current.length > best.length ? current : best)
+    : candidates.length
+      ? candidates.reduce((best, current) => current.length < best.length ? current : best)
+      : undefined;
 
-  // 3. Convert to WebP or optimized JPEG with tuned quality
-  const requestedFormat = job.options?.imageFormat || (job.mimeType === 'image/png' ? 'webp' : 'jpeg');
-
-  if (requestedFormat === 'webp') {
-    pipeline = pipeline.webp({
-      quality,
-      lossless: false,
-      effort,
-    });
-  } else {
-    pipeline = pipeline.jpeg({
-      quality,
-      progressive: true,
-      mozjpeg: true,
-      chromaSubsampling: level === 'high' ? '4:2:0' : '4:4:4',
-    });
+  if (!selected) {
+    const preserved = await preserveOriginal(job);
+    if (onProgress) await onProgress(100);
+    return {
+      outputFilePath: preserved.outputFilePath,
+      compressedSize: preserved.compressedSize,
+      mimeType: preserved.mimeType,
+    };
   }
 
-  if (onProgress) await onProgress(85);
+  const mimeType = format === 'webp' ? 'image/webp' : 'image/jpeg';
+  const extension = format === 'webp' ? '.webp' : '.jpg';
+  const outputFilePath = getOutputPathForExtension(job.outputFilePath, extension);
+  await fs.writeFile(outputFilePath, selected);
 
-  try {
-    await pipeline.toFile(job.outputFilePath);
-  } catch (err: any) {
-    throw new Error(`Image compression failed (libvips error): ${err.message}`);
-  }
-
-  const stat = await fs.stat(job.outputFilePath);
-  if (!stat || stat.size === 0) {
-    throw new Error('Image compression produced an empty output file.');
+  const stat = await fs.stat(outputFilePath);
+  if (!stat.size || stat.size >= job.originalSize) {
+    await fs.rm(outputFilePath, { force: true }).catch(() => undefined);
+    const preserved = await preserveOriginal(job);
+    if (onProgress) await onProgress(100);
+    return {
+      outputFilePath: preserved.outputFilePath,
+      compressedSize: preserved.compressedSize,
+      mimeType: preserved.mimeType,
+    };
   }
 
   if (onProgress) await onProgress(100);
-
-  return {
-    outputFilePath: job.outputFilePath,
-    compressedSize: stat.size,
-  };
+  return { outputFilePath, compressedSize: stat.size, mimeType };
 }
