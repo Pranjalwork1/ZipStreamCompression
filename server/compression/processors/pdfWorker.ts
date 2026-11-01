@@ -170,6 +170,10 @@ export async function processPdf(
         '-dDetectDuplicateImages=true',
         '-dCompressFonts=true',
         '-dSubsetFonts=true',
+        // Force Ghostscript to apply the selected JPEG quality/downsampling
+        // settings instead of passing the source JPEG stream through unchanged.
+        '-dPassThroughJPEGImages=false',
+        '-dPassThroughJPXImages=false',
         '-dAutoRotatePages=/None',
         '-dDownsampleColorImages=true',
         '-dDownsampleGrayImages=true',
