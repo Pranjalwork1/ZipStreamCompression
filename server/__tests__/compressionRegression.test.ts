@@ -50,7 +50,10 @@ describe('PDF Compression Engine Regression Suite', () => {
         level: 'low' | 'medium' | 'high';
         targetSizeBytes?: number;
       }> = [
-        { level: 'low' },
+        // A very mild cap asks the low profile ladder to prove it can find a
+        // smaller candidate; without a cap it is correct to preserve inputs
+        // that would grow when re-encoded.
+        { level: 'low', targetSizeBytes: Math.floor(testPdfBytes.length * 0.99) },
         { level: 'medium', targetSizeBytes: Math.floor(testPdfBytes.length * 0.85) },
         { level: 'high', targetSizeBytes: Math.floor(testPdfBytes.length * 0.65) },
       ];

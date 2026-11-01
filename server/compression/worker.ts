@@ -24,7 +24,7 @@ export const compressionWorker = new Worker<CompressionJobData, CompressionJobRe
     // Ensure output directory exists
     await fs.mkdir(path.dirname(data.outputFilePath), { recursive: true });
 
-    let processResult: { outputFilePath: string; compressedSize: number };
+    let processResult: { outputFilePath: string; compressedSize: number; mimeType?: string };
 
     const updateProgress = async (pct: number) => {
       await job.updateProgress(pct);
@@ -72,7 +72,7 @@ export const compressionWorker = new Worker<CompressionJobData, CompressionJobRe
       reductionPercentage,
       outputFileName: path.basename(processResult.outputFilePath),
       outputFilePath: processResult.outputFilePath,
-      mimeType: data.mimeType,
+      mimeType: processResult.mimeType || data.mimeType,
       category: data.category,
       downloadToken,
       durationMs,

@@ -1,172 +1,171 @@
-import { spawn, execFile } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import { CompressionJobData } from '../types';
 import { ProcessResult } from './pdfWorker';
-
-const execFileAsync = promisify(execFile);
-
-/**
- * Validates whether the audio file is readable and non-corrupted using ffprobe.
- */
-async function probeAudio(ffprobePath: string, filePath: string): Promise<number> {
-  try {
-    const { stdout } = await execFileAsync(
-      ffprobePath,
-      [
-        '-v', 'error',
-        '-show_entries', 'format=duration',
-        '-of', 'json',
-        filePath,
-      ],
-      { timeout: 10000 }
-    );
-    const data = JSON.parse(stdout);
-    return parseFloat(data.format?.duration || '0');
-  } catch (err: any) {
-    throw new Error(`Corrupted audio file: unable to read audio streams (${err.message}).`);
-  }
-}
-
+import { getOutputPathForExtension, getTargetSizeBytes, isTargetAlreadySatisfied, preserveOriginal } from '../optimization';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 
+const execFileAsync = promisify(execFile);
+
 function getFfmpegPath(): string {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
-  const p = (ffmpegInstaller as any)?.path || (ffmpegInstaller as any)?.default?.path;
-  if (p) return p;
-  return 'ffmpeg';
+  const installer = (ffmpegInstaller as any)?.path || (ffmpegInstaller as any)?.default?.path;
+  return installer || 'ffmpeg';
 }
 
 function getFfprobePath(): string {
   if (process.env.FFPROBE_PATH) return process.env.FFPROBE_PATH;
-  const p = (ffprobeInstaller as any)?.path || (ffprobeInstaller as any)?.default?.path;
-  if (p) return p;
-  return 'ffprobe';
+  const installer = (ffprobeInstaller as any)?.path || (ffprobeInstaller as any)?.default?.path;
+  return installer || 'ffprobe';
+}
+
+async function probeAudio(ffprobePath: string, filePath: string): Promise<number> {
+  try {
+    const { stdout } = await execFileAsync(
+      ffprobePath,
+      ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', filePath],
+      { timeout: 30000, maxBuffer: 4 * 1024 * 1024, windowsHide: true }
+    );
+    const data = JSON.parse(stdout);
+    const duration = Number.parseFloat(data.format?.duration || '0');
+    const hasAudio = Array.isArray(data.streams) &&
+      data.streams.some((stream: any) => stream.codec_type === 'audio');
+    if (!Number.isFinite(duration) || duration <= 0 || !hasAudio) {
+      throw new Error('No valid audio stream or duration was found.');
+    }
+    return duration;
+  } catch (err: any) {
+    throw new Error(`Unable to read audio streams: ${err.message}`);
+  }
+}
+
+async function encodeAudio(
+  ffmpegPath: string,
+  inputPath: string,
+  outputPath: string,
+  codec: 'mp3' | 'opus',
+  bitrate: number,
+  timeoutMs: number
+): Promise<void> {
+  const codecArgs = codec === 'opus'
+    ? ['-c:a', 'libopus', '-b:a', String(bitrate), '-vbr', 'on', '-compression_level', '10']
+    : ['-c:a', 'libmp3lame', '-b:a', String(bitrate), '-abr', '1', '-compression_level', '2'];
+
+  await execFileAsync(ffmpegPath, [
+    '-y',
+    '-i', inputPath,
+    '-map', '0:a:0',
+    '-vn',
+    '-sn',
+    '-dn',
+    '-map_metadata', '-1',
+    ...codecArgs,
+    outputPath,
+  ], { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024, windowsHide: true });
 }
 
 /**
- * Audio Worker: Runs FFmpeg to downmix to stereo (-ac 2) and
- * compress according to user preset:
- * - high (Smaller / Extreme): 64kbps MP3 or 48kbps Opus
- * - medium (Recommended / Balanced): 128kbps MP3 or 96kbps Opus
- * - low (Less / Best Quality): 192kbps MP3 or 160kbps Opus
+ * Adaptive audio optimizer. Target-size jobs retry decreasing bitrates, while
+ * normal jobs use the selected quality preset. The best candidate below the cap
+ * is chosen; if no candidate is smaller than the source, the original is kept.
+ * The encoder no longer forces all audio to stereo, preserving multichannel
+ * source layouts unless the target codec itself cannot represent them.
  */
 export async function processAudio(
   job: CompressionJobData,
   onProgress?: (percentage: number) => Promise<void>
 ): Promise<ProcessResult> {
+  if (isTargetAlreadySatisfied(job)) {
+    const preserved = await preserveOriginal(job);
+    if (onProgress) await onProgress(100);
+    return preserved;
+  }
+
   const ffmpegPath = getFfmpegPath();
   const ffprobePath = getFfprobePath();
-  const timeoutMs = Number(process.env.AUDIO_TIMEOUT_MS) || 180000; // 3 minutes default
+  const timeoutMs = Math.max(30000, Number(process.env.AUDIO_TIMEOUT_MS) || 240000);
+  const duration = await probeAudio(ffprobePath, job.inputFilePath);
+  const targetBytes = getTargetSizeBytes(job);
+  const codec = job.options?.audioCodec || 'mp3';
+  const level = job.options?.level || 'medium';
 
   if (onProgress) await onProgress(10);
 
-  // 1. Corrupted file check
-  const duration = await probeAudio(ffprobePath, job.inputFilePath);
-
-  if (onProgress) await onProgress(20);
-
-  const level = job.options?.level || 'medium';
-  const audioCodec = job.options?.audioCodec || 'mp3';
-
-  let mp3Bitrate = '128k';
-  let opusBitrate = '96k';
-
-  if (level === 'high') {
-    mp3Bitrate = '64k';
-    opusBitrate = '48k';
-  } else if (level === 'low') {
-    mp3Bitrate = '192k';
-    opusBitrate = '160k';
+  let bitrates: number[];
+  if (targetBytes) {
+    const targetBps = Math.max(24000, Math.floor((targetBytes * 8 * 0.96) / duration));
+    bitrates = [
+      Math.min(320000, targetBps),
+      Math.min(256000, Math.floor(targetBps * 0.88)),
+      Math.min(192000, Math.floor(targetBps * 0.76)),
+      Math.min(128000, Math.floor(targetBps * 0.64)),
+      Math.min(96000, Math.floor(targetBps * 0.52)),
+      Math.max(24000, Math.floor(targetBps * 0.40)),
+    ].filter((value, index, list) => value > 0 && list.indexOf(value) === index);
+  } else if (codec === 'opus') {
+    bitrates = [level === 'high' ? 48_000 : level === 'low' ? 160_000 : 96_000];
+  } else {
+    bitrates = [level === 'high' ? 64_000 : level === 'low' ? 192_000 : 128_000];
   }
 
-  const codecArgs =
-    audioCodec === 'opus'
-      ? ['-c:a', 'libopus', '-b:a', opusBitrate, '-vbr', 'on']
-      : ['-c:a', 'libmp3lame', '-b:a', mp3Bitrate];
+  const extension = codec === 'opus' ? '.opus' : '.mp3';
+  const mimeType = codec === 'opus' ? 'audio/ogg' : 'audio/mpeg';
+  const outputFilePath = getOutputPathForExtension(job.outputFilePath, extension);
+  const temporaryPaths: string[] = [];
+  const candidates: Array<{ path: string; size: number }> = [];
 
-  // FFmpeg arguments:
-  // -ac 2 (downmix to stereo)
-  // preset bitrate
-  const args = [
-    '-y',
-    '-i', job.inputFilePath,
-    '-ac', '2',
-    ...codecArgs,
-    '-progress', 'pipe:1',
-    job.outputFilePath,
-  ];
+  try {
+    for (let index = 0; index < bitrates.length; index++) {
+      const candidatePath = `${outputFilePath}.candidate-${index}${extension}`;
+      temporaryPaths.push(candidatePath);
 
-  return new Promise((resolve, reject) => {
-    let timer: NodeJS.Timeout | null = null;
-    let timedOut = false;
-    let lastProgressPct = 20;
-
-    const child = spawn(ffmpegPath, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    timer = setTimeout(() => {
-      timedOut = true;
-      console.warn(`[AudioWorker] Job ${job.jobId} timed out after ${timeoutMs}ms.`);
-      child.kill('SIGTERM');
-      setTimeout(() => {
-        if (!child.killed) child.kill('SIGKILL');
-      }, 4000);
-    }, timeoutMs);
-
-    let stderrBuffer = '';
-
-    child.stderr.on('data', (chunk) => {
-      stderrBuffer += chunk.toString();
-      if (stderrBuffer.length > 16384) {
-        stderrBuffer = stderrBuffer.slice(-8192);
-      }
-    });
-
-    child.stdout.on('data', (chunk) => {
-      const text = chunk.toString();
-      const match = text.match(/out_time_us=(\d+)/);
-      if (match && duration > 0) {
-        const timeSec = parseInt(match[1], 10) / 1000000;
-        const pct = Math.min(95, Math.max(20, Math.floor((timeSec / duration) * 80) + 20));
-        if (pct > lastProgressPct) {
-          lastProgressPct = pct;
-          if (onProgress) onProgress(pct).catch(() => undefined);
-        }
-      }
-    });
-
-    child.on('error', (err) => {
-      if (timer) clearTimeout(timer);
-      reject(new Error(`Failed to start FFmpeg for audio: ${err.message}`));
-    });
-
-    child.on('close', async (code) => {
-      if (timer) clearTimeout(timer);
-
-      if (timedOut) {
-        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
-        return reject(new Error(`Audio compression timed out after ${Math.round(timeoutMs / 1000)} seconds.`));
+      if (onProgress) {
+        await onProgress(Math.min(90, 20 + Math.floor((index / bitrates.length) * 65)));
       }
 
-      if (code !== 0) {
-        await fs.rm(job.outputFilePath, { force: true }).catch(() => undefined);
-        return reject(new Error(`FFmpeg audio compression failed (code ${code}): ${stderrBuffer.slice(-500)}`));
+      try {
+        await encodeAudio(ffmpegPath, job.inputFilePath, candidatePath, codec, bitrates[index], timeoutMs);
+      } catch (error: any) {
+        console.warn(`[AudioWorker] Audio encoding profile ${index + 1} failed: ${error.message}`);
+        if (index === 0) throw error;
+        continue;
       }
 
-      const stat = await fs.stat(job.outputFilePath).catch(() => null);
-      if (!stat || stat.size === 0) {
-        return reject(new Error('Audio compression completed but generated an empty output file.'));
+      const stat = await fs.stat(candidatePath).catch(() => null);
+      if (stat && stat.size > 0 && stat.size < job.originalSize) {
+        candidates.push({ path: candidatePath, size: stat.size });
       }
+      if (!targetBytes && candidates.length > 0) break;
+    }
 
+    const fitting = targetBytes
+      ? candidates.filter(candidate => candidate.size <= targetBytes)
+      : [];
+    const selected = fitting.length
+      ? fitting.reduce((best, current) => current.size > best.size ? current : best)
+      : candidates.length
+        ? candidates.reduce((best, current) => current.size < best.size ? current : best)
+        : undefined;
+
+    if (!selected) {
+      const preserved = await preserveOriginal(job);
       if (onProgress) await onProgress(100);
+      return preserved;
+    }
 
-      resolve({
-        outputFilePath: job.outputFilePath,
-        compressedSize: stat.size,
-      });
-    });
-  });
+    await fs.copyFile(selected.path, outputFilePath);
+    const stat = await fs.stat(outputFilePath);
+    if (onProgress) await onProgress(100);
+    return {
+      outputFilePath,
+      compressedSize: stat.size,
+      mimeType,
+    };
+  } finally {
+    await Promise.all(temporaryPaths.map(filePath =>
+      fs.rm(filePath, { force: true }).catch(() => undefined)
+    ));
+  }
 }
