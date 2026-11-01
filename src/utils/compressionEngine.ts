@@ -517,9 +517,17 @@ async function compressPdfReal(
         ? (pct, text) => onPageProgress(1, 1, text, pct)
         : undefined);
       if (remote) {
+        // Verify the downloaded bytes themselves, rather than trusting the job's
+        // completion status or a server-reported percentage.
+        if (remote.blob.size >= originalSize) {
+          throw new Error('The compression service did not reduce the PDF size.');
+        }
+        const verifiedPdf = await PDFDocument.load(await remote.blob.arrayBuffer(), {
+          ignoreEncryption: true,
+        });
         return {
           blob: remote.blob,
-          pageCount: remote.pageCount || 1,
+          pageCount: verifiedPdf.getPageCount(),
           previewUrl: remote.previewUrl || URL.createObjectURL(remote.blob),
           downloadUrl: remote.downloadUrl,
         };
