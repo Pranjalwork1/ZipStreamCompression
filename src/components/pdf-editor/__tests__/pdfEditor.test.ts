@@ -82,7 +82,7 @@ describe('PDF Editor HistoryManager', () => {
       textDecoration: 'none',
       color: '#0C162C',
       opacity: 1,
-      align: 'left',
+      textAlign: 'left',
     };
 
     history.push([textElement], 'Add Text');
@@ -128,7 +128,7 @@ describe('PDF Editor HistoryManager', () => {
         textDecoration: 'none',
         color: '#000000',
         opacity: 1,
-        align: 'left',
+        textAlign: 'left',
       },
     ]);
 
@@ -154,7 +154,7 @@ describe('PDF Editor HistoryManager', () => {
         textDecoration: 'none',
         color: '#000000',
         opacity: 1,
-        align: 'left',
+        textAlign: 'left',
       },
     ]);
 
