@@ -129,7 +129,12 @@ export async function processImage(
         format,
         isAnimated && format === 'webp'
       );
-      if (bytes.length > 0 && bytes.length < job.originalSize) candidates.push(bytes);
+      if (bytes.length > 0 && bytes.length < job.originalSize) {
+        candidates.push(bytes);
+        // Profiles are ordered from highest to lowest quality. The first
+        // candidate under the cap is therefore the best-quality fitting result.
+        if (targetBytes && bytes.length <= targetBytes) break;
+      }
     } catch (err: any) {
       if (index === 0) throw new Error(`Image compression failed: ${err.message}`);
     }
