@@ -16,6 +16,7 @@ export interface CompressionJobData {
     videoCodec?: 'libx264' | 'libx265';
     crf?: number;
     audioCodec?: 'mp3' | 'opus';
+    audioBitrate?: number;
   };
   createdAt: number;
 }
